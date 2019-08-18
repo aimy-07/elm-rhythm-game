@@ -1,0 +1,69 @@
+/*
+  elm-hot creates an additional div wrapper around the app to make HMR possible.
+  This could break styling in development mode if you are using Elm UI.
+
+  More context in the issue:
+    https://github.com/halfzebra/create-elm-app/issues/320
+*/
+[data-elm-hot="true"] {
+  height: inherit;
+}
+
+h1 {
+  font-size: 30px;
+}
+
+.line {
+  position: absolute;
+  top: -500px;
+  height: 600px;
+  width: 98px;
+  border-left: solid 1px black;
+  border-right: solid 1px black;
+  background-color: white;
+  z-index: -100;
+}
+
+.line.is-pressing {
+  background-color: aquamarine;
+}
+
+.note {
+  position: absolute;
+  width: 98px;
+  height: 20px;
+  margin: 0px 1px;
+  background-color: red;
+}
+
+.note.long {
+  background-color: blue;
+}
+
+
+.judge_effect {
+  position: absolute;
+  text-align: center;
+  bottom: 30px;
+  width: 100px;
+  color: red;
+  opacity: 0;
+  animation: .5s ease-out 0s 1 normal forwards running judgeEffectAnim;
+}
+
+@keyframes judgeEffectAnim {
+  0% {
+    font-size: 12px;
+    opacity: 0;
+  }
+
+  50% {
+    font-size: 24px;
+    opacity: 1;
+  }
+
+  100% {
+    font-size: 24px;
+    opacity: 0;
+  }
+}
