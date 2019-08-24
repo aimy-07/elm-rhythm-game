@@ -78,22 +78,22 @@ styleLeft : LinePosition -> String
 styleLeft linePosition =
     case linePosition of
         S ->
-            String.fromInt 0 ++ "px"
+            String.fromInt 50 ++ "px"
 
         D ->
-            String.fromInt 100 ++ "px"
+            String.fromInt 150 ++ "px"
 
         F ->
-            String.fromInt 200 ++ "px"
+            String.fromInt 250 ++ "px"
 
         J ->
-            String.fromInt 500 ++ "px"
+            String.fromInt 650 ++ "px"
 
         K ->
-            String.fromInt 600 ++ "px"
+            String.fromInt 750 ++ "px"
 
         L ->
-            String.fromInt 700 ++ "px"
+            String.fromInt 850 ++ "px"
 
         Invalid ->
             "-1000px"

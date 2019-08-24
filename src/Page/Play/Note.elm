@@ -95,8 +95,8 @@ view note currentMusicTime justTime speed =
     case note of
         Single { position } ->
             div
-                [ class "note"
-                , style "bottom" (String.fromFloat bottom ++ "px")
+                [ class "play_note"
+                , style "bottom" (String.fromFloat (bottom - 20) ++ "px")
                 , style "left" (LinePosition.styleLeft <| position)
                 ]
                 []
@@ -106,11 +106,19 @@ view note currentMusicTime justTime speed =
                 height =
                     longTime * speed
             in
-            div
-                [ class "note"
-                , class "long"
-                , style "height" (String.fromFloat height ++ "px")
-                , style "bottom" (String.fromFloat bottom ++ "px")
-                , style "left" (LinePosition.styleLeft <| position)
+            div []
+                [ div
+                    [ class "play_note"
+                    , class "long"
+                    , style "bottom" (String.fromFloat (bottom - 20) ++ "px")
+                    , style "left" (LinePosition.styleLeft <| position)
+                    ]
+                    []
+                , div
+                    [ class "play_note_longLine"
+                    , style "bottom" (String.fromFloat (bottom + 0) ++ "px")
+                    , style "left" (LinePosition.styleLeft <| position)
+                    , style "height" (String.fromFloat height ++ "px")
+                    ]
+                    []
                 ]
-                []

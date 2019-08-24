@@ -290,35 +290,32 @@ view model =
     { title = "Play"
     , content =
         if MusicInfo.isLoaded model.musicInfo then
-            div []
-                [ div
-                    [ style "position" "relative"
-                    , style "height" "620px"
-                    ]
-                    [ div
-                        [ style "position" "absolute"
-                        , style "top" "500px"
-                        , style "left" "0px"
-                        , style "width" "1000px"
-                        , style "height" "10px"
-                        , style "background-color" "gray"
-                        , id "judge_area"
+            div [ class "play" ]
+                [ div [ class "play_header" ] []
+                , div [ class "play_contentsContainer" ]
+                    [ div [ class "play_contents" ]
+                        [ div []
+                            (List.map (\line -> viewLine line model) LinePosition.allLines)
+                        , div [ class "play_centerLine", id "judge_area" ]
+                            [ div []
+                                (List.map (\line -> viewLongNoteLine line model) model.longPressingLines)
+                            , div []
+                                (List.map (\notes -> viewConcurrentNotes notes model) (MusicInfo.toAllNotes model.musicInfo))
+                            ]
                         ]
-                        (List.map (\line -> viewLine line model) LinePosition.allLines
-                            ++ List.map (\notes -> viewConcurrentNotes notes model) (MusicInfo.toAllNotes model.musicInfo)
-                            ++ [ viewLongNotes model.longPressingLines model ]
-                        )
+                    , div [ class "play_display" ]
+                        [ div [] [ text <| "currentMusicTime: " ++ String.fromFloat model.currentMusicTime ]
+                        , div [] [ text <| "Bpm: " ++ MusicInfo.toStringBpm model.musicInfo ]
+                        , div [] [ text <| "Score: " ++ Score.toString model.score ]
+                        , div [] [ text <| "Combo: " ++ Combo.toString model.combo ]
+                        , div [] [ text "Spaceキーでスタート" ]
+                            |> Page.viewIf (model.playStatus == NotStart)
+                        , div [] [ text "Finish!" ]
+                            |> Page.viewIf (model.playStatus == Finish)
+                        , a [ Route.href Route.Home ] [ text "Homeに戻る" ]
+                            |> Page.viewIf (model.playStatus == Finish)
+                        ]
                     ]
-                , div [] [ text <| "currentMusicTime: " ++ String.fromFloat model.currentMusicTime ]
-                , div [] [ text <| "Bpm: " ++ MusicInfo.toStringBpm model.musicInfo ]
-                , div [] [ text <| "Score: " ++ Score.toString model.score ]
-                , div [] [ text <| "Combo: " ++ Combo.toString model.combo ]
-                , div [] [ text "Spaceキーでスタート" ]
-                    |> Page.viewIf (model.playStatus == NotStart)
-                , div [] [ text "Finish!" ]
-                    |> Page.viewIf (model.playStatus == Finish)
-                , a [ Route.href Route.Home ] [ text "Homeに戻る" ]
-                    |> Page.viewIf (model.playStatus == Finish)
                 ]
 
         else
@@ -338,26 +335,19 @@ viewConcurrentNotes concurrentNotes model =
         )
 
 
-viewLongNotes : List { position : LinePosition, endTime : EndTime } -> Model -> Html msg
-viewLongNotes longPressingLines model =
-    div []
-        (longPressingLines
-            |> List.map
-                (\line ->
-                    let
-                        height =
-                            (line.endTime - model.currentMusicTime) * model.speed
-                    in
-                    div
-                        [ class "note"
-                        , class "long"
-                        , style "height" (String.fromFloat height ++ "px")
-                        , style "bottom" "10px"
-                        , style "left" (LinePosition.styleLeft <| line.position)
-                        ]
-                        []
-                )
-        )
+viewLongNoteLine : { position : LinePosition, endTime : EndTime } -> Model -> Html msg
+viewLongNoteLine longPressingLine model =
+    let
+        height =
+            (longPressingLine.endTime - model.currentMusicTime) * model.speed
+    in
+    div
+        [ class "play_note_longLine"
+        , style "height" (String.fromFloat height ++ "px")
+        , style "bottom" "0px"
+        , style "left" (LinePosition.styleLeft <| longPressingLine.position)
+        ]
+        []
 
 
 viewLine : LinePosition -> Model -> Html msg
@@ -367,7 +357,7 @@ viewLine linePosition model =
             List.member linePosition model.pressingLines
     in
     div
-        [ class "line"
+        [ class "play_line"
         , class <|
             if isPressing then
                 " is-pressing"
@@ -376,7 +366,17 @@ viewLine linePosition model =
                 ""
         , style "left" (LinePosition.styleLeft linePosition)
         ]
-        []
+        [ div
+            [ class "line_text"
+            , class <|
+                if isPressing then
+                    " is-pressing"
+
+                else
+                    ""
+            ]
+            [ text <| LinePosition.unwrap linePosition ]
+        ]
 
 
 
