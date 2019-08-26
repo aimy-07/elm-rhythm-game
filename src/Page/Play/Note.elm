@@ -1,4 +1,4 @@
-module Page.Play.Note exposing (EndTime, LongTime, Note, isLongNote, isSamePosition, isSingleNote, newLongNote, newSingleNote, toLongTime, toPosition, view)
+module Page.Play.Note exposing (LongTime, Note, isSamePosition, new, toLongTime, toPosition, view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -9,12 +9,9 @@ import Page.Play.Speed exposing (Speed)
 
 
 type Note
-    = Single
+    = Note
         { position : LinePosition
-        }
-    | Long
-        { position : LinePosition
-        , longTime : Float
+        , longTime : LongTime
         }
 
 
@@ -22,63 +19,22 @@ type alias LongTime =
     Float
 
 
-type alias EndTime =
-    Float
-
-
-newSingleNote : String -> Note
-newSingleNote keyStr =
-    Single
-        { position = LinePosition.new keyStr
-        }
-
-
-newLongNote : String -> LongTime -> Note
-newLongNote keyStr longTime =
-    Long
+new : String -> LongTime -> Note
+new keyStr longTime =
+    Note
         { position = LinePosition.new keyStr
         , longTime = longTime
         }
 
 
-isSingleNote : Note -> Bool
-isSingleNote note =
-    case note of
-        Single _ ->
-            True
-
-        Long _ ->
-            False
-
-
-isLongNote : Note -> Bool
-isLongNote note =
-    case note of
-        Single _ ->
-            False
-
-        Long _ ->
-            True
-
-
 toPosition : Note -> LinePosition
-toPosition note =
-    case note of
-        Single { position } ->
-            position
-
-        Long { position } ->
-            position
+toPosition (Note { position }) =
+    position
 
 
 toLongTime : Note -> LongTime
-toLongTime note =
-    case note of
-        Single _ ->
-            0
-
-        Long { longTime } ->
-            longTime
+toLongTime (Note { longTime }) =
+    longTime
 
 
 isSamePosition : LinePosition -> Note -> Bool
@@ -86,39 +42,34 @@ isSamePosition linePosition note =
     LinePosition.isSamePosition linePosition (toPosition note)
 
 
-view : Note -> CurrentMusicTime -> JustTime -> Speed -> Html msg
-view note currentMusicTime justTime speed =
+view : CurrentMusicTime -> JustTime -> Speed -> Note -> Html msg
+view currentMusicTime justTime speed (Note { position, longTime }) =
     let
         bottom =
             (justTime - currentMusicTime) * speed
-    in
-    case note of
-        Single { position } ->
-            div
-                [ class "play_note"
-                , style "bottom" (String.fromFloat (bottom - 20) ++ "px")
-                , style "left" (LinePosition.styleLeft <| position)
-                ]
-                []
 
-        Long { position, longTime } ->
-            let
-                height =
-                    longTime * speed
-            in
-            div []
-                [ div
-                    [ class "play_note"
-                    , class "long"
-                    , style "bottom" (String.fromFloat (bottom - 20) ++ "px")
-                    , style "left" (LinePosition.styleLeft <| position)
-                    ]
-                    []
-                , div
-                    [ class "play_note_longLine"
-                    , style "bottom" (String.fromFloat (bottom + 0) ++ "px")
-                    , style "left" (LinePosition.styleLeft <| position)
-                    , style "height" (String.fromFloat height ++ "px")
-                    ]
-                    []
-                ]
+        height =
+            longTime * speed
+
+        styleClass =
+            if longTime == 0 then
+                class "play_note"
+
+            else
+                class "play_note long"
+    in
+    div []
+        [ div
+            [ styleClass
+            , style "bottom" (String.fromFloat (bottom - 20) ++ "px")
+            , style "left" (LinePosition.styleLeft position)
+            ]
+            []
+        , div
+            [ class "play_note_longLine"
+            , style "bottom" (String.fromFloat (bottom + 0) ++ "px")
+            , style "left" (LinePosition.styleLeft position)
+            , style "height" (String.fromFloat height ++ "px")
+            ]
+            []
+        ]

@@ -1,4 +1,4 @@
-module Page.Play.JudgeKind exposing (JudgeKind, isGood, isGreat, isInvalid, isMiss, isPerfect, judgeKeyDown, miss, toStringJudgeKind)
+module Page.Play.JudgeKind exposing (JudgeKind, isGood, isGreat, isInvalid, isOverMiss, isPerfect, judgeKeyDown, miss, toStringJudgeKind)
 
 import Page.Play.ConcurrentNotes as ConcurrentNotes exposing (ConcurrentNotes)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
@@ -88,8 +88,8 @@ isGood judgeKind =
     judgeKind == Good
 
 
-isMiss : CurrentMusicTime -> Maybe JustTime -> Bool
-isMiss currentMusicTime maybeJustTime =
+isOverMiss : CurrentMusicTime -> Maybe JustTime -> Bool
+isOverMiss currentMusicTime maybeJustTime =
     maybeJustTime
         |> Maybe.map
             (\justTime ->

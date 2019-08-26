@@ -1,4 +1,4 @@
-module Page.Play.LinePosition exposing (LinePosition, allLines, isSamePosition, new, styleLeft, unwrap)
+module Page.Play.LinePosition exposing (LinePosition, allLines, isSamePosition, new, styleLeft, unwrap, viewLine)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -97,3 +97,27 @@ styleLeft linePosition =
 
         Invalid ->
             "-1000px"
+
+
+viewLine : LinePosition -> List LinePosition -> Html msg
+viewLine linePosition pressingLines =
+    let
+        isPressing =
+            List.member linePosition pressingLines
+
+        isPressingStyleClass =
+            if isPressing then
+                " is-pressing"
+
+            else
+                ""
+    in
+    div
+        [ class <| "play_line" ++ isPressingStyleClass
+        , style "left" (styleLeft linePosition)
+        ]
+        [ div
+            [ class <| "line_text" ++ isPressingStyleClass
+            ]
+            [ text <| unwrap linePosition ]
+        ]

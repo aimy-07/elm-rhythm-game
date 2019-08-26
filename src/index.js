@@ -26,14 +26,14 @@ const getCSVFile = () => {
     const bpm = parseFloat(csvArray[1][0]);
     const beatCount = parseFloat(csvArray[2][0]);
     const offset = parseFloat(csvArray[3][0]);
-    const timePerBgm = 60 * 1000 / bpm;
+    const timePerBpm = 60 * 1000 / bpm;
     csvArray.splice(0, 4);
     const allNotes = csvArray.map((concurrentNote) => {
-      const justTime = (parseFloat(concurrentNote[0]) * beatCount + parseFloat(concurrentNote[1])) * timePerBgm + offset * 1000;
+      const justTime = (parseFloat(concurrentNote[0]) * beatCount + parseFloat(concurrentNote[1])) * timePerBpm + offset * 1000;
       concurrentNote.splice(0, 2);
       const notes = concurrentNote.map((note) => {
         if (note && !isNaN(parseInt(note, 10))) {
-          return (parseInt(note, 10) === 0) ? 0 : parseFloat(note, 10) * timePerBgm
+          return (parseInt(note, 10) === 0) ? 0 : parseFloat(note, 10) * timePerBpm
         }
         return -1;
       })

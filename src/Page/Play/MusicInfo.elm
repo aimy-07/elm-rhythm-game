@@ -9,7 +9,12 @@ import Page.Play.Note as Note exposing (Note)
 
 type MusicInfo
     = NotLoaded
-    | Loaded (List ConcurrentNotes) MaxCombo FullTime Bpm
+    | Loaded
+        { allNotes : List ConcurrentNotes
+        , maxCombo : MaxCombo
+        , fullTime : FullTime
+        , bpm : Bpm
+        }
 
 
 type alias MaxCombo =
@@ -32,7 +37,7 @@ init =
 isLoaded : MusicInfo -> Bool
 isLoaded musicInfo =
     case musicInfo of
-        Loaded _ _ _ _ ->
+        Loaded _ ->
             True
 
         NotLoaded ->
@@ -42,18 +47,28 @@ isLoaded musicInfo =
 toAllNotes : MusicInfo -> List ConcurrentNotes
 toAllNotes musicInfo =
     case musicInfo of
-        Loaded allNotes _ _ _ ->
+        Loaded { allNotes } ->
             allNotes
 
         NotLoaded ->
             []
 
 
+toMaxCombo : MusicInfo -> MaxCombo
+toMaxCombo musicInfo =
+    case musicInfo of
+        Loaded { maxCombo } ->
+            maxCombo
+
+        NotLoaded ->
+            0
+
+
 toFullTime : MusicInfo -> FullTime
 toFullTime musicInfo =
     case musicInfo of
-        Loaded _ _ fillTime _ ->
-            fillTime
+        Loaded { fullTime } ->
+            fullTime
 
         NotLoaded ->
             0
@@ -62,8 +77,8 @@ toFullTime musicInfo =
 toStringFullTime : MusicInfo -> String
 toStringFullTime musicInfo =
     case musicInfo of
-        Loaded _ _ fillTime _ ->
-            String.fromFloat fillTime
+        Loaded { fullTime } ->
+            String.fromFloat fullTime
 
         NotLoaded ->
             "0"
@@ -72,7 +87,7 @@ toStringFullTime musicInfo =
 toBpm : MusicInfo -> Bpm
 toBpm musicInfo =
     case musicInfo of
-        Loaded _ _ _ bpm ->
+        Loaded { bpm } ->
             bpm
 
         NotLoaded ->
@@ -82,7 +97,7 @@ toBpm musicInfo =
 toStringBpm : MusicInfo -> String
 toStringBpm musicInfo =
     case musicInfo of
-        Loaded _ _ _ bpm ->
+        Loaded { bpm } ->
             String.fromInt bpm
 
         NotLoaded ->
@@ -92,10 +107,10 @@ toStringBpm musicInfo =
 updateNotesOverMiss : MusicInfo -> MusicInfo
 updateNotesOverMiss musicInfo =
     case musicInfo of
-        Loaded allNotes maxCombo fullTime bpm ->
-            case allNotes of
+        Loaded musicInfo_ ->
+            case musicInfo_.allNotes of
                 head :: tails ->
-                    Loaded tails maxCombo fullTime bpm
+                    Loaded { musicInfo_ | allNotes = tails }
 
                 [] ->
                     musicInfo
@@ -107,8 +122,8 @@ updateNotesOverMiss musicInfo =
 updateNotesKeyDown : LinePosition -> MusicInfo -> MusicInfo
 updateNotesKeyDown position musicInfo =
     case musicInfo of
-        Loaded allNotes maxCombo fullTime bpm ->
-            case allNotes of
+        Loaded musicInfo_ ->
+            case musicInfo_.allNotes of
                 head :: tails ->
                     let
                         justTime =
@@ -123,14 +138,14 @@ updateNotesKeyDown position musicInfo =
                                     (\note -> not <| Note.isSamePosition position note)
                     in
                     if nextHeadNotes == [] then
-                        Loaded tails maxCombo fullTime bpm
+                        Loaded { musicInfo_ | allNotes = tails }
 
                     else
                         let
                             nextHead =
                                 ConcurrentNotes.updateNotes nextHeadNotes head
                         in
-                        Loaded (nextHead :: tails) maxCombo fullTime bpm
+                        Loaded { musicInfo_ | allNotes = nextHead :: tails }
 
                 [] ->
                     musicInfo
@@ -151,52 +166,53 @@ create rawMusicInfo =
         allNotes =
             rawMusicInfo.allNotes
                 |> List.map
-                    (\concurrentNote ->
+                    (\rawConcurrentNote ->
                         let
                             notes =
-                                concurrentNote.notes
+                                rawConcurrentNote.notes
                                     |> List.indexedMap
-                                        (\index ->
-                                            \note ->
-                                                let
-                                                    position =
-                                                        case index of
-                                                            0 ->
-                                                                "S"
+                                        (\index num ->
+                                            let
+                                                position =
+                                                    case index of
+                                                        0 ->
+                                                            "S"
 
-                                                            1 ->
-                                                                "D"
+                                                        1 ->
+                                                            "D"
 
-                                                            2 ->
-                                                                "F"
+                                                        2 ->
+                                                            "F"
 
-                                                            3 ->
-                                                                "J"
+                                                        3 ->
+                                                            "J"
 
-                                                            4 ->
-                                                                "K"
+                                                        4 ->
+                                                            "K"
 
-                                                            5 ->
-                                                                "L"
+                                                        5 ->
+                                                            "L"
 
-                                                            _ ->
-                                                                Debug.todo "" "Invalid Position"
-                                                in
-                                                if note < 0 then
-                                                    Nothing
+                                                        _ ->
+                                                            Debug.todo "" "Invalid Position"
+                                            in
+                                            if num < 0 then
+                                                Nothing
 
-                                                else if note == 0 then
-                                                    Just (Note.newSingleNote position)
-
-                                                else
-                                                    Just (Note.newLongNote position note)
+                                            else
+                                                Just (Note.new position num)
                                         )
                                     |> List.filterMap (\maybeNotes -> maybeNotes)
                         in
-                        ConcurrentNotes.new concurrentNote.justTime notes
+                        ConcurrentNotes.new rawConcurrentNote.justTime notes
                     )
     in
-    Loaded allNotes (List.length allNotes) fullTime bpm
+    Loaded
+        { allNotes = allNotes
+        , maxCombo = List.length allNotes
+        , fullTime = fullTime
+        , bpm = bpm
+        }
 
 
 type alias MusicInfoDto =
