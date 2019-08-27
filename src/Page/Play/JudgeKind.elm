@@ -1,4 +1,4 @@
-module Page.Play.JudgeKind exposing (JudgeKind, isGood, isGreat, isInvalid, isOverMiss, isPerfect, judgeKeyDown, miss, toStringJudgeKind)
+module Page.Play.JudgeKind exposing (JudgeKind, invalid, isGood, isGreat, isInvalid, isOverMiss, isPerfect, judgeKeyDown, miss, toStringJudgeKind)
 
 import Page.Play.ConcurrentNotes as ConcurrentNotes exposing (ConcurrentNotes)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
@@ -101,6 +101,11 @@ isOverMiss currentMusicTime maybeJustTime =
 miss : JudgeKind
 miss =
     Miss
+
+
+invalid : JudgeKind
+invalid =
+    Invalid
 
 
 

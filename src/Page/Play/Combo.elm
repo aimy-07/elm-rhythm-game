@@ -1,4 +1,4 @@
-module Page.Play.Combo exposing (Combo, init, toString, update)
+module Page.Play.Combo exposing (Combo, addLong, init, toString, update)
 
 import Page.Play.JudgeKind as JudgeKind exposing (JudgeKind)
 
@@ -27,3 +27,8 @@ update judgeKind (Combo combo) =
 
     else
         Combo combo
+
+
+addLong : Combo -> Int -> Combo
+addLong (Combo combo) addingCombo =
+    Combo (combo + addingCombo)

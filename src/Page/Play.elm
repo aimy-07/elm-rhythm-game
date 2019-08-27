@@ -35,7 +35,7 @@ type alias Model =
     , playStatus : PlayStatus
     , currentMusicTime : CurrentMusicTime
     , pressingLines : List LinePosition
-    , longPressingLines : List LongNoteLine
+    , longNoteLines : List LongNoteLine
     , speed : Speed
     , score : Score
     , combo : Combo
@@ -56,7 +56,7 @@ init session =
       , playStatus = NotStart
       , currentMusicTime = 0
       , pressingLines = []
-      , longPressingLines = []
+      , longNoteLines = []
       , speed = 0.2
       , score = Score.init
       , combo = Combo.init
@@ -93,18 +93,66 @@ update msg model =
                     model.musicInfo
                         |> Page.updateIf isOverMiss MusicInfo.updateNotesOverMiss
 
-                nextLongPressingLines =
-                    model.longPressingLines
+                nextLongNoteLines =
+                    model.longNoteLines
                         |> List.filter
                             (\line -> LongNoteLine.toEndTime line > updatedTime)
+                        -- timeCounterから-10する
+                        |> List.map
+                            (\longNoteLine ->
+                                LongNoteLine.updateTimeCounter longNoteLine
+                            )
 
                 nextScore =
-                    model.score
-                        |> Score.addLong (List.length nextLongPressingLines)
+                    model.longNoteLines
+                        -- まず、timeCounterから-10する
+                        |> List.map
+                            (\longNoteLine ->
+                                LongNoteLine.updateTimeCounter longNoteLine
+                            )
+                        -- 次に、timeCounterが割り切れたらスコアを追加
+                        |> List.map
+                            (\longNoteLine ->
+                                let
+                                    timeCounter =
+                                        LongNoteLine.toTimeCounter longNoteLine
+                                in
+                                if Basics.modBy 200 timeCounter == 0 && timeCounter >= 0 then
+                                    Score.longScore
+
+                                else
+                                    0
+                            )
+                        |> List.foldl (+) 0
+                        |> Score.addLong model.score
 
                 nextCombo =
-                    model.combo
-                        |> Page.updateIf isOverMiss (Combo.update JudgeKind.miss)
+                    let
+                        updatedComboForMiss =
+                            model.combo
+                                |> Page.updateIf isOverMiss (Combo.update JudgeKind.miss)
+                    in
+                    model.longNoteLines
+                        -- まず、timeCounterから-10する
+                        |> List.map
+                            (\longNoteLine ->
+                                LongNoteLine.updateTimeCounter longNoteLine
+                            )
+                        -- 次に、timeCounterが割り切れたらスコアを追加
+                        |> List.map
+                            (\longNoteLine ->
+                                let
+                                    timeCounter =
+                                        LongNoteLine.toTimeCounter longNoteLine
+                                in
+                                if Basics.modBy 200 timeCounter == 0 && timeCounter >= 0 then
+                                    1
+
+                                else
+                                    0
+                            )
+                        |> List.foldl (+) 0
+                        |> Combo.addLong updatedComboForMiss
 
                 missEffectCmd =
                     List.head (MusicInfo.toAllNotes model.musicInfo)
@@ -113,7 +161,7 @@ update msg model =
                                 ConcurrentNotes.toNotes head
                                     |> List.map
                                         (\note ->
-                                            JudgeEffect.new JudgeKind.miss (Note.toPosition note)
+                                            JudgeEffect.new JudgeKind.miss (Note.toPosition note) False
                                                 |> addJudgeEffect
                                         )
                                     |> Cmd.batch
@@ -121,19 +169,46 @@ update msg model =
                         |> Maybe.withDefault Cmd.none
                         |> Page.cmdIf isOverMiss
 
+                longEffectCmd =
+                    model.longNoteLines
+                        -- まず、timeCounterから-10する
+                        |> List.map
+                            (\longNoteLine ->
+                                LongNoteLine.updateTimeCounter longNoteLine
+                            )
+                        -- 次に、timeCounterが割り切れたらスコアを追加
+                        |> List.map
+                            (\longNoteLine ->
+                                let
+                                    timeCounter =
+                                        LongNoteLine.toTimeCounter longNoteLine
+                                in
+                                if Basics.modBy 200 timeCounter == 0 && timeCounter >= 0 then
+                                    addJudgeEffect (JudgeEffect.new JudgeKind.invalid (LongNoteLine.toPosition longNoteLine) True)
+
+                                else
+                                    Cmd.none
+                            )
+                        |> Cmd.batch
+
                 nextPlayStatus =
                     model.playStatus
-                        |> Page.updateIf (MusicInfo.toFullTime model.musicInfo < model.currentMusicTime) (always Finish)
+                        |> Page.updateIf
+                            (MusicInfo.toFullTime model.musicInfo < model.currentMusicTime)
+                            (always Finish)
             in
             ( { model
                 | currentMusicTime = updatedTime
                 , playStatus = nextPlayStatus
                 , musicInfo = nextMusicInfo
-                , longPressingLines = nextLongPressingLines
+                , longNoteLines = nextLongNoteLines
                 , score = nextScore
                 , combo = nextCombo
               }
-            , missEffectCmd
+            , Cmd.batch
+                [ missEffectCmd
+                , longEffectCmd
+                ]
             )
 
         GotMusicInfo rawMusicInfo ->
@@ -186,28 +261,38 @@ update msg model =
 
                             nextMusicInfo =
                                 model.musicInfo
-                                    |> Page.updateIf (not <| JudgeKind.isInvalid judgeKind) (MusicInfo.updateNotesKeyDown position)
+                                    |> Page.updateIf
+                                        (not <| JudgeKind.isInvalid judgeKind)
+                                        (MusicInfo.updateNotesKeyDown position)
 
                             endTime =
                                 List.head (MusicInfo.toAllNotes model.musicInfo)
-                                    |> LongNoteLine.getEndTime model.currentMusicTime position
+                                    |> LongNoteLine.getEndTime position
 
-                            nextLongPressingLines =
-                                model.longPressingLines
-                                    |> Page.updateIf (not <| JudgeKind.isInvalid judgeKind) ((::) (LongNoteLine.new position endTime))
+                            timeCounter =
+                                List.head (MusicInfo.toAllNotes model.musicInfo)
+                                    |> LongNoteLine.getTimeCounter position
+
+                            nextLongNoteLines =
+                                model.longNoteLines
+                                    |> Page.updateIf
+                                        ((not <| JudgeKind.isInvalid judgeKind) && timeCounter > 0)
+                                        ((::) (LongNoteLine.new position endTime timeCounter))
 
                             nextPressingLines =
                                 model.pressingLines
-                                    |> Page.updateIf (not <| List.member position model.pressingLines) ((::) position)
+                                    |> Page.updateIf
+                                        (not <| List.member position model.pressingLines)
+                                        ((::) position)
 
                             judgeEffectCmd =
-                                JudgeEffect.new judgeKind position
+                                JudgeEffect.new judgeKind position (timeCounter > 0)
                                     |> addJudgeEffect
                                     |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
                         in
                         ( { model
                             | musicInfo = nextMusicInfo
-                            , longPressingLines = nextLongPressingLines
+                            , longNoteLines = nextLongNoteLines
                             , pressingLines = nextPressingLines
                             , score = Score.add judgeKind model.score
                             , combo = Combo.update judgeKind model.combo
@@ -229,8 +314,8 @@ update msg model =
                         position =
                             LinePosition.new keyStr
 
-                        nextLongPressingLines =
-                            model.longPressingLines
+                        nextLongNoteLines =
+                            model.longNoteLines
                                 |> List.filter (\line -> LongNoteLine.toPosition line /= position)
 
                         nextPressingLines =
@@ -239,7 +324,7 @@ update msg model =
                     in
                     ( { model
                         | pressingLines = nextPressingLines
-                        , longPressingLines = nextLongPressingLines
+                        , longNoteLines = nextLongNoteLines
                       }
                     , Cmd.none
                     )
@@ -266,6 +351,7 @@ view model =
                             [ viewLongNoteLines model
                             , viewConcurrentNotes model
                             ]
+                        , viewLongNoteEffects model
                         ]
                     , div [ class "play_display" ]
                         [ div [] [ text <| "currentMusicTime: " ++ String.fromFloat model.currentMusicTime ]
@@ -301,10 +387,21 @@ viewConcurrentNotes model =
 viewLongNoteLines : Model -> Html msg
 viewLongNoteLines model =
     div []
-        (model.longPressingLines
+        (model.longNoteLines
             |> List.map
                 (\line ->
                     LongNoteLine.view model.currentMusicTime model.speed line
+                )
+        )
+
+
+viewLongNoteEffects : Model -> Html msg
+viewLongNoteEffects model =
+    div []
+        (model.longNoteLines
+            |> List.map
+                (\line ->
+                    LongNoteLine.viewLongNoteEffect line model.longNoteLines
                 )
         )
 

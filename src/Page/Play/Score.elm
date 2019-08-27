@@ -1,4 +1,4 @@
-module Page.Play.Score exposing (Score, add, addLong, init, toString)
+module Page.Play.Score exposing (Score, add, addLong, init, longScore, toString)
 
 import Page.Play.JudgeKind as JudgeKind exposing (JudgeKind)
 
@@ -32,9 +32,9 @@ add judgeKind (Score score) =
         Score score
 
 
-addLong : Int -> Score -> Score
-addLong longPressingCount (Score score) =
-    Score (score + longPressingCount * longScore)
+addLong : Score -> Int -> Score
+addLong (Score score) addingScore =
+    Score (score + addingScore)
 
 
 
@@ -58,4 +58,4 @@ goodScore =
 
 longScore : Int
 longScore =
-    10
+    100

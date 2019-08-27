@@ -6,12 +6,20 @@ const app = Elm.Main.init({
   node: document.getElementById('root')
 });
 
-app.ports.addJudgeEffect.subscribe(({styleLeft, judgeText}) => {
-  const div = document.createElement('div');
-  div.className = 'judge_effect';
-  div.style.left = styleLeft;
-  div.textContent = judgeText;
-  document.getElementById('judge_area').appendChild(div);
+app.ports.addJudgeEffect.subscribe(({styleLeft, judgeText, noteType}) => {
+  // エフェクト
+  const div1 = document.createElement('div');
+  div1.className = noteType === "SINGLE" ? 'play_noteEffect' : 'play_noteEffect long';
+  div1.style.left = styleLeft;
+  // 判定文字
+  const div2 = document.createElement('div');
+  div2.className = 'judge_effectText';
+  div2.style.left = styleLeft;
+  div2.textContent = judgeText;
+  document.getElementById('judge_area').appendChild(div2);
+  if (judgeText !== "Miss") { 
+    document.getElementById('judge_area').appendChild(div1);
+  }
 })
 
 app.ports.getMusicInfo.subscribe(() => {
