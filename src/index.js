@@ -35,19 +35,25 @@ const getCSVFile = () => {
     const beatCount = parseFloat(csvArray[2][0]);
     const offset = parseFloat(csvArray[3][0]);
     const timePerBpm = 60 * 1000 / bpm;
+    let maxCombo = 0;
     csvArray.splice(0, 4);
     const allNotes = csvArray.map((concurrentNote) => {
       const justTime = (parseFloat(concurrentNote[0]) * beatCount + parseFloat(concurrentNote[1])) * timePerBpm + offset * 1000;
       concurrentNote.splice(0, 2);
       const notes = concurrentNote.map((note) => {
         if (note && !isNaN(parseInt(note, 10))) {
-          return (parseInt(note, 10) === 0) ? 0 : parseFloat(note, 10) * timePerBpm
+          const longTime = (parseInt(note, 10) === 0) ? 0 : parseFloat(note, 10) * timePerBpm;
+          maxCombo = maxCombo + 1;
+          if (longTime > 0) {
+            maxCombo = maxCombo + Math.floor(longTime / 200);
+          }
+          return longTime;
         }
         return -1;
       })
       return {justTime, notes}
     })
-    const musicInfo = {fullTime, bpm, allNotes}
+    const musicInfo = {fullTime, bpm, maxCombo, allNotes}
     console.log(musicInfo)
     app.ports.gotMusicInfo.send(musicInfo);
   };

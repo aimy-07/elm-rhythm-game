@@ -1,4 +1,4 @@
-module Page.Play.MusicInfo exposing (MusicInfo, MusicInfoDto, create, init, isLoaded, toAllNotes, toBpm, toFullTime, toStringBpm, updateNotesKeyDown, updateNotesOverMiss)
+module Page.Play.MusicInfo exposing (MusicInfo, MusicInfoDto, create, init, isLoaded, toAllNotes, toBpm, toFullTime, toStringBpm, toStringMaxCombo, updateNotesKeyDown, updateNotesOverMiss)
 
 import Page.Play.ConcurrentNotes as ConcurrentNotes exposing (ConcurrentNotes)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
@@ -62,6 +62,16 @@ toMaxCombo musicInfo =
 
         NotLoaded ->
             0
+
+
+toStringMaxCombo : MusicInfo -> String
+toStringMaxCombo musicInfo =
+    case musicInfo of
+        Loaded { maxCombo } ->
+            String.fromInt maxCombo
+
+        NotLoaded ->
+            "0"
 
 
 toFullTime : MusicInfo -> FullTime
@@ -163,6 +173,9 @@ create rawMusicInfo =
         bpm =
             Basics.round rawMusicInfo.bpm
 
+        maxCombo =
+            rawMusicInfo.maxCombo
+
         allNotes =
             rawMusicInfo.allNotes
                 |> List.map
@@ -209,7 +222,7 @@ create rawMusicInfo =
     in
     Loaded
         { allNotes = allNotes
-        , maxCombo = List.length allNotes
+        , maxCombo = maxCombo
         , fullTime = fullTime
         , bpm = bpm
         }
@@ -218,6 +231,7 @@ create rawMusicInfo =
 type alias MusicInfoDto =
     { fullTime : Float
     , bpm : Float
+    , maxCombo : Int
     , allNotes : List NoteDto
     }
 

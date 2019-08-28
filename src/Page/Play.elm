@@ -358,6 +358,7 @@ view model =
                         , div [] [ text <| "Bpm: " ++ MusicInfo.toStringBpm model.musicInfo ]
                         , div [] [ text <| "Score: " ++ Score.toString model.score ]
                         , div [] [ text <| "Combo: " ++ Combo.toString model.combo ]
+                        , div [] [ text <| "MaxCombo: " ++ MusicInfo.toStringMaxCombo model.musicInfo ]
                         , div [] [ text "Spaceキーでスタート" ]
                             |> Page.viewIf (model.playStatus == NotStart)
                         , div [] [ text "Finish!" ]
