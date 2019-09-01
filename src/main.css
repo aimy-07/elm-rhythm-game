@@ -256,7 +256,6 @@ h1 {
   left: 0;
   top: 640px;
   text-align: center;
-  transform: translate3d(rotateX(50deg));
   font-weight: 600;
   font-size: 60px;
   color: black;
@@ -270,16 +269,16 @@ h1 {
 .judge_effectText {
   position: absolute;
   text-align: center;
-  top: 50px;
+  top: 70px;
   width: 100px;
-  color: #fff;
+  color: white;
   opacity: 1;
-  /* animation: .5s ease-out 0s 1 normal forwards running judgeEffectAnim; */
+  animation: .8s ease-out 0s 1 normal forwards running judgeEffectAnim;
+  transform: translate(0, -50%);
   font-size: 20px;
-  font-weight: 400;
+  font-weight: 600;
   text-transform: uppercase;
-  animation: blur .75s ease-out forwards;
-  text-shadow: 0px 0px 5px #fff, 0px 0px 7px #fff;
+  text-shadow: 0px 0px 10px #fff;
   z-index: 60;
 }
 
@@ -290,38 +289,12 @@ h1 {
   }
 
   50% {
-    font-size: 24px;
+    font-size: 18px;
     opacity: 1;
   }
 
   100% {
-    font-size: 24px;
-    opacity: 0;
-  }
-}
-
-@keyframes blur {
-  from {
-    text-shadow:0px 0px 10px #fff,
-      0px 0px 10px #fff,
-      0px 0px 25px #fff,
-      0px 0px 25px #fff,
-      0px 0px 25px #fff,
-      0px 0px 25px #fff,
-      0px 0px 25px #fff,
-      0px 0px 25px #fff,
-      0px 0px 50px #fff,
-      0px 0px 50px #fff,
-      0px 0px 50px #7B96B8,
-      0px 0px 150px #7B96B8,
-      0px 10px 100px #7B96B8,
-      0px 10px 100px #7B96B8,
-      0px 10px 100px #7B96B8,
-      0px 10px 100px #7B96B8,
-      0px -10px 100px #7B96B8,
-      0px -10px 100px #7B96B8;
-  }
-  to {
+    font-size: 18px;
     opacity: 0;
   }
 }
