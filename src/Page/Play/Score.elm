@@ -1,6 +1,15 @@
-module Page.Play.Score exposing (Score, add, addLong, init, longScore, toString)
+module Page.Play.Score exposing
+    ( Score
+    , add
+    , addLong
+    , calcLongScore
+    , init
+    , toString
+    )
 
 import Page.Play.JudgeKind as JudgeKind exposing (JudgeKind)
+import Page.Play.LongNoteLine as LongNoteLine exposing (LongNoteLine)
+import Page.Play.NotesPerLane as NotesPerLane exposing (NotesPerLane)
 
 
 type Score
@@ -35,6 +44,24 @@ add judgeKind (Score score) =
 addLong : Score -> Int -> Score
 addLong (Score score) addingScore =
     Score (score + addingScore)
+
+
+calcLongScore : NotesPerLane -> Int
+calcLongScore notesPerLane =
+    NotesPerLane.toMaybeLongNoteLine notesPerLane
+        |> Maybe.map
+            (\longNoteLine ->
+                let
+                    timeCounter =
+                        LongNoteLine.toTimeCounter longNoteLine
+                in
+                if Basics.modBy 200 timeCounter == 0 && timeCounter >= 0 then
+                    longScore
+
+                else
+                    0
+            )
+        |> Maybe.withDefault 0
 
 
 

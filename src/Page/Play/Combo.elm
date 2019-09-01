@@ -1,6 +1,15 @@
-module Page.Play.Combo exposing (Combo, addLong, init, toString, update)
+module Page.Play.Combo exposing
+    ( Combo
+    , addLong
+    , calcLongCombo
+    , init
+    , toString
+    , update
+    )
 
 import Page.Play.JudgeKind as JudgeKind exposing (JudgeKind)
+import Page.Play.LongNoteLine as LongNoteLine exposing (LongNoteLine)
+import Page.Play.NotesPerLane as NotesPerLane exposing (NotesPerLane)
 
 
 type Combo
@@ -32,3 +41,21 @@ update judgeKind (Combo combo) =
 addLong : Combo -> Int -> Combo
 addLong (Combo combo) addingCombo =
     Combo (combo + addingCombo)
+
+
+calcLongCombo : NotesPerLane -> Int
+calcLongCombo notesPerLane =
+    NotesPerLane.toMaybeLongNoteLine notesPerLane
+        |> Maybe.map
+            (\longNoteLine ->
+                let
+                    timeCounter =
+                        LongNoteLine.toTimeCounter longNoteLine
+                in
+                if Basics.modBy 200 timeCounter == 0 && timeCounter >= 0 then
+                    1
+
+                else
+                    0
+            )
+        |> Maybe.withDefault 0

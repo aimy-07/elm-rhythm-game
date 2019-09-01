@@ -7,16 +7,17 @@ import Json.Decode as Json
 import Keyboard exposing (Key(..))
 import Keyboard.Arrows
 import Page
+import Page.Play.AllNotes as AllNotes exposing (AllNotes)
 import Page.Play.Combo as Combo exposing (Combo)
-import Page.Play.ConcurrentNotes as ConcurrentNotes exposing (ConcurrentNotes)
-import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
+import Page.Play.CurrentMusicTime exposing (CurrentMusicTime, updateCurrentMusicTime)
 import Page.Play.JudgeEffect as JudgeEffect exposing (JudgeEffect)
 import Page.Play.JudgeKind as JudgeKind exposing (JudgeKind)
-import Page.Play.JustTime exposing (JustTime)
-import Page.Play.LinePosition as LinePosition exposing (LinePosition)
+import Page.Play.Lane as Lane exposing (Lane)
+import Page.Play.Lanes as Lanes exposing (Lanes)
 import Page.Play.LongNoteLine as LongNoteLine exposing (EndTime, LongNoteLine)
 import Page.Play.MusicInfo as MusicInfo exposing (MusicInfo, MusicInfoDto)
-import Page.Play.Note as Note exposing (Note)
+import Page.Play.Note as Note exposing (JustTime, Note)
+import Page.Play.NotesPerLane as NotesPerLane exposing (NotesPerLane)
 import Page.Play.Score as Score exposing (Score)
 import Page.Play.Speed exposing (Speed)
 import Route
@@ -31,11 +32,11 @@ import Time
 
 type alias Model =
     { session : Session
-    , musicInfo : MusicInfo
     , playStatus : PlayStatus
+    , musicInfo : MusicInfo
+    , allNotes : AllNotes
+    , lanes : Lanes
     , currentMusicTime : CurrentMusicTime
-    , pressingLines : List LinePosition
-    , longNoteLines : List LongNoteLine
     , speed : Speed
     , score : Score
     , combo : Combo
@@ -52,11 +53,11 @@ type PlayStatus
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
-      , musicInfo = MusicInfo.init
       , playStatus = NotStart
+      , musicInfo = MusicInfo.init
+      , allNotes = AllNotes.init
+      , lanes = Lanes.init
       , currentMusicTime = 0
-      , pressingLines = []
-      , longNoteLines = []
       , speed = 0.2
       , score = Score.init
       , combo = Combo.init
@@ -82,112 +83,54 @@ update msg model =
         Tick _ ->
             let
                 updatedTime =
-                    model.currentMusicTime + 10
+                    updateCurrentMusicTime model.currentMusicTime
 
-                isOverMiss =
-                    List.head (MusicInfo.toAllNotes model.musicInfo)
-                        |> Maybe.map (\head -> ConcurrentNotes.toJustTime head)
-                        |> JudgeKind.isOverMiss updatedTime
-
-                nextMusicInfo =
-                    model.musicInfo
-                        |> Page.updateIf isOverMiss MusicInfo.updateNotesOverMiss
-
-                nextLongNoteLines =
-                    model.longNoteLines
-                        |> List.filter
-                            (\line -> LongNoteLine.toEndTime line > updatedTime)
-                        -- timeCounterから-10する
-                        |> List.map
-                            (\longNoteLine ->
-                                LongNoteLine.updateTimeCounter longNoteLine
-                            )
+                nextAllNotes =
+                    -- 先にMissの処理を行う
+                    model.allNotes
+                        |> AllNotes.updateNotesOverMiss updatedTime
+                        |> AllNotes.updateLongNoteLines updatedTime
 
                 nextScore =
-                    model.longNoteLines
-                        -- まず、timeCounterから-10する
-                        |> List.map
-                            (\longNoteLine ->
-                                LongNoteLine.updateTimeCounter longNoteLine
-                            )
-                        -- 次に、timeCounterが割り切れたらスコアを追加
-                        |> List.map
-                            (\longNoteLine ->
-                                let
-                                    timeCounter =
-                                        LongNoteLine.toTimeCounter longNoteLine
-                                in
-                                if Basics.modBy 200 timeCounter == 0 && timeCounter >= 0 then
-                                    Score.longScore
-
-                                else
-                                    0
+                    nextAllNotes
+                        |> AllNotes.map
+                            (\notesPerLane ->
+                                Score.calcLongScore notesPerLane
                             )
                         |> List.foldl (+) 0
                         |> Score.addLong model.score
 
                 nextCombo =
                     let
+                        -- Missがあったら先にCombo = 0を実行する
+                        hasOverMissNotes =
+                            AllNotes.hasOverMissNotes updatedTime model.allNotes
+
                         updatedComboForMiss =
                             model.combo
-                                |> Page.updateIf isOverMiss (Combo.update JudgeKind.miss)
+                                |> Page.updateIf hasOverMissNotes (Combo.update JudgeKind.miss)
                     in
-                    model.longNoteLines
-                        -- まず、timeCounterから-10する
-                        |> List.map
-                            (\longNoteLine ->
-                                LongNoteLine.updateTimeCounter longNoteLine
-                            )
-                        -- 次に、timeCounterが割り切れたらスコアを追加
-                        |> List.map
-                            (\longNoteLine ->
-                                let
-                                    timeCounter =
-                                        LongNoteLine.toTimeCounter longNoteLine
-                                in
-                                if Basics.modBy 200 timeCounter == 0 && timeCounter >= 0 then
-                                    1
-
-                                else
-                                    0
+                    nextAllNotes
+                        |> AllNotes.map
+                            (\notesPerLane ->
+                                Combo.calcLongCombo notesPerLane
                             )
                         |> List.foldl (+) 0
                         |> Combo.addLong updatedComboForMiss
 
                 missEffectCmd =
-                    List.head (MusicInfo.toAllNotes model.musicInfo)
-                        |> Maybe.map
-                            (\head ->
-                                ConcurrentNotes.toNotes head
-                                    |> List.map
-                                        (\note ->
-                                            JudgeEffect.new JudgeKind.miss (Note.toPosition note) False
-                                                |> addJudgeEffect
-                                        )
-                                    |> Cmd.batch
+                    model.allNotes
+                        |> AllNotes.map
+                            (\notesPerLane ->
+                                JudgeEffect.missEffectCmd updatedTime notesPerLane
                             )
-                        |> Maybe.withDefault Cmd.none
-                        |> Page.cmdIf isOverMiss
+                        |> Cmd.batch
 
                 longEffectCmd =
-                    model.longNoteLines
-                        -- まず、timeCounterから-10する
-                        |> List.map
-                            (\longNoteLine ->
-                                LongNoteLine.updateTimeCounter longNoteLine
-                            )
-                        -- 次に、timeCounterが割り切れたらスコアを追加
-                        |> List.map
-                            (\longNoteLine ->
-                                let
-                                    timeCounter =
-                                        LongNoteLine.toTimeCounter longNoteLine
-                                in
-                                if Basics.modBy 200 timeCounter == 0 && timeCounter >= 0 then
-                                    addJudgeEffect (JudgeEffect.new JudgeKind.invalid (LongNoteLine.toPosition longNoteLine) True)
-
-                                else
-                                    Cmd.none
+                    nextAllNotes
+                        |> AllNotes.map
+                            (\notesPerLane ->
+                                JudgeEffect.longEffectCmd notesPerLane
                             )
                         |> Cmd.batch
 
@@ -200,8 +143,7 @@ update msg model =
             ( { model
                 | currentMusicTime = updatedTime
                 , playStatus = nextPlayStatus
-                , musicInfo = nextMusicInfo
-                , longNoteLines = nextLongNoteLines
+                , allNotes = nextAllNotes
                 , score = nextScore
                 , combo = nextCombo
               }
@@ -216,10 +158,18 @@ update msg model =
                 nextMusicInfo =
                     MusicInfo.create rawMusicInfo
 
+                nextAllNotes =
+                    MusicInfo.toAllNotes nextMusicInfo
+
                 _ =
-                    Debug.log "rawMusicInfo" rawMusicInfo
+                    Debug.log "musicInfo" nextMusicInfo
             in
-            ( { model | musicInfo = nextMusicInfo }, Cmd.none )
+            ( { model
+                | musicInfo = nextMusicInfo
+                , allNotes = nextAllNotes
+              }
+            , Cmd.none
+            )
 
         KeyDown rawKey ->
             let
@@ -232,7 +182,11 @@ update msg model =
                         ( nextPlayStatus, cmd ) =
                             case model.playStatus of
                                 NotStart ->
-                                    ( Playing, startMusic () )
+                                    if MusicInfo.isLoaded model.musicInfo then
+                                        ( Playing, startMusic () )
+
+                                    else
+                                        ( NotStart, startMusic () )
 
                                 Playing ->
                                     ( Pause, pauseMusic () )
@@ -247,53 +201,36 @@ update msg model =
 
                 Just (Keyboard.Character keyStr) ->
                     let
-                        position =
-                            LinePosition.new keyStr
+                        notesPerLane =
+                            model.allNotes
+                                |> AllNotes.toNotesPerLane keyStr
                     in
-                    if List.member position model.pressingLines then
+                    -- すでにそのレーンのキーが押されている状態ではKeyDown判定しない
+                    if Lanes.isPressing keyStr model.lanes then
                         ( model, Cmd.none )
 
                     else
                         let
                             judgeKind =
-                                List.head (MusicInfo.toAllNotes model.musicInfo)
-                                    |> JudgeKind.judgeKeyDown model.currentMusicTime position
+                                NotesPerLane.maybeHeadNote notesPerLane
+                                    |> JudgeKind.judgeKeyDown model.currentMusicTime
 
-                            nextMusicInfo =
-                                model.musicInfo
+                            nextAllNotes =
+                                model.allNotes
                                     |> Page.updateIf
                                         (not <| JudgeKind.isInvalid judgeKind)
-                                        (MusicInfo.updateNotesKeyDown position)
-
-                            endTime =
-                                List.head (MusicInfo.toAllNotes model.musicInfo)
-                                    |> LongNoteLine.getEndTime position
-
-                            timeCounter =
-                                List.head (MusicInfo.toAllNotes model.musicInfo)
-                                    |> LongNoteLine.getTimeCounter position
-
-                            nextLongNoteLines =
-                                model.longNoteLines
-                                    |> Page.updateIf
-                                        ((not <| JudgeKind.isInvalid judgeKind) && timeCounter > 0)
-                                        ((::) (LongNoteLine.new position endTime timeCounter))
-
-                            nextPressingLines =
-                                model.pressingLines
-                                    |> Page.updateIf
-                                        (not <| List.member position model.pressingLines)
-                                        ((::) position)
+                                        (AllNotes.updateNotesKeyDown keyStr)
 
                             judgeEffectCmd =
-                                JudgeEffect.new judgeKind position (timeCounter > 0)
-                                    |> addJudgeEffect
+                                JudgeEffect.keyDownEffectCmd judgeKind notesPerLane
                                     |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
+
+                            nextLanes =
+                                Lanes.updateKeyDown keyStr model.lanes
                         in
                         ( { model
-                            | musicInfo = nextMusicInfo
-                            , longNoteLines = nextLongNoteLines
-                            , pressingLines = nextPressingLines
+                            | allNotes = nextAllNotes
+                            , lanes = nextLanes
                             , score = Score.add judgeKind model.score
                             , combo = Combo.update judgeKind model.combo
                           }
@@ -311,20 +248,16 @@ update msg model =
             case maybeKey of
                 Just (Keyboard.Character keyStr) ->
                     let
-                        position =
-                            LinePosition.new keyStr
+                        nextAllNotes =
+                            model.allNotes
+                                |> AllNotes.updateNotesKeyUp keyStr
 
-                        nextLongNoteLines =
-                            model.longNoteLines
-                                |> List.filter (\line -> LongNoteLine.toPosition line /= position)
-
-                        nextPressingLines =
-                            model.pressingLines
-                                |> List.filter (\line -> line /= position)
+                        nextLanes =
+                            Lanes.updateKeyUp keyStr model.lanes
                     in
                     ( { model
-                        | pressingLines = nextPressingLines
-                        , longNoteLines = nextLongNoteLines
+                        | allNotes = nextAllNotes
+                        , lanes = nextLanes
                       }
                     , Cmd.none
                     )
@@ -346,25 +279,21 @@ view model =
                 [ div [ class "play_header" ] []
                 , div [ class "play_contentsContainer" ]
                     [ div [ class "play_contents" ]
-                        [ viewLines model
-                        , div [ class "play_centerLine", id "judge_area" ]
-                            [ viewLongNoteLines model
-                            , viewConcurrentNotes model
+                        [ Lanes.view model.lanes
+                        , AllNotes.view model.currentMusicTime model.speed model.allNotes
+                        , div [ class "play_display" ]
+                            [ div [] [ text <| "currentMusicTime: " ++ String.fromFloat model.currentMusicTime ]
+                            , div [] [ text <| "Bpm: " ++ MusicInfo.toStringBpm model.musicInfo ]
+                            , div [] [ text <| "Score: " ++ Score.toString model.score ]
+                            , div [] [ text <| "Combo: " ++ Combo.toString model.combo ]
+                            , div [] [ text <| "MaxCombo: " ++ MusicInfo.toStringMaxCombo model.musicInfo ]
+                            , div [] [ text "Spaceキーでスタート" ]
+                                |> Page.viewIf (model.playStatus == NotStart)
+                            , div [] [ text "Finish!" ]
+                                |> Page.viewIf (model.playStatus == Finish)
+                            , a [ Route.href Route.Home ] [ text "Homeに戻る" ]
+                                |> Page.viewIf (model.playStatus == Finish)
                             ]
-                        , viewLongNoteEffects model
-                        ]
-                    , div [ class "play_display" ]
-                        [ div [] [ text <| "currentMusicTime: " ++ String.fromFloat model.currentMusicTime ]
-                        , div [] [ text <| "Bpm: " ++ MusicInfo.toStringBpm model.musicInfo ]
-                        , div [] [ text <| "Score: " ++ Score.toString model.score ]
-                        , div [] [ text <| "Combo: " ++ Combo.toString model.combo ]
-                        , div [] [ text <| "MaxCombo: " ++ MusicInfo.toStringMaxCombo model.musicInfo ]
-                        , div [] [ text "Spaceキーでスタート" ]
-                            |> Page.viewIf (model.playStatus == NotStart)
-                        , div [] [ text "Finish!" ]
-                            |> Page.viewIf (model.playStatus == Finish)
-                        , a [ Route.href Route.Home ] [ text "Homeに戻る" ]
-                            |> Page.viewIf (model.playStatus == Finish)
                         ]
                     ]
                 ]
@@ -372,50 +301,6 @@ view model =
         else
             text ""
     }
-
-
-viewConcurrentNotes : Model -> Html msg
-viewConcurrentNotes model =
-    div []
-        (MusicInfo.toAllNotes model.musicInfo
-            |> List.map
-                (\notes ->
-                    ConcurrentNotes.view model.currentMusicTime model.speed notes
-                )
-        )
-
-
-viewLongNoteLines : Model -> Html msg
-viewLongNoteLines model =
-    div []
-        (model.longNoteLines
-            |> List.map
-                (\line ->
-                    LongNoteLine.view model.currentMusicTime model.speed line
-                )
-        )
-
-
-viewLongNoteEffects : Model -> Html msg
-viewLongNoteEffects model =
-    div []
-        (model.longNoteLines
-            |> List.map
-                (\line ->
-                    LongNoteLine.viewLongNoteEffect line model.longNoteLines
-                )
-        )
-
-
-viewLines : Model -> Html msg
-viewLines model =
-    div []
-        (LinePosition.allLines
-            |> List.map
-                (\line ->
-                    LinePosition.viewLine line model.pressingLines
-                )
-        )
 
 
 
@@ -426,9 +311,6 @@ port getMusicInfo : () -> Cmd msg
 
 
 port gotMusicInfo : (MusicInfoDto -> msg) -> Sub msg
-
-
-port addJudgeEffect : JudgeEffect -> Cmd msg
 
 
 port startMusic : () -> Cmd msg

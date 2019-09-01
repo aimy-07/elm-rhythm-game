@@ -1,35 +1,53 @@
-module Page.Play.Note exposing (LongTime, Note, isSamePosition, new, toLongTime, toPosition, view)
+module Page.Play.Note exposing
+    ( JustTime
+    , LongTime
+    , Note
+    , NoteDto
+    , isLong
+    , new
+    , toJustTime
+    , toLongTime
+    , view
+    )
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
-import Page.Play.JustTime exposing (JustTime)
-import Page.Play.LinePosition as LinePosition exposing (LinePosition)
 import Page.Play.Speed exposing (Speed)
 
 
 type Note
     = Note
-        { position : LinePosition
+        { justTime : JustTime
         , longTime : LongTime
         }
+
+
+type alias JustTime =
+    Float
 
 
 type alias LongTime =
     Float
 
 
-new : String -> LongTime -> Note
-new keyStr longTime =
+type alias NoteDto =
+    { justTime : Float
+    , longTime : Float
+    }
+
+
+new : NoteDto -> Note
+new noteDto =
     Note
-        { position = LinePosition.new keyStr
-        , longTime = longTime
+        { justTime = noteDto.justTime
+        , longTime = noteDto.longTime
         }
 
 
-toPosition : Note -> LinePosition
-toPosition (Note { position }) =
-    position
+toJustTime : Note -> JustTime
+toJustTime (Note { justTime }) =
+    justTime
 
 
 toLongTime : Note -> LongTime
@@ -37,13 +55,13 @@ toLongTime (Note { longTime }) =
     longTime
 
 
-isSamePosition : LinePosition -> Note -> Bool
-isSamePosition linePosition note =
-    LinePosition.isSamePosition linePosition (toPosition note)
+isLong : Note -> Bool
+isLong (Note { longTime }) =
+    longTime > 0
 
 
-view : CurrentMusicTime -> JustTime -> Speed -> Note -> Html msg
-view currentMusicTime justTime speed (Note { position, longTime }) =
+view : CurrentMusicTime -> Speed -> Note -> Html msg
+view currentMusicTime speed (Note { justTime, longTime }) =
     let
         bottom =
             (justTime - currentMusicTime) * speed
@@ -62,13 +80,11 @@ view currentMusicTime justTime speed (Note { position, longTime }) =
         [ div
             [ styleClass
             , style "bottom" (String.fromFloat (bottom - 20) ++ "px")
-            , style "left" (LinePosition.styleLeft position)
             ]
             []
         , div
             [ class "play_note_longLine"
-            , style "bottom" (String.fromFloat (bottom + 0) ++ "px")
-            , style "left" (LinePosition.styleLeft position)
+            , style "bottom" (String.fromFloat bottom ++ "px")
             , style "height" (String.fromFloat height ++ "px")
             ]
             []

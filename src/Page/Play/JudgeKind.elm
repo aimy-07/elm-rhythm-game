@@ -1,10 +1,7 @@
 module Page.Play.JudgeKind exposing (JudgeKind, invalid, isGood, isGreat, isInvalid, isOverMiss, isPerfect, judgeKeyDown, miss, toStringJudgeKind)
 
-import Page.Play.ConcurrentNotes as ConcurrentNotes exposing (ConcurrentNotes)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
-import Page.Play.JustTime exposing (JustTime)
-import Page.Play.LinePosition as LinePosition exposing (LinePosition)
-import Page.Play.Note as Note exposing (Note)
+import Page.Play.Note as Note exposing (JustTime, Note)
 
 
 type JudgeKind
@@ -34,33 +31,23 @@ toStringJudgeKind judgeKind =
             ""
 
 
-judgeKeyDown : CurrentMusicTime -> LinePosition -> Maybe ConcurrentNotes -> JudgeKind
-judgeKeyDown currentMusicTime position maybeHead =
-    maybeHead
+judgeKeyDown : CurrentMusicTime -> Maybe Note -> JudgeKind
+judgeKeyDown currentMusicTime maybeNote =
+    maybeNote
         |> Maybe.map
-            (\head ->
+            (\note ->
                 let
                     justTime =
-                        ConcurrentNotes.toJustTime head
-
-                    notes =
-                        ConcurrentNotes.toNotes head
-
-                    isCorrectKey =
-                        List.any (\note -> Note.toPosition note == position) notes
+                        Note.toJustTime note
                 in
-                if isCorrectKey then
-                    if Basics.abs (justTime - currentMusicTime) < perfectRange then
-                        Perfect
+                if Basics.abs (justTime - currentMusicTime) < perfectRange then
+                    Perfect
 
-                    else if Basics.abs (justTime - currentMusicTime) < greatRange then
-                        Great
+                else if Basics.abs (justTime - currentMusicTime) < greatRange then
+                    Great
 
-                    else if Basics.abs (justTime - currentMusicTime) < goodRange then
-                        Good
-
-                    else
-                        Invalid
+                else if Basics.abs (justTime - currentMusicTime) < goodRange then
+                    Good
 
                 else
                     Invalid
@@ -88,11 +75,15 @@ isGood judgeKind =
     judgeKind == Good
 
 
-isOverMiss : CurrentMusicTime -> Maybe JustTime -> Bool
-isOverMiss currentMusicTime maybeJustTime =
-    maybeJustTime
+isOverMiss : CurrentMusicTime -> Maybe Note -> Bool
+isOverMiss currentMusicTime maybeNote =
+    maybeNote
         |> Maybe.map
-            (\justTime ->
+            (\note ->
+                let
+                    justTime =
+                        Note.toJustTime note
+                in
                 (currentMusicTime - justTime) > goodRange
             )
         |> Maybe.withDefault False
