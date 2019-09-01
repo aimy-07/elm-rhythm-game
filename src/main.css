@@ -308,9 +308,9 @@ body, html {
   position: absolute;
   top: 150px;
   left: 350px;
-  width: 260px;
-  height: 260px;
-  margin: 20px;
+  width: 240px;
+  height: 240px;
+  margin: 30px;
   background: var(--color-elm-orange);
   border-radius: 50%;
   text-align: center;
@@ -346,8 +346,8 @@ body, html {
   position: absolute;
   top: 10px;
   left: 10px;
-  width: 240px;
-  height: 240px;
+  width: 220px;
+  height: 220px;
   background: black;
   border-radius: 50%;
   z-index: 4;
@@ -355,31 +355,37 @@ body, html {
 
 .play_displayTextArea {
   position: absolute;
-  top: 50px;
+  top: 0px;
   left: 0px;
-  width: 220px;
+  width: 200px;
   padding: 20px;
   text-align: center;
   color: white;
   z-index: 10;
 }
 
+.play_scoreLabelText {
+  position: relative;
+  top: 20px;
+  font-size: 18px;
+}
 
+.play_scoreText {
+  position: relative;
+  top: 25px;
+  font-size: 30px;
+  font-weight: 600;
+}
 
-/* 進行関係のテキストエリア */
-.play_textArea {
-  position: absolute;
-  top: 650px;
-  left: 350px;
-  width: 260px;
-  height: 260px;
-  margin: 20px;
-  text-align: center;
-  overflow: hidden;
-  color: white;
+.play_comboLabelText {
+  position: relative;
+  top: 40px;
+  font-size: 18px;
 }
 
 .play_comboText {
+  position: relative;
+  top: 65px;
   font-size: 30px;
   font-weight: 600;
   transform: translate(0, -50%);
@@ -405,4 +411,19 @@ body, html {
   100% {
     font-size: 30px;
   }
+}
+
+
+
+/* 進行関係のテキストエリア */
+.play_textArea {
+  position: absolute;
+  top: 650px;
+  left: 350px;
+  width: 260px;
+  height: 260px;
+  margin: 20px;
+  text-align: center;
+  overflow: hidden;
+  color: white;
 }
