@@ -276,18 +276,18 @@ view model =
     , content =
         if MusicInfo.isLoaded model.musicInfo then
             div [ class "play" ]
-                [ div [ class "play_header" ] []
+                [ div [ class "play_header" ]
+                    [ span [] [ text <| "\u{3000}Bpm: " ++ MusicInfo.toStringBpm model.musicInfo ]
+                    , span [] [ text <| "\u{3000}MaxCombo: " ++ MusicInfo.toStringMaxCombo model.musicInfo ]
+                    , span [] [ text <| "\u{3000}currentMusicTime: " ++ String.fromFloat model.currentMusicTime ]
+                    ]
                 , div [ class "play_contentsContainer" ]
                     [ div [ class "play_contents" ]
                         [ Lanes.view model.lanes
                         , AllNotes.view model.currentMusicTime model.speed model.allNotes
-                        , div [ class "play_display" ]
-                            [ div [] [ text <| "currentMusicTime: " ++ String.fromFloat model.currentMusicTime ]
-                            , div [] [ text <| "Bpm: " ++ MusicInfo.toStringBpm model.musicInfo ]
-                            , div [] [ text <| "Score: " ++ Score.toString model.score ]
-                            , div [] [ text <| "Combo: " ++ Combo.toString model.combo ]
-                            , div [] [ text <| "MaxCombo: " ++ MusicInfo.toStringMaxCombo model.musicInfo ]
-                            , div [] [ text "Spaceキーでスタート" ]
+                        , viewDisplayCircle model
+                        , div [ class "play_textArea" ]
+                            [ div [] [ text "Spaceキーでスタート" ]
                                 |> Page.viewIf (model.playStatus == NotStart)
                             , div [] [ text "Finish!" ]
                                 |> Page.viewIf (model.playStatus == Finish)
@@ -301,6 +301,59 @@ view model =
         else
             text ""
     }
+
+
+viewDisplayCircle : Model -> Html msg
+viewDisplayCircle model =
+    let
+        rate =
+            model.currentMusicTime / MusicInfo.toFullTime model.musicInfo
+
+        half1Rotate =
+            if rate <= 0.5 then
+                "rotate(0deg)"
+
+            else if rate >= 1 then
+                "rotate(180deg)"
+
+            else
+                "rotate(" ++ String.fromFloat (360 * (rate - 0.5)) ++ "deg)"
+
+        half2Rotate =
+            if rate <= 0.5 then
+                "rotate(" ++ String.fromFloat (360 * rate) ++ "deg)"
+
+            else if rate <= 0 then
+                "rotate(0deg)"
+
+            else
+                "rotate(360deg)"
+
+        half2Color =
+            if rate <= 0.5 then
+                "#999"
+
+            else
+                "#EEA41D"
+    in
+    div [ class "play_displayCircle" ]
+        [ div [ class "play_displayCircle-inner" ] []
+        , div
+            [ class "half1"
+            , style "transform" half1Rotate
+            ]
+            []
+        , div
+            [ class "half2"
+            , style "transform" half2Rotate
+            , style "background-color" half2Color
+            ]
+            []
+        , div [ class "play_displayTextArea" ]
+            [ div [] [ text <| "Score: " ++ Score.toString model.score ]
+            , div [] [ text <| "Combo: " ++ Combo.toString model.combo ]
+            ]
+        ]
 
 
 

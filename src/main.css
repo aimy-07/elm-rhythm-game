@@ -19,10 +19,6 @@ body, html {
   --color-elm-darkblue: #586176;
 }
 
-h1 {
-  font-size: 30px;
-}
-
 .play {
   width: 100%;
   height: 100%;
@@ -31,14 +27,21 @@ h1 {
   overflow: hidden;
 }
 
+
+
+/* ヘッダー */
 .play_header {
   width: 100%;
   height: 50px;
   background-color: var(--color-elm-darkblue);
   z-index: 100;
-  /* border-bottom: solid white 5px; */
+  color: white;
+  font-size: 20px;
 }
 
+
+
+/* コンテナ */
 .play_contentsContainer {
   width: 100%;
   height: 100%;
@@ -57,128 +60,15 @@ h1 {
   overflow: hidden;
 }
 
-.play_display {
-  position: absolute;
-  top: 300px;
-  left: 350px;
-  width: 300px;
-  /* padding: 50px; */
-  text-align: center;
-  color: white;
-}
 
+
+/* センターラインと判定ゾーン */
 .play_centerLine {
   position: absolute;
   top: 549px;
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: transparent;
-  /* box-shadow:
-    0 0 20px 10px #fff; */
-}
-
-.play_lane {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  width: 98px;
-  border-left: solid 1px var(--color-elm-darkblue);
-  border-right: solid 1px var(--color-elm-darkblue);
-}
-
-.play_lane.is-pressing {
-  /* background-color: rgba(255, 255, 255, 0.5); */
-  background: -moz-linear-gradient(top, transparent 40%, var(--color-elm-darkblue));
-  background: -webkit-linear-gradient(top, transparent 40%, var(--color-elm-darkblue));
-  background: linear-gradient(to bottom, transparent 40%, var(--color-elm-darkblue));
-}
-
-.play_note {
-  position: absolute;
-  left: 30px;
-  width: 40px;
-  height: 40px;
-  background-color: #fff;
-  box-shadow:
-    0 0 25px 12px #fff,
-    0 0 40px 20px var(--color-elm-green),
-    0 0 50px 35px var(--color-elm-lightblue);
-  transform:rotate(45deg);
-}
-
-.play_note.long {
-  box-shadow:
-    0 0 25px 12px #fff,
-    0 0 40px 30px var(--color-elm-lightblue),
-    0 0 50px 45px var(--color-elm-darkblue);
-}
-
-.play_noteLongLine {
-  position: absolute;
-  left: 22.5px;
-  width: 56px;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.7);
-  box-shadow:
-    0 0 10px 5px #fff;
-}
-
-/* ロングノーツの終わりの三角を擬似要素で入れる */
-/* .play_noteLongLine::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: -56px;
-  width: 0px;
-  height: 0px;
-  box-shadow:
-    0 0 10px 5px #fff;
-  border-bottom: solid 28px rgba(255, 255, 255, 0.7);
-  border-top: 28px solid transparent;
-  border-right: 28px solid transparent;
-  border-left: 28px solid transparent;
-} */
-
-.play_noteEffect {
-  position: absolute;
-  top: -50px;
-  width: 96px;
-  height: 96px;
-  background-color: rgba(0, 0, 0, 0.3);
-  border: solid #fff 2px;
-  box-shadow:
-    0 0 30px 20px #fff,
-    0 0 50px 30px var(--color-elm-green);
-  transform:rotate(45deg);
-  transform-origin: 50% 50%;
-  animation: .5s ease-out 0s 1 normal forwards running noteEffectAnim;
-  z-index: 50;
-}
-
-.play_noteEffect.long {
-  box-shadow:
-  0 0 30px 20px #fff,
-  0 0 50px 30px var(--color-elm-lightblue);
-}
-
-@keyframes noteEffectAnim {
-  0% {
-    transform: scale(0.3) rotate(45deg);
-    opacity: 1;
-  }
-
-  100% {
-    transform: scale(1) rotate(45deg);
-    opacity: 0;
-  }
-}
-
-.play_longNoteEffect {
-  position: absolute;
-  top: 550px;
-  height: 10px;
-  width: 100px;
   background-color: transparent;
 }
 
@@ -266,6 +156,111 @@ h1 {
   color: white;
 }
 
+
+
+/* レーン */
+.play_lane {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 98px;
+  border-left: solid 1px var(--color-elm-darkblue);
+  border-right: solid 1px var(--color-elm-darkblue);
+}
+
+.play_lane.is-pressing {
+  /* background-color: rgba(255, 255, 255, 0.5); */
+  background: -moz-linear-gradient(top, transparent 40%, var(--color-elm-darkblue));
+  background: -webkit-linear-gradient(top, transparent 40%, var(--color-elm-darkblue));
+  background: linear-gradient(to bottom, transparent 40%, var(--color-elm-darkblue));
+}
+
+
+
+/* ノーツ */
+.play_note {
+  position: absolute;
+  left: 30px;
+  width: 40px;
+  height: 40px;
+  background-color: #fff;
+  box-shadow:
+    0 0 25px 12px #fff,
+    0 0 40px 20px var(--color-elm-green),
+    0 0 50px 35px var(--color-elm-lightblue);
+  transform:rotate(45deg);
+}
+
+.play_note.long {
+  box-shadow:
+    0 0 25px 12px #fff,
+    0 0 40px 30px var(--color-elm-lightblue),
+    0 0 50px 45px var(--color-elm-darkblue);
+}
+
+.play_noteLongLine {
+  position: absolute;
+  left: 22.5px;
+  width: 56px;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 0 10px 5px #fff;
+}
+
+/* ロングノーツの終わりの三角を擬似要素で入れる */
+/* .play_noteLongLine::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -56px;
+  width: 0px;
+  height: 0px;
+  box-shadow:
+    0 0 10px 5px #fff;
+  border-bottom: solid 28px rgba(255, 255, 255, 0.7);
+  border-top: 28px solid transparent;
+  border-right: 28px solid transparent;
+  border-left: 28px solid transparent;
+} */
+
+
+
+/* 判定エフェクト */
+.play_noteEffect {
+  position: absolute;
+  top: -50px;
+  width: 96px;
+  height: 96px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: solid #fff 2px;
+  box-shadow:
+    0 0 30px 20px #fff,
+    0 0 50px 30px var(--color-elm-green);
+  transform:rotate(45deg);
+  transform-origin: 50% 50%;
+  animation: .5s ease-out 0s 1 normal forwards running noteEffectAnim;
+  z-index: 50;
+}
+
+.play_noteEffect.long {
+  box-shadow:
+    0 0 30px 20px #fff,
+    0 0 50px 30px var(--color-elm-lightblue);
+}
+
+@keyframes noteEffectAnim {
+  0% {
+    transform: scale(0.3) rotate(45deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1) rotate(45deg);
+    opacity: 0;
+  }
+}
+
 .judge_effectText {
   position: absolute;
   text-align: center;
@@ -297,4 +292,82 @@ h1 {
     font-size: 18px;
     opacity: 0;
   }
+}
+
+
+
+/* 表示エリア */
+.play_displayCircle {
+  position: absolute;
+  top: 150px;
+  left: 350px;
+  width: 260px;
+  height: 260px;
+  margin: 20px;
+  background: var(--color-elm-orange);
+  border-radius: 50%;
+  text-align: center;
+  overflow: hidden;
+  box-shadow:
+    0 0 20px 10px #fff;
+  z-index: 1;
+}
+
+.play_displayCircle .half1 {
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 100%;
+  height: 100%;
+  background: #999;
+  transform-origin: right 50%;
+  z-index: 2;
+}
+
+.play_displayCircle .half2 {
+  position: absolute;
+  top: 0px;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: #999;
+  transform-origin: left 50%;
+  z-index: 3;
+}
+
+.play_displayCircle .play_displayCircle-inner {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 240px;
+  height: 240px;
+  background: black;
+  border-radius: 50%;
+  z-index: 4;
+}
+
+.play_displayTextArea {
+  position: absolute;
+  top: 50px;
+  left: 0px;
+  width: 220px;
+  padding: 20px;
+  text-align: center;
+  color: white;
+  z-index: 10;
+}
+
+
+
+/* 進行関係のテキストエリア */
+.play_textArea {
+  position: absolute;
+  top: 650px;
+  left: 350px;
+  width: 260px;
+  height: 260px;
+  margin: 20px;
+  text-align: center;
+  overflow: hidden;
+  color: white;
 }
