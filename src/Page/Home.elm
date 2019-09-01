@@ -3,6 +3,7 @@ module Page.Home exposing (Model, Msg, init, subscriptions, toSession, update, v
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Page.Home.MusicInfo as MusicInfo exposing (MusicInfo)
 import Route
 import Session exposing (Session)
 
@@ -13,12 +14,17 @@ import Session exposing (Session)
 
 type alias Model =
     { session : Session
+    , normalMusics : List MusicInfo
     }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( { session = session }, Cmd.none )
+    ( { session = session
+      , normalMusics = MusicInfo.normalMusics
+      }
+    , Cmd.none
+    )
 
 
 
@@ -46,6 +52,8 @@ view model =
     , content =
         div []
             [ h1 [] [ text "ホーム画面" ]
+            , div []
+                (List.map (\musicInfo -> MusicInfo.view musicInfo) model.normalMusics)
             , a [ Route.href Route.Play ] [ text "プレイ画面へ" ]
             ]
     }
