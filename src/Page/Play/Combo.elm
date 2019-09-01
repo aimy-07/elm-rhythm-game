@@ -3,6 +3,7 @@ module Page.Play.Combo exposing
     , addLong
     , calcLongCombo
     , init
+    , isZero
     , toString
     , update
     )
@@ -59,3 +60,8 @@ calcLongCombo notesPerLane =
                     0
             )
         |> Maybe.withDefault 0
+
+
+isZero : Combo -> Bool
+isZero (Combo combo) =
+    combo == 0

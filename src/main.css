@@ -227,11 +227,12 @@ body, html {
 
 
 /* 判定エフェクト */
-.play_noteEffect {
+.play_judgeEffect {
   position: absolute;
-  top: -50px;
+  top: 500px;
   width: 96px;
   height: 96px;
+  opacity: 0;
   background-color: rgba(0, 0, 0, 0.3);
   border: solid #fff 2px;
   box-shadow:
@@ -239,14 +240,17 @@ body, html {
     0 0 50px 30px var(--color-elm-green);
   transform:rotate(45deg);
   transform-origin: 50% 50%;
-  animation: .5s ease-out 0s 1 normal forwards running noteEffectAnim;
   z-index: 50;
 }
 
-.play_noteEffect.long {
+.play_judgeEffect.long {
   box-shadow:
     0 0 30px 20px #fff,
     0 0 50px 30px var(--color-elm-lightblue);
+}
+
+.play_judgeEffect.playAnim {
+  animation: .5s ease-out 0s 1 normal forwards running noteEffectAnim;
 }
 
 @keyframes noteEffectAnim {
@@ -261,20 +265,23 @@ body, html {
   }
 }
 
-.judge_effectText {
+.play_judgeEffectText {
   position: absolute;
   text-align: center;
-  top: 70px;
+  top: 600px;
   width: 100px;
   color: white;
-  opacity: 1;
-  animation: .8s ease-out 0s 1 normal forwards running judgeEffectAnim;
+  opacity: 0;
   transform: translate(0, -50%);
   font-size: 20px;
   font-weight: 600;
   text-transform: uppercase;
   text-shadow: 0px 0px 10px #fff;
   z-index: 60;
+}
+
+.play_judgeEffectText.playAnim {
+  animation: .8s ease-out 0s 1 normal forwards running judgeEffectAnim;
 }
 
 @keyframes judgeEffectAnim {
@@ -370,4 +377,32 @@ body, html {
   text-align: center;
   overflow: hidden;
   color: white;
+}
+
+.play_comboText {
+  font-size: 30px;
+  font-weight: 600;
+  transform: translate(0, -50%);
+}
+
+.play_comboText.playAnim {
+  animation: .2s ease-out 0s 1 normal forwards running comboTextAnim;
+}
+
+@keyframes comboTextAnim {
+  0% {
+    font-size: 30px;
+  }
+
+  40% {
+    font-size: 50px;
+  }
+
+  80% {
+    font-size: 50px;
+  }
+
+  100% {
+    font-size: 30px;
+  }
 }

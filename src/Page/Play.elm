@@ -134,6 +134,19 @@ update msg model =
                             )
                         |> Cmd.batch
 
+                comboEffectCmd =
+                    let
+                        addedCombo =
+                            nextAllNotes
+                                |> AllNotes.map
+                                    (\notesPerLane ->
+                                        Combo.calcLongCombo notesPerLane
+                                    )
+                                |> List.foldl (+) 0
+                    in
+                    playComboEffectAnim ()
+                        |> Page.cmdIf (addedCombo /= 0)
+
                 nextPlayStatus =
                     model.playStatus
                         |> Page.updateIf
@@ -150,6 +163,7 @@ update msg model =
             , Cmd.batch
                 [ missEffectCmd
                 , longEffectCmd
+                , comboEffectCmd
                 ]
             )
 
@@ -225,6 +239,10 @@ update msg model =
                                 JudgeEffect.keyDownEffectCmd judgeKind notesPerLane
                                     |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
 
+                            comboEffectCmd =
+                                playComboEffectAnim ()
+                                    |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
+
                             nextLanes =
                                 Lanes.updateKeyDown keyStr model.lanes
                         in
@@ -234,7 +252,10 @@ update msg model =
                             , score = Score.add judgeKind model.score
                             , combo = Combo.update judgeKind model.combo
                           }
-                        , judgeEffectCmd
+                        , Cmd.batch
+                            [ judgeEffectCmd
+                            , comboEffectCmd
+                            ]
                         )
 
                 _ ->
@@ -350,8 +371,12 @@ viewDisplayCircle model =
             ]
             []
         , div [ class "play_displayTextArea" ]
-            [ div [] [ text <| "Score: " ++ Score.toString model.score ]
-            , div [] [ text <| "Combo: " ++ Combo.toString model.combo ]
+            [ div [] [ text "SCORE" ]
+            , div [] [ text <| Score.toString model.score ]
+            , br [] []
+            , div [] [ text "COMBO" ]
+            , br [] []
+            , div [ class "play_comboText", id "comboText" ] [ text <| Combo.toString model.combo ]
             ]
         ]
 
@@ -373,6 +398,9 @@ port pauseMusic : () -> Cmd msg
 
 
 port unPauseMusic : () -> Cmd msg
+
+
+port playComboEffectAnim : () -> Cmd msg
 
 
 

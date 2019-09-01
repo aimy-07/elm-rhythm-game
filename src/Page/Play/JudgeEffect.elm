@@ -10,7 +10,7 @@ import Page.Play.NotesPerLane as NotesPerLane exposing (NotesPerLane)
 
 
 type alias JudgeEffect =
-    { styleLeft : String
+    { keyStr : String
     , judgeText : String
     , noteType : String
     }
@@ -18,7 +18,7 @@ type alias JudgeEffect =
 
 new : KeyStr -> JudgeKind -> Bool -> JudgeEffect
 new keyStr judgeKind isLong =
-    { styleLeft = String.fromInt (Lane.leftFromKeyStr keyStr) ++ "px"
+    { keyStr = keyStr
     , judgeText = JudgeKind.toStringJudgeKind judgeKind
     , noteType =
         if isLong then
@@ -37,8 +37,12 @@ keyDownEffectCmd judgeKind notesPerLane =
                 |> Maybe.map (\note -> Note.isLong note)
                 |> Maybe.withDefault False
     in
-    new (NotesPerLane.toKeyStr notesPerLane) judgeKind isLong
-        |> addJudgeEffect
+    Cmd.batch
+        [ new (NotesPerLane.toKeyStr notesPerLane) judgeKind isLong
+            |> playJudgeEffectAnim
+        , new (NotesPerLane.toKeyStr notesPerLane) judgeKind isLong
+            |> playJudgeEffectTextAnim
+        ]
 
 
 missEffectCmd : CurrentMusicTime -> NotesPerLane -> Cmd msg
@@ -49,7 +53,7 @@ missEffectCmd currentMusicTime notesPerLane =
     in
     if isOverMiss then
         new (NotesPerLane.toKeyStr notesPerLane) JudgeKind.miss False
-            |> addJudgeEffect
+            |> playJudgeEffectTextAnim
 
     else
         Cmd.none
@@ -66,7 +70,7 @@ longEffectCmd notesPerLane =
                 in
                 if Basics.modBy 200 timeCounter == 0 && timeCounter >= 0 then
                     new (NotesPerLane.toKeyStr notesPerLane) JudgeKind.invalid True
-                        |> addJudgeEffect
+                        |> playJudgeEffectAnim
 
                 else
                     Cmd.none
@@ -74,4 +78,7 @@ longEffectCmd notesPerLane =
         |> Maybe.withDefault Cmd.none
 
 
-port addJudgeEffect : JudgeEffect -> Cmd msg
+port playJudgeEffectAnim : JudgeEffect -> Cmd msg
+
+
+port playJudgeEffectTextAnim : JudgeEffect -> Cmd msg

@@ -6,22 +6,6 @@ const app = Elm.Main.init({
   node: document.getElementById('root')
 });
 
-app.ports.addJudgeEffect.subscribe(({styleLeft, judgeText, noteType}) => {
-  // エフェクト
-  const div1 = document.createElement('div');
-  div1.className = noteType === "SINGLE" ? 'play_noteEffect' : 'play_noteEffect long';
-  div1.style.left = styleLeft;
-  // 判定文字
-  const div2 = document.createElement('div');
-  div2.className = 'judge_effectText';
-  div2.style.left = styleLeft;
-  div2.textContent = judgeText;
-  document.getElementById('judge_area').appendChild(div2);
-  if (judgeText !== "Miss") { 
-    document.getElementById('judge_area').appendChild(div1);
-  }
-})
-
 app.ports.getMusicInfo.subscribe(() => {
   getCSVFile();
 })
@@ -107,5 +91,34 @@ app.ports.unPauseMusic.subscribe(() => {
   audioElem.play();
 })
 
+app.ports.playJudgeEffectAnim.subscribe(({keyStr, noteType}) => {
+  // エフェクト
+  const judgeEffect = document.getElementById("judgeEffect_" + keyStr);
+  judgeEffect.classList.remove("long");
+  if (noteType === "LONG") {
+    judgeEffect.classList.add("long");
+  }
+  judgeEffect.classList.remove("playAnim");
+  requestAnimationFrame(() => {
+    judgeEffect.classList.add("playAnim");
+  });
+})
+
+app.ports.playJudgeEffectTextAnim.subscribe(({keyStr, judgeText}) => {
+  const judgeEffectText = document.getElementById("judgeEffectText_" + keyStr);
+  judgeEffectText.textContent = judgeText;
+  judgeEffectText.classList.remove("playAnim");
+  requestAnimationFrame(() => {
+    judgeEffectText.classList.add("playAnim");
+  });
+})
+
+app.ports.playComboEffectAnim.subscribe(() => {
+  const comboText = document.getElementById("comboText");
+  comboText.classList.remove("playAnim");
+  requestAnimationFrame(() => {
+    comboText.classList.add("playAnim");
+  });
+})
 
 registerServiceWorker();

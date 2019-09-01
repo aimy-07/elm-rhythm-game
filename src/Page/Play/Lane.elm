@@ -96,4 +96,6 @@ view (Lane { isPressing, keyStr, left }) =
         , div
             [ class <| "play_laneText" ++ isPressingStyleClass ]
             [ text keyStr ]
+        , div [ class "play_judgeEffect", id <| "judgeEffect_" ++ keyStr ] []
+        , div [ class "play_judgeEffectText", id <| "judgeEffectText_" ++ keyStr ] []
         ]
