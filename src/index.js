@@ -75,20 +75,26 @@ const createArray = (csvData) => {
 // 配列を転置する
 const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
 
-let audioElem;
+let musicAudio;
 
 app.ports.startMusic.subscribe(() => {
-  audioElem = new Audio();
-  audioElem.src = "./audios/sample_sound.wav";
-  audioElem.play();
+  musicAudio = new Audio();
+  musicAudio.src = "./audios/sample_sound.wav";
+  musicAudio.play();
 })
 
 app.ports.pauseMusic.subscribe(() => {
-  audioElem.pause();
+  musicAudio.pause();
 })
 
 app.ports.unPauseMusic.subscribe(() => {
-  audioElem.play();
+  musicAudio.play();
+})
+
+app.ports.playTapSound.subscribe(() => {
+  const tapAudio = new Audio();
+  tapAudio.src = "./audios/tapSound2.wav";
+  tapAudio.play();
 })
 
 app.ports.playJudgeEffectAnim.subscribe(({keyStr, noteType}) => {

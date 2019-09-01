@@ -58,7 +58,7 @@ init session =
       , allNotes = AllNotes.init
       , lanes = Lanes.init
       , currentMusicTime = 0
-      , speed = 0.2
+      , speed = 0.4
       , score = Score.init
       , combo = Combo.init
       }
@@ -243,6 +243,10 @@ update msg model =
                                 playComboEffectAnim ()
                                     |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
 
+                            playTapSoundCmd =
+                                playTapSound ()
+                                    |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
+
                             nextLanes =
                                 Lanes.updateKeyDown keyStr model.lanes
                         in
@@ -255,6 +259,7 @@ update msg model =
                         , Cmd.batch
                             [ judgeEffectCmd
                             , comboEffectCmd
+                            , playTapSoundCmd
                             ]
                         )
 
@@ -396,6 +401,9 @@ port pauseMusic : () -> Cmd msg
 
 
 port unPauseMusic : () -> Cmd msg
+
+
+port playTapSound : () -> Cmd msg
 
 
 port playComboEffectAnim : () -> Cmd msg
