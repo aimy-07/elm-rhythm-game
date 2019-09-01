@@ -83,7 +83,7 @@ view currentMusicTime speed (Note { justTime, longTime }) =
             ]
             []
         , div
-            [ class "play_note_longLine"
+            [ class "play_noteLongLine"
             , style "bottom" (String.fromFloat bottom ++ "px")
             , style "height" (String.fromFloat height ++ "px")
             ]

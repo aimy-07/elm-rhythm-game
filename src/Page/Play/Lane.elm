@@ -90,7 +90,10 @@ view (Lane { isPressing, keyStr, left }) =
         [ class <| "play_lane" ++ isPressingStyleClass
         , style "left" (String.fromInt left ++ "px")
         ]
-        [ div
-            [ class <| "lane_text" ++ isPressingStyleClass ]
+        [ div [ class <| "play_laneJudgeArea" ] []
+        , div [ class <| "play_laneJudgeAreaLeftLine" ] []
+        , div [ class <| "play_laneJudgeAreaRightLine" ] []
+        , div
+            [ class <| "play_laneText" ++ isPressingStyleClass ]
             [ text keyStr ]
         ]

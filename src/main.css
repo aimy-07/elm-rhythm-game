@@ -69,13 +69,13 @@ h1 {
 
 .play_centerLine {
   position: absolute;
-  top: 550px;
+  top: 549px;
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: white;
-  box-shadow:
-    0 0 20px 10px #fff;
+  background-color: transparent;
+  /* box-shadow:
+    0 0 20px 10px #fff; */
 }
 
 .play_lane {
@@ -101,20 +101,20 @@ h1 {
   height: 40px;
   background-color: #fff;
   box-shadow:
-    0 0 30px 15px #fff,
-    0 0 50px 25px var(--color-elm-green),
-    0 0 70px 45px var(--color-elm-lightblue);
+    0 0 25px 12px #fff,
+    0 0 40px 20px var(--color-elm-green),
+    0 0 50px 35px var(--color-elm-lightblue);
   transform:rotate(45deg);
 }
 
 .play_note.long {
   box-shadow:
-    0 0 35px 20px #fff,
-    0 0 60px 45px var(--color-elm-lightblue),
-    0 0 70px 55px var(--color-elm-darkblue);
+    0 0 25px 12px #fff,
+    0 0 40px 30px var(--color-elm-lightblue),
+    0 0 50px 45px var(--color-elm-darkblue);
 }
 
-.play_note_longLine {
+.play_noteLongLine {
   position: absolute;
   left: 22.5px;
   width: 56px;
@@ -125,7 +125,7 @@ h1 {
 }
 
 /* ロングノーツの終わりの三角を擬似要素で入れる */
-/* .play_note_longLine::before {
+/* .play_noteLongLine::before {
   content: "";
   position: absolute;
   left: 0;
@@ -182,7 +182,75 @@ h1 {
   background-color: transparent;
 }
 
-.lane_text {
+.play_laneJudgeArea {
+  position: absolute;
+  top: 526px;
+  left: 26px;
+  width: 40px;
+  height: 40px;
+  background-color: black;
+  border: solid #fff 4px;
+  box-shadow:
+    0 0 20px 5px #fff;
+  transform:rotate(45deg);
+}
+
+.play_laneJudgeAreaLeftLine {
+  position: absolute;
+  top: 548px;
+  left: -1px;
+  width: 22px;
+  height: 4px;
+  background-color: white;
+  box-shadow:
+    0 0 10px 5px #fff;
+}
+
+.play_laneJudgeAreaRightLine {
+  position: absolute;
+  top: 548px;
+  right: -1px;
+  width: 22px;
+  height: 4px;
+  background-color:  white;
+  box-shadow:
+    0 0 10px 5px #fff;
+}
+
+.play_laneJudgeAreaCenterLine {
+  position: absolute;
+  top: 548px;
+  left: 349px;
+  width: 302px;
+  height: 4px;
+  background-color:  white;
+  box-shadow:
+    0 0 10px 5px #fff;
+}
+
+.play_laneJudgeAreaOuterLeftLine {
+  position: absolute;
+  top: 548px;
+  left: 0px;
+  width: 50px;
+  height: 4px;
+  background-color:  white;
+  box-shadow:
+    0 0 10px 5px #fff;
+}
+
+.play_laneJudgeAreaOuterRightLine {
+  position: absolute;
+  top: 548px;
+  right: 0px;
+  width: 50px;
+  height: 4px;
+  background-color:  white;
+  box-shadow:
+    0 0 10px 5px #fff;
+}
+
+.play_laneText {
   position: absolute;
   width: 100px;
   left: 0;
@@ -217,7 +285,7 @@ h1 {
     rgba(16, 16, 16, 0.4) 1px 30px 65px,
     white -0.15em -0.1em 100px;
 }
-.lane_text.is-pressing {
+.play_laneText.is-pressing {
     top: 610px;
     text-shadow:
     white 0.006em 0.006em 0.007em,
