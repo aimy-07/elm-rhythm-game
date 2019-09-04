@@ -72,6 +72,7 @@ init session =
 
 type Msg
     = Tick Time.Posix
+    | GotCurrentMusicTime CurrentMusicTime
     | GotMusicInfo MusicInfoDto
     | KeyDown Keyboard.RawKey
     | KeyUp Keyboard.RawKey
@@ -81,10 +82,10 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Tick _ ->
-            let
-                updatedTime =
-                    updateCurrentMusicTime model.currentMusicTime
+            ( model, getCurrentMusicTime () )
 
+        GotCurrentMusicTime updatedTime ->
+            let
                 nextAllNotes =
                     -- 先にMissの処理を行う
                     model.allNotes
@@ -394,6 +395,12 @@ port getMusicInfo : () -> Cmd msg
 port gotMusicInfo : (MusicInfoDto -> msg) -> Sub msg
 
 
+port getCurrentMusicTime : () -> Cmd msg
+
+
+port gotCurrentMusicTime : (CurrentMusicTime -> msg) -> Sub msg
+
+
 port startMusic : () -> Cmd msg
 
 
@@ -419,6 +426,7 @@ subscriptions model =
         Playing ->
             Sub.batch
                 [ Time.every 10 Tick
+                , gotCurrentMusicTime GotCurrentMusicTime
                 , Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
                 ]

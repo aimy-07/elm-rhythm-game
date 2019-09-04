@@ -6,6 +6,11 @@ const app = Elm.Main.init({
   node: document.getElementById('root')
 });
 
+
+
+/* ---------------------------------
+	CSV読み込み
+---------------------------------- */
 app.ports.getMusicInfo.subscribe(() => {
   getCSVFile();
 })
@@ -58,7 +63,7 @@ const getCSVFile = () => {
     app.ports.gotMusicInfo.send(musicInfo);
   };
 
-  xhr.open("get", "./csv/sample.csv", true);
+  xhr.open("get", "./csv/sample_sound.csv", true);
   xhr.send(null);
 }
 
@@ -75,12 +80,18 @@ const createArray = (csvData) => {
 // 配列を転置する
 const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
 
+
+
+/* ---------------------------------
+	サウンド関係
+---------------------------------- */
 let musicAudio;
 
 app.ports.startMusic.subscribe(() => {
   musicAudio = new Audio();
   musicAudio.src = "./audios/sample_sound.wav";
   musicAudio.play();
+  app.ports.gotCurrentMusicTime.send(0); 
 })
 
 app.ports.pauseMusic.subscribe(() => {
@@ -89,16 +100,28 @@ app.ports.pauseMusic.subscribe(() => {
 
 app.ports.unPauseMusic.subscribe(() => {
   musicAudio.play();
+  const currentMusicTime = musicAudio.currentTime * 1000;
+  app.ports.gotCurrentMusicTime.send(currentMusicTime); 
+})
+
+app.ports.getCurrentMusicTime.subscribe(() => {
+  const currentMusicTime = musicAudio.currentTime * 1000;
+  app.ports.gotCurrentMusicTime.send(currentMusicTime);
 })
 
 app.ports.playTapSound.subscribe(() => {
-  const tapAudio = new Audio();
-  tapAudio.src = "./audios/tapSound2.wav";
-  tapAudio.play();
+  // 音発火が重い
+  // const tapAudio = new Audio();
+  // tapAudio.src = "./audios/tapSound2.wav";
+  // tapAudio.play();
 })
 
+
+
+/* ---------------------------------
+	アニメーション関係
+---------------------------------- */
 app.ports.playJudgeEffectAnim.subscribe(({keyStr, noteType}) => {
-  // エフェクト
   const judgeEffect = document.getElementById("judgeEffect_" + keyStr);
   judgeEffect.classList.remove("long");
   if (noteType === "LONG") {
