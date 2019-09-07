@@ -1,4 +1,4 @@
-module Page.Home.AllMusicInfoList exposing (AllMusicInfoList, create, init, isLoaded, view)
+module Page.Home.AllMusicInfoList exposing (AllMusicInfoList, create, filterByMode, init, isLoaded, view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -31,6 +31,22 @@ isLoaded allMusicInfoList =
 create : List MusicInfo -> AllMusicInfoList
 create musicInfos =
     Loaded musicInfos
+
+
+filterByMode : Mode -> AllMusicInfoList -> AllMusicInfoList
+filterByMode mode allMusicInfoList =
+    case allMusicInfoList of
+        Loaded musicInfoList ->
+            Loaded
+                (musicInfoList
+                    |> List.filter
+                        (\musicInfo ->
+                            MusicInfo.toMode musicInfo == mode
+                        )
+                )
+
+        NotLoaded ->
+            NotLoaded
 
 
 view : AllMusicInfoList -> Html msg

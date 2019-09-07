@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import MusicInfo as MusicInfo exposing (MusicInfo, MusicInfoDto)
+import MusicInfo.Mode as Mode exposing (Mode)
 import Page.Home.AllMusicInfoList as AllMusicInfoList exposing (AllMusicInfoList)
 import Session exposing (Session)
 
@@ -15,6 +16,7 @@ import Session exposing (Session)
 type alias Model =
     { session : Session
     , allMusicInfoList : AllMusicInfoList
+    , selectingMode : Mode
     }
 
 
@@ -22,6 +24,7 @@ init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
       , allMusicInfoList = AllMusicInfoList.init
+      , selectingMode = Mode.normal
       }
     , getAllMusicInfoList ()
     )
@@ -33,6 +36,7 @@ init session =
 
 type Msg
     = GotAllMusicInfoList (List MusicInfoDto)
+    | ChangeMode Mode
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -46,6 +50,9 @@ update msg model =
                         |> AllMusicInfoList.create
             in
             ( { model | allMusicInfoList = nextAllMusicInfoList }, Cmd.none )
+
+        ChangeMode mode ->
+            ( { model | selectingMode = mode }, Cmd.none )
 
 
 
@@ -64,13 +71,28 @@ port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg
 
 view : Model -> { title : String, content : Html Msg }
 view model =
+    let
+        filterMusicInfoList =
+            model.allMusicInfoList
+                |> AllMusicInfoList.filterByMode model.selectingMode
+    in
     { title = "Home"
     , content =
         div []
             [ h1 [] [ text "ホーム画面" ]
-            , AllMusicInfoList.view model.allMusicInfoList
+            , div []
+                [ viewModeTabBtn Mode.normal
+                , viewModeTabBtn Mode.hard
+                , viewModeTabBtn Mode.master
+                ]
+            , AllMusicInfoList.view filterMusicInfoList
             ]
     }
+
+
+viewModeTabBtn : Mode -> Html Msg
+viewModeTabBtn mode =
+    button [ onClick <| ChangeMode mode ] [ text <| Mode.unwrap mode ]
 
 
 
