@@ -6,8 +6,11 @@ import Html.Events exposing (..)
 import Json.Decode as Json
 import Keyboard exposing (Key(..))
 import Keyboard.Arrows
+import MusicInfo as MusicInfo exposing (MusicInfo, MusicInfoDto)
+import MusicInfo.CsvFileName exposing (CsvFileName)
+import MusicInfo.Mode as Mode exposing (Mode)
 import Page
-import Page.Play.AllNotes as AllNotes exposing (AllNotes)
+import Page.Play.AllNotes as AllNotes exposing (AllNotes, AllNotesDto)
 import Page.Play.Combo as Combo exposing (Combo)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime, updateCurrentMusicTime)
 import Page.Play.JudgeEffect as JudgeEffect exposing (JudgeEffect)
@@ -15,9 +18,9 @@ import Page.Play.JudgeKind as JudgeKind exposing (JudgeKind)
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Lanes as Lanes exposing (Lanes)
 import Page.Play.LongNoteLine as LongNoteLine exposing (EndTime, LongNoteLine)
-import Page.Play.MusicInfo as MusicInfo exposing (MusicInfo, MusicInfoDto)
 import Page.Play.Note as Note exposing (JustTime, Note)
 import Page.Play.NotesPerLane as NotesPerLane exposing (NotesPerLane)
+import Page.Play.PlayingMusicInfo as PlayingMusicInfo exposing (PlayingMusicInfo)
 import Page.Play.Score as Score exposing (Score)
 import Page.Play.Speed exposing (Speed)
 import Route
@@ -33,7 +36,7 @@ import Time
 type alias Model =
     { session : Session
     , playStatus : PlayStatus
-    , musicInfo : MusicInfo
+    , playingMusicInfo : PlayingMusicInfo
     , allNotes : AllNotes
     , lanes : Lanes
     , currentMusicTime : CurrentMusicTime
@@ -50,11 +53,15 @@ type PlayStatus
     | Finish
 
 
-init : Session -> ( Model, Cmd Msg )
-init session =
+init : Session -> CsvFileName -> ( Model, Cmd Msg )
+init session csvFileName =
+    let
+        _ =
+            Debug.log "csvFileName" csvFileName
+    in
     ( { session = session
       , playStatus = NotStart
-      , musicInfo = MusicInfo.init
+      , playingMusicInfo = PlayingMusicInfo.init
       , allNotes = AllNotes.init
       , lanes = Lanes.init
       , currentMusicTime = 0
@@ -62,7 +69,10 @@ init session =
       , score = Score.init
       , combo = Combo.init
       }
-    , getMusicInfo ()
+    , Cmd.batch
+        [ getPlayingMusicInfo csvFileName
+        , getAllNotes csvFileName
+        ]
     )
 
 
@@ -73,7 +83,8 @@ init session =
 type Msg
     = Tick Time.Posix
     | GotCurrentMusicTime CurrentMusicTime
-    | GotMusicInfo MusicInfoDto
+    | GotPlayingMusicInfo MusicInfoDto
+    | GotAllNotes AllNotesDto
     | KeyDown Keyboard.RawKey
     | KeyUp Keyboard.RawKey
 
@@ -148,10 +159,13 @@ update msg model =
                     playComboEffectAnim ()
                         |> Page.cmdIf (addedCombo /= 0)
 
+                fullTime =
+                    MusicInfo.toFullTime <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo
+
                 nextPlayStatus =
                     model.playStatus
                         |> Page.updateIf
-                            (MusicInfo.toFullTime model.musicInfo < model.currentMusicTime)
+                            (fullTime <= model.currentMusicTime)
                             (always Finish)
             in
             ( { model
@@ -168,21 +182,21 @@ update msg model =
                 ]
             )
 
-        GotMusicInfo rawMusicInfo ->
+        GotPlayingMusicInfo musicInfoDto ->
             let
-                nextMusicInfo =
-                    MusicInfo.create rawMusicInfo
-
-                nextAllNotes =
-                    MusicInfo.toAllNotes nextMusicInfo
-
-                _ =
-                    Debug.log "musicInfo" nextMusicInfo
+                nextPlayingMusicInfo =
+                    PlayingMusicInfo.new musicInfoDto
             in
-            ( { model
-                | musicInfo = nextMusicInfo
-                , allNotes = nextAllNotes
-              }
+            ( { model | playingMusicInfo = nextPlayingMusicInfo }
+            , Cmd.none
+            )
+
+        GotAllNotes allNotesDto ->
+            let
+                nextAllNotes =
+                    AllNotes.new allNotesDto
+            in
+            ( { model | allNotes = nextAllNotes }
             , Cmd.none
             )
 
@@ -197,7 +211,7 @@ update msg model =
                         ( nextPlayStatus, cmd ) =
                             case model.playStatus of
                                 NotStart ->
-                                    if MusicInfo.isLoaded model.musicInfo then
+                                    if PlayingMusicInfo.isLoaded model.playingMusicInfo then
                                         ( Playing, startMusic () )
 
                                     else
@@ -301,12 +315,29 @@ view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Play"
     , content =
-        if MusicInfo.isLoaded model.musicInfo then
+        if PlayingMusicInfo.isLoaded model.playingMusicInfo then
             div [ class "play" ]
                 [ div [ class "play_header" ]
-                    [ span [] [ text <| "\u{3000}Bpm: " ++ MusicInfo.toStringBpm model.musicInfo ]
-                    , span [] [ text <| "\u{3000}MaxCombo: " ++ MusicInfo.toStringMaxCombo model.musicInfo ]
-                    , span [] [ text <| "\u{3000}currentMusicTime: " ++ String.fromFloat model.currentMusicTime ]
+                    [ div []
+                        [ span []
+                            [ text <| "\u{3000}♪ " ++ (MusicInfo.toMusicName <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
+                        , span []
+                            [ text <| "\u{3000}" ++ (MusicInfo.toComposer <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
+                        , span []
+                            [ text <| "\u{3000}currentMusicTime: " ++ String.fromFloat model.currentMusicTime ]
+                        ]
+                    , div []
+                        [ span []
+                            [ text <| "\u{3000}" ++ (Mode.unwrap <| MusicInfo.toMode <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
+                        , span []
+                            [ text <| "\u{3000}Lv: " ++ (String.fromInt <| MusicInfo.toLevel <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
+                        , span []
+                            [ text <| "\u{3000}Bpm: " ++ (String.fromInt <| MusicInfo.toBpm <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
+                        , span []
+                            [ text <| "\u{3000}MaxCombo: " ++ (String.fromInt <| MusicInfo.toMaxCombo <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
+                        , span []
+                            [ text <| "\u{3000}MaxScore: " ++ (String.fromInt <| MusicInfo.toMaxScore <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
+                        ]
                     ]
                 , div [ class "play_contentsContainer" ]
                     [ div [ class "play_contents" ]
@@ -333,8 +364,11 @@ view model =
 viewDisplayCircle : Model -> Html msg
 viewDisplayCircle model =
     let
+        fullTime =
+            MusicInfo.toFullTime <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo
+
         rate =
-            model.currentMusicTime / MusicInfo.toFullTime model.musicInfo
+            model.currentMusicTime / fullTime
 
         half1Rotate =
             if rate <= 0.5 then
@@ -389,10 +423,16 @@ viewDisplayCircle model =
 -- PORT
 
 
-port getMusicInfo : () -> Cmd msg
+port getPlayingMusicInfo : CsvFileName -> Cmd msg
 
 
-port gotMusicInfo : (MusicInfoDto -> msg) -> Sub msg
+port gotPlayingMusicInfo : (MusicInfoDto -> msg) -> Sub msg
+
+
+port getAllNotes : CsvFileName -> Cmd msg
+
+
+port gotAllNotes : (AllNotesDto -> msg) -> Sub msg
 
 
 port getCurrentMusicTime : () -> Cmd msg
@@ -435,7 +475,8 @@ subscriptions model =
             Sub.batch
                 [ Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
-                , gotMusicInfo GotMusicInfo
+                , gotAllNotes GotAllNotes
+                , gotPlayingMusicInfo GotPlayingMusicInfo
                 ]
 
 

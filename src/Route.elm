@@ -3,6 +3,7 @@ module Route exposing (Route(..), fromUrl, href, replaceUrl)
 import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
+import MusicInfo.CsvFileName exposing (CsvFileName)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 
@@ -13,14 +14,14 @@ import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 
 type Route
     = Home
-    | Play
+    | Play CsvFileName
 
 
 parser : Parser (Route -> a) a
 parser =
     oneOf
         [ Parser.map Home Parser.top
-        , Parser.map Play (s "play")
+        , Parser.map Play (s "play" </> string)
         ]
 
 
@@ -56,7 +57,7 @@ routeToString page =
                 Home ->
                     []
 
-                Play ->
-                    [ "play" ]
+                Play csvFileName ->
+                    [ "play", csvFileName ]
     in
     "#/" ++ String.join "/" pieces

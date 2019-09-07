@@ -4,7 +4,6 @@ import Browser exposing (Document)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Route exposing (Route)
 
 
 type Page

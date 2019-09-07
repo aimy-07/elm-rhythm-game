@@ -3,6 +3,7 @@ module Main exposing (main)
 import Browser exposing (Document)
 import Browser.Navigation as Nav
 import Html exposing (..)
+import MusicInfo.CsvFileName exposing (CsvFileName)
 import Page exposing (Page)
 import Page.Blank as Blank
 import Page.Home as Home
@@ -21,7 +22,7 @@ type Model
     = Redirect Session
     | NotFound Session
     | Home Home.Model
-    | Play Play.Model
+    | Play CsvFileName Play.Model
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -56,7 +57,7 @@ view model =
         Home subModel ->
             viewPage Page.Home GotHomeMsg (Home.view subModel)
 
-        Play subModel ->
+        Play csvFileName subModel ->
             viewPage Page.Play GotPlayMsg (Play.view subModel)
 
 
@@ -85,7 +86,7 @@ toSession page =
         Home subModel ->
             Home.toSession subModel
 
-        Play subModel ->
+        Play _ subModel ->
             Play.toSession subModel
 
 
@@ -103,9 +104,9 @@ changeRouteTo maybeRoute model =
             Home.init session
                 |> updateWith Home GotHomeMsg model
 
-        Just Route.Play ->
-            Play.init session
-                |> updateWith Play GotPlayMsg model
+        Just (Route.Play csvFileName) ->
+            Play.init session csvFileName
+                |> updateWith (Play csvFileName) GotPlayMsg model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -138,9 +139,9 @@ update msg model =
             Home.update subMsg subModel
                 |> updateWith Home GotHomeMsg model
 
-        ( GotPlayMsg subMsg, Play subModel ) ->
+        ( GotPlayMsg subMsg, Play csvFileName subModel ) ->
             Play.update subMsg subModel
-                |> updateWith Play GotPlayMsg model
+                |> updateWith (Play csvFileName) GotPlayMsg model
 
         ( GotSession session, Redirect _ ) ->
             ( Redirect session
@@ -174,7 +175,7 @@ subscriptions model =
         Home subModel ->
             Sub.map GotHomeMsg (Home.subscriptions subModel)
 
-        Play subModel ->
+        Play _ subModel ->
             Sub.map GotPlayMsg (Play.subscriptions subModel)
 
 

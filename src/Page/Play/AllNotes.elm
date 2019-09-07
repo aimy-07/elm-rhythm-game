@@ -1,5 +1,6 @@
 module Page.Play.AllNotes exposing
     ( AllNotes
+    , AllNotesDto
     , hasOverMissNotes
     , init
     , map
@@ -25,7 +26,7 @@ type AllNotes
     = AllNotes (List NotesPerLane)
 
 
-new :
+type alias AllNotesDto =
     { laneS : List NoteDto
     , laneD : List NoteDto
     , laneF : List NoteDto
@@ -33,7 +34,9 @@ new :
     , laneK : List NoteDto
     , laneL : List NoteDto
     }
-    -> AllNotes
+
+
+new : AllNotesDto -> AllNotes
 new allNotes =
     AllNotes
         (KeyStr.allKeyStr

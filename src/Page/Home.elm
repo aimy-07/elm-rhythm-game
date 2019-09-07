@@ -1,10 +1,10 @@
-module Page.Home exposing (Model, Msg, init, subscriptions, toSession, update, view)
+port module Page.Home exposing (Model, Msg, init, subscriptions, toSession, update, view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Page.Home.MusicInfo as MusicInfo exposing (MusicInfo)
-import Route
+import MusicInfo as MusicInfo exposing (MusicInfo, MusicInfoDto)
+import Page.Home.AllMusicInfoList as AllMusicInfoList exposing (AllMusicInfoList)
 import Session exposing (Session)
 
 
@@ -14,16 +14,16 @@ import Session exposing (Session)
 
 type alias Model =
     { session : Session
-    , normalMusics : List MusicInfo
+    , allMusicInfoList : AllMusicInfoList
     }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
-      , normalMusics = MusicInfo.normalMusics
+      , allMusicInfoList = AllMusicInfoList.init
       }
-    , Cmd.none
+    , getAllMusicInfoList ()
     )
 
 
@@ -32,14 +32,30 @@ init session =
 
 
 type Msg
-    = NoOp
+    = GotAllMusicInfoList (List MusicInfoDto)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            ( model, Cmd.none )
+        GotAllMusicInfoList musicInfoDtos ->
+            let
+                nextAllMusicInfoList =
+                    musicInfoDtos
+                        |> List.map MusicInfo.new
+                        |> AllMusicInfoList.create
+            in
+            ( { model | allMusicInfoList = nextAllMusicInfoList }, Cmd.none )
+
+
+
+-- PORT
+
+
+port getAllMusicInfoList : () -> Cmd msg
+
+
+port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg
 
 
 
@@ -52,9 +68,7 @@ view model =
     , content =
         div []
             [ h1 [] [ text "ホーム画面" ]
-            , div []
-                (List.map (\musicInfo -> MusicInfo.view musicInfo) model.normalMusics)
-            , a [ Route.href Route.Play ] [ text "プレイ画面へ" ]
+            , AllMusicInfoList.view model.allMusicInfoList
             ]
     }
 
@@ -65,7 +79,9 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.batch
+        [ gotAllMusicInfoList GotAllMusicInfoList
+        ]
 
 
 
