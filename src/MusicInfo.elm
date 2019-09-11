@@ -12,6 +12,7 @@ module MusicInfo exposing
     , toMaxScore
     , toMode
     , toMusicName
+    , toStringLevel
     , toStringTime
     )
 
@@ -99,6 +100,11 @@ toMode (MusicInfo { mode }) =
 toLevel : MusicInfo -> Int
 toLevel (MusicInfo { level }) =
     level
+
+
+toStringLevel : MusicInfo -> String
+toStringLevel (MusicInfo { level }) =
+    String.repeat level "◆" ++ String.repeat (8 - level) "◇"
 
 
 toMaxCombo : MusicInfo -> Int

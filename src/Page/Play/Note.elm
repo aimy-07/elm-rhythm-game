@@ -71,10 +71,10 @@ view currentMusicTime speed (Note { justTime, longTime }) =
 
         styleClass =
             if longTime == 0 then
-                class "play_note"
+                class "playNote_note"
 
             else
-                class "play_note long"
+                class "playNote_note long"
     in
     div []
         [ div
@@ -83,7 +83,7 @@ view currentMusicTime speed (Note { justTime, longTime }) =
             ]
             []
         , div
-            [ class "play_noteLongLine"
+            [ class "playNote_longLine"
             , style "bottom" (String.fromFloat bottom ++ "px")
             , style "height" (String.fromFloat height ++ "px")
             ]

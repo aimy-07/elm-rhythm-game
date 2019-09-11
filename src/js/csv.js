@@ -9,6 +9,12 @@ const csvFileNameList = [
   "sample_sound-normal",
   "sample_sound-hard",
   "sample_sound-master",
+  "sample_sound1-normal",
+  "sample_sound1-hard",
+  "sample_sound1-master",
+  "sample_sound2-normal",
+  "sample_sound2-hard",
+  "sample_sound2-master",
 ]
 
 

@@ -316,35 +316,29 @@ view model =
     { title = "Play"
     , content =
         if PlayingMusicInfo.isLoaded model.playingMusicInfo then
-            div [ class "play" ]
-                [ div [ class "play_header" ]
-                    [ div []
-                        [ span []
-                            [ text <| "\u{3000}♪ " ++ (MusicInfo.toMusicName <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
-                        , span []
-                            [ text <| "\u{3000}" ++ (MusicInfo.toComposer <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
-                        , span []
-                            [ text <| "\u{3000}currentMusicTime: " ++ String.fromFloat model.currentMusicTime ]
-                        ]
-                    , div []
-                        [ span []
-                            [ text <| "\u{3000}" ++ (Mode.unwrap <| MusicInfo.toMode <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
-                        , span []
-                            [ text <| "\u{3000}Lv: " ++ (String.fromInt <| MusicInfo.toLevel <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
-                        , span []
-                            [ text <| "\u{3000}Bpm: " ++ (String.fromInt <| MusicInfo.toBpm <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
-                        , span []
-                            [ text <| "\u{3000}MaxCombo: " ++ (String.fromInt <| MusicInfo.toMaxCombo <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
-                        , span []
-                            [ text <| "\u{3000}MaxScore: " ++ (String.fromInt <| MusicInfo.toMaxScore <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
-                        ]
-                    ]
-                , div [ class "play_contentsContainer" ]
+            div [ class "mainWide" ]
+                [ div [ class "play_contentsContainer" ]
                     [ div [ class "play_contents" ]
                         [ Lanes.view model.lanes
                         , AllNotes.view model.currentMusicTime model.speed model.allNotes
                         , viewDisplayCircle model
-                        , div [ class "play_textArea" ]
+                        , div [ class "playTextArea1_container" ]
+                            [ div
+                                [ class "playTextArea1_bigText" ]
+                                [ text <| (MusicInfo.toMusicName <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
+                            , div
+                                [ class "playTextArea1_smallText" ]
+                                [ text <| (MusicInfo.toComposer <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
+                            , div
+                                [ class "playTextArea1_smallText" ]
+                                [ text <|
+                                    ((Mode.unwrap <| MusicInfo.toMode <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo)
+                                        ++ "\u{3000}"
+                                        ++ (MusicInfo.toStringLevel <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo)
+                                    )
+                                ]
+                            ]
+                        , div [ class "playTextArea2_container" ]
                             [ div [] [ text "Spaceキーでスタート" ]
                                 |> Page.viewIf (model.playStatus == NotStart)
                             , div [] [ text "Finish!" ]
@@ -397,8 +391,8 @@ viewDisplayCircle model =
             else
                 "#EEA41D"
     in
-    div [ class "play_displayCircle" ]
-        [ div [ class "play_displayCircle-inner" ] []
+    div [ class "playDisplay_circle" ]
+        [ div [ class "playDisplay_circle-inner" ] []
         , div
             [ class "half1"
             , style "transform" half1Rotate
@@ -410,11 +404,11 @@ viewDisplayCircle model =
             , style "background-color" half2Color
             ]
             []
-        , div [ class "play_displayTextArea" ]
-            [ div [ class "play_scoreLabelText" ] [ text "- SCORE -" ]
-            , div [ class "play_scoreText" ] [ text <| Score.toString model.score ]
-            , div [ class "play_comboLabelText" ] [ text "- COMBO -" ]
-            , div [ class "play_comboText", id "comboText" ] [ text <| Combo.toString model.combo ]
+        , div [ class "playDisplay_centerTextArea" ]
+            [ div [ class "playDisplay_scoreLabelText" ] [ text "- SCORE -" ]
+            , div [ class "playDisplay_scoreText" ] [ text <| Score.toString model.score ]
+            , div [ class "playDisplay_comboLabelText" ] [ text "- COMBO -" ]
+            , div [ class "playDisplay_comboText", id "comboText" ] [ text <| Combo.toString model.combo ]
             ]
         ]
 

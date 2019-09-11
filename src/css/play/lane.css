@@ -1,0 +1,32 @@
+.playLane_lane {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 98px;
+  border-left: solid 1px var(--color-elm-darkblue);
+  border-right: solid 1px var(--color-elm-darkblue);
+}
+
+.playLane_lane.is-pressing {
+  /* background-color: rgba(255, 255, 255, 0.5); */
+  background: -moz-linear-gradient(top, transparent 40%, var(--color-elm-darkblue));
+  background: -webkit-linear-gradient(top, transparent 40%, var(--color-elm-darkblue));
+  background: linear-gradient(to bottom, transparent 40%, var(--color-elm-darkblue));
+}
+
+.playLane_keyText {
+  position: absolute;
+  width: 100px;
+  left: 0;
+  top: 630px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 40px;
+  color: black;
+  text-shadow: 0px 0px 10px white;
+  cursor: default;
+}
+
+.playLane_keyText.is-pressing {
+  color: white;
+}

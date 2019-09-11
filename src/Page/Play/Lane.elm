@@ -87,15 +87,15 @@ view (Lane { isPressing, keyStr, left }) =
                 ""
     in
     div
-        [ class <| "play_lane" ++ isPressingStyleClass
+        [ class <| "playLane_lane" ++ isPressingStyleClass
         , style "left" (String.fromInt left ++ "px")
         ]
-        [ div [ class <| "play_laneJudgeArea" ] []
-        , div [ class <| "play_laneJudgeAreaLeftLine" ] []
-        , div [ class <| "play_laneJudgeAreaRightLine" ] []
+        [ div [ class <| "playCenterLine_judgeArea" ] []
+        , div [ class <| "playCenterLine_judgeAreaLine left" ] []
+        , div [ class <| "playCenterLine_judgeAreaLine right" ] []
         , div
-            [ class <| "play_laneText" ++ isPressingStyleClass ]
+            [ class <| "playLane_keyText" ++ isPressingStyleClass ]
             [ text keyStr ]
-        , div [ class "play_judgeEffect", id <| "judgeEffect_" ++ keyStr ] []
-        , div [ class "play_judgeEffectText", id <| "judgeEffectText_" ++ keyStr ] []
+        , div [ class "playJudgeEffect_effect", id <| "judgeEffect_" ++ keyStr ] []
+        , div [ class "playJudgeEffect_text", id <| "judgeEffectText_" ++ keyStr ] []
         ]

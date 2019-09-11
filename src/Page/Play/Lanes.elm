@@ -65,9 +65,9 @@ updateKeyUp keyStr (Lanes lanes) =
 view : Lanes -> Html msg
 view (Lanes lanes) =
     div []
-        [ div [ class "play_laneJudgeAreaCenterLine" ] []
-        , div [ class "play_laneJudgeAreaOuterLeftLine" ] []
-        , div [ class "play_laneJudgeAreaOuterRightLine" ] []
+        [ div [ class "playCenterLine_judgeAreaLine outer center" ] []
+        , div [ class "playCenterLine_judgeAreaLine outer left" ] []
+        , div [ class "playCenterLine_judgeAreaLine outer right" ] []
         , div []
             (List.map (\lane -> Lane.view lane) lanes)
         ]

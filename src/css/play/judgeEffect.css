@@ -1,0 +1,74 @@
+.playJudgeEffect_effect {
+  position: absolute;
+  top: 500px;
+  width: 96px;
+  height: 96px;
+  opacity: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: solid white 2px;
+  box-shadow:
+    0 0 30px 20px white,
+    0 0 50px 30px var(--color-elm-green);
+  transform:rotate(45deg);
+  transform-origin: 50% 50%;
+  z-index: 50;
+}
+
+.playJudgeEffect_effect.long {
+  box-shadow:
+    0 0 30px 20px white,
+    0 0 50px 30px var(--color-elm-lightblue);
+}
+
+.playJudgeEffect_effect.playAnim {
+  animation: .5s ease-out 0s 1 normal forwards running noteEffectAnim;
+}
+
+@keyframes noteEffectAnim {
+  0% {
+    transform: scale(0.3) rotate(45deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1) rotate(45deg);
+    opacity: 0;
+  }
+}
+
+.playJudgeEffect_text {
+  position: absolute;
+  text-align: center;
+  top: 600px;
+  width: 100px;
+  color: white;
+  opacity: 0;
+  transform: translate(0, -50%);
+  font-size: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+  text-shadow: 0px 0px 10px #fff;
+  z-index: 60;
+  cursor: default;
+}
+
+.playJudgeEffect_text.playAnim {
+  animation: .8s ease-out 0s 1 normal forwards running judgeEffectAnim;
+}
+
+@keyframes judgeEffectAnim {
+  0% {
+    font-size: 12px;
+    opacity: 0;
+  }
+
+  50% {
+    font-size: 18px;
+    opacity: 1;
+  }
+
+  100% {
+    font-size: 18px;
+    opacity: 0;
+  }
+}

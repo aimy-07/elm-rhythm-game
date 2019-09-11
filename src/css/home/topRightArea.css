@@ -1,0 +1,136 @@
+.home_topRightArea {
+  width: 0;
+  height: 0;
+  border-top: solid var(--color-elm-lightblue-w1) 130px;
+  border-right: solid var(--color-elm-lightblue-w1) 130px;
+  border-bottom: solid transparent 130px;
+  border-left: solid transparent 130px;
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  filter: drop-shadow(0 0 10px var(--color-elm-lightblue));
+  cursor: default;
+}
+
+.homeTopRight_title {
+  position: absolute;
+  top: -120px;
+  right: -120px;
+  width: 240px;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: end;
+}
+
+.homeTopRight_userNameText {
+  position: absolute;
+  right: -120px;
+  color: white;
+  text-align: end;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.homeTopRight_scoreText {
+  position: absolute;
+  right: -120px;
+  color: white;
+  text-align: end;
+}
+
+.homeTopRight_line {
+  position: absolute;
+  height: 1px;
+  background-color: white;
+  right: -120px;
+}
+
+.homeTopRight_userNameText.first {
+  top: -80px;
+  width: 140px;
+  font-size: 16px;
+}
+
+.homeTopRight_scoreText.first {
+  top: -60px;
+  font-size: 14px;
+}
+
+.homeTopRight_line.first {
+  top: -40px;
+  width: 140px;
+}
+
+.homeTopRight_rankIcon.first {
+  position: absolute;
+  top: -80px;
+  right: 20px;
+  width: 32px;
+  height: 32px;
+}
+
+.homeTopRight_userNameText.second {
+  top: -30px;
+  width: 98px;
+  font-size: 14px;
+}
+
+.homeTopRight_scoreText.second {
+  top: -13px;
+  font-size: 12px;
+}
+
+.homeTopRight_line.second {
+  top: 5px;
+  width: 98px;
+}
+
+.homeTopRight_rankIcon.second {
+  position: absolute;
+  top: -30px;
+  right: -22px;
+  width: 28px;
+  height: 28px;
+}
+
+.homeTopRight_userNameText.third {
+  top: 17px;
+  width: 60px;
+  font-size: 12px;
+}
+
+.homeTopRight_scoreText.third {
+  top: 34px;
+  font-size: 10px;
+}
+
+.homeTopRight_line.third {
+  top: 48px;
+  width: 60px;
+}
+
+.homeTopRight_rankIcon.third {
+  position: absolute;
+  top: 17px;
+  right: -60px;
+  width: 22px;
+  height: 22px;
+}
+
+.home_topRightArea.playAnim {
+  animation: .4s ease-out 0s 1 normal forwards running topRightAreaAnim;
+}
+
+@keyframes topRightAreaAnim {
+  0% {
+    top: 68px;
+    right: 68px;
+  }
+
+  100% {
+    top: 18px;
+    right: 18px;
+  }
+}

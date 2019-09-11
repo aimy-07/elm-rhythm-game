@@ -157,7 +157,7 @@ updateLongNoteLines currentMusicTime (AllNotes allNotes) =
 
 view : CurrentMusicTime -> Speed -> AllNotes -> Html msg
 view currentMusicTime speed (AllNotes allNotes) =
-    div [ class "play_centerLine", id "judge_area" ]
+    div [ class "playCenterLine_judgeLine", id "judge_area" ]
         (allNotes
             |> List.map
                 (\notesPerLane ->

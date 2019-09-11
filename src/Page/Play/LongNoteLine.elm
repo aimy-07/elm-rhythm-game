@@ -75,7 +75,7 @@ view currentMusicTime speed maybeLongNoteLine =
                         (endTime - currentMusicTime) * speed
                 in
                 div
-                    [ class "play_noteLongLine"
+                    [ class "playNote_longLine"
                     , style "height" (String.fromFloat height ++ "px")
                     ]
                     []

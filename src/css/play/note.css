@@ -1,0 +1,29 @@
+.playNote_note {
+  position: absolute;
+  left: 30px;
+  width: 40px;
+  height: 40px;
+  background-color: white;
+  box-shadow:
+    0 0 25px 12px white,
+    0 0 40px 20px var(--color-elm-green),
+    0 0 50px 35px var(--color-elm-lightblue);
+  transform:rotate(45deg);
+}
+
+.playNote_note.long {
+  box-shadow:
+    0 0 25px 12px white,
+    0 0 40px 30px var(--color-elm-lightblue),
+    0 0 50px 45px var(--color-elm-darkblue);
+}
+
+.playNote_longLine {
+  position: absolute;
+  left: 22.5px;
+  width: 56px;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 0 10px 5px white;
+}

@@ -9,28 +9,45 @@ export function animationSetUpSubscriber (app) {
     if (noteType === "LONG") {
       judgeEffect.classList.add("long");
     }
-    judgeEffect.classList.remove("playAnim");
-    requestAnimationFrame(() => {
-      judgeEffect.classList.add("playAnim");
-    });
+    replayAnim(judgeEffect);
   })
 
   // 判定文字のエフェクトアニメーションを再生する
   app.ports.playJudgeEffectTextAnim.subscribe(({keyStr, judgeText}) => {
     const judgeEffectText = document.getElementById("judgeEffectText_" + keyStr);
     judgeEffectText.textContent = judgeText;
-    judgeEffectText.classList.remove("playAnim");
-    requestAnimationFrame(() => {
-      judgeEffectText.classList.add("playAnim");
-    });
+    replayAnim(judgeEffectText);
   })
 
   // コンボアニメーションを再生する
   app.ports.playComboEffectAnim.subscribe(() => {
     const comboText = document.getElementById("comboText");
-    comboText.classList.remove("playAnim");
-    requestAnimationFrame(() => {
-      comboText.classList.add("playAnim");
-    });
+    replayAnim(comboText);
   })
+
+  // 曲選択のアニメーションを再生する
+  app.ports.playMusicSelectAnim.subscribe(() => {
+    const centerArea = document.getElementById("home_centerArea");
+    replayAnim(centerArea);
+    const topLeftArea = document.getElementById("home_topLeftArea");
+    replayAnim(topLeftArea);
+    const topRightArea = document.getElementById("home_topRightArea");
+    replayAnim(topRightArea);
+    const bottomLeftArea1 = document.getElementById("home_bottomLeftArea1");
+    replayAnim(bottomLeftArea1);
+    const bottomLeftArea2 = document.getElementById("home_bottomLeftArea2");
+    replayAnim(bottomLeftArea2);
+    const bottomRightArea = document.getElementById("home_bottomRightArea");
+    replayAnim(bottomRightArea);
+    const se = new Audio();
+    se.src = "./audios/se_music_select.mp3";
+    se.play();
+  })
+}
+
+const replayAnim = (element) => {
+  element.classList.remove("playAnim");
+  requestAnimationFrame(() => {
+    element.classList.add("playAnim");
+  });
 }

@@ -1,0 +1,282 @@
+.home_centerArea {
+  width: 400px;
+  height: 400px;
+  position: absolute;
+  margin: auto;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  transform: rotate(45deg);
+  background-color: white;
+  filter: drop-shadow(0 0 30px var(--color-elm-green));
+  cursor: default;
+}
+
+.homeCenterArea_Inner {
+  width: 96%;
+  height: 96%;
+  position: absolute;
+  top: 2%;
+  left: 2%;
+  bottom: 0;
+  right: 0;
+  background-color: var(--color-elm-green);
+}
+
+.homeCenterArea_ContentsContainer {
+  transform: rotate(-45deg);
+  width: 500px;
+  height: 500px;
+  top: -51px;
+  left: -51px;
+  position: absolute;
+  text-align: center;
+  /* background-color: var(--color-elm-green-w1); */
+}
+
+.homeCenterArea_centerWideLine {
+  width: 450px;
+  height: 96px;
+  border-top: solid 2px white;
+  border-bottom: solid 2px white;
+  background-color: rgba(255, 255, 255, 0.3);
+  position: absolute;
+  top: 200px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.homeCenterArea_centerWideLineLeft {
+  width: 0;
+  height: 0;
+  border-top: solid 50px transparent;
+  border-right: solid 50px rgba(255, 255, 255, 0.3);
+  border-bottom: solid 50px transparent;
+  border-left: solid 50px transparent;
+  position: absolute;
+  top: 201px;
+  left: -75px;
+}
+
+.homeCenterArea_centerWideLineRight {
+  width: 0;
+  height: 0;
+  border-top: solid 50px transparent;
+  border-right: solid 50px transparent;
+  border-bottom: solid 50px transparent;
+  border-left: solid 50px rgba(255, 255, 255, 0.3);
+  position: absolute;
+  top: 201px;
+  left: 475px;
+}
+
+.homeCenterArea_musicName {
+  width: 480px;
+  color: white;
+  font-size: 28px;
+  font-weight: 600;
+  text-shadow: 0 0 3px white;
+  position: absolute;
+  top: 217px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.homeCenterArea_composer {
+  width: 480px;
+  color: white;
+  font-size: 16px;
+  text-shadow: 0 0 3px white;
+  position: absolute;
+  top: 262px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.homeCenterArea_levelText {
+  color: white;
+  font-size: 16px;
+  letter-spacing: 4px;
+  position: absolute;
+  top: 165px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.homeCenterArea_box {
+  width: 64px;
+  height: 64px;
+  background-color: white;
+  position: absolute;
+  top: 80px;
+  transform: rotate(45deg);
+}
+
+.homeCenterArea_boxLabel {
+  color: var(--color-elm-green);
+  font-size: 10px;
+  position: absolute;
+  width: 64px;
+  top: 90px;
+}
+
+.homeCenterArea_boxText {
+  color: var(--color-elm-green);
+  font-size: 16px;
+  font-weight: 600;
+  position: absolute;
+  width: 64px;
+  top: 106px;
+}
+
+.homeCenterArea_box.left,
+.homeCenterArea_boxLabel.left,
+.homeCenterArea_boxText.left {
+  left: 130px;
+}
+
+.homeCenterArea_box.center,
+.homeCenterArea_boxLabel.center,
+.homeCenterArea_boxText.center {
+  left: 218px;
+}
+
+.homeCenterArea_box.right,
+.homeCenterArea_boxLabel.right,
+.homeCenterArea_boxText.right {
+  left: 306px;
+}
+
+.homeCenterArea_rankText {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  position: absolute;
+  width: 40px;
+  left: 230px;
+  text-align: center;
+}
+
+.homeCenterArea_rankText.title {
+  top: 310px;
+}
+
+.homeCenterArea_rankText.rank-SSS {
+  top: calc(330px + 18px * 0);
+}
+
+.homeCenterArea_rankText.rank-SS {
+  top: calc(330px + 18px * 1);
+}
+
+.homeCenterArea_rankText.rank-S {
+  top: calc(330px + 18px * 2);
+}
+
+.homeCenterArea_rankText.rank-A {
+  top: calc(330px + 18px * 3);
+}
+
+.homeCenterArea_rankText.rank-B {
+  top: calc(330px + 18px * 4);
+}
+
+.homeCenterArea_rankText.rank-C {
+  top: calc(330px + 18px * 5);
+}
+
+.homeCenterArea_rankText.rank-D {
+  top: calc(330px + 18px * 6);
+}
+
+.homeCenterArea_rankDetailText {
+  color: white;
+  font-size: 10px;
+  position: absolute;
+  top: 4px;
+}
+
+.homeCenterArea_rankDetailText.score {
+  right: 45px;
+  text-align: end;
+}
+
+.homeCenterArea_rankDetailText.combo {
+  left: 45px;
+  text-align: start;
+}
+
+.homeCenterArea_rankLine {
+  position: absolute;
+  background-color: white;
+  height: 1px;
+  top: 18px;
+}
+
+.homeCenterArea_rankLine.rank-SSS {
+  width: calc(320px - 34px * 0);
+  left: calc(-140px + 17px * 0);
+}
+
+.homeCenterArea_rankLine.rank-SS {
+  width: calc(320px - 34px * 1);
+  left: calc(-140px + 17px * 1);
+}
+
+.homeCenterArea_rankLine.rank-S {
+  width: calc(320px - 34px * 2);
+  left: calc(-140px + 17px * 2);
+}
+
+.homeCenterArea_rankLine.rank-A {
+  width: calc(320px - 34px * 3);
+  left: calc(-140px + 17px * 3);
+}
+
+.homeCenterArea_rankLine.rank-B {
+  width: calc(320px - 34px * 4);
+  left: calc(-140px + 17px * 4);
+}
+
+.homeCenterArea_rankLine.rank-C {
+  width: calc(320px - 34px * 5);
+  left: calc(-140px + 17px * 5);
+}
+
+.homeCenterArea_rankLine.rank-D {
+  width: calc(320px - 34px * 6);
+  left: calc(-140px + 17px * 6);
+}
+
+.homeCenterArea_rankCenterLine1 {
+  position: absolute;
+  background-color: white;
+  width: 1px;
+  height: 20px;
+  top: 305px;
+  left: 250px;
+}
+
+.homeCenterArea_rankCenterLine2 {
+  position: absolute;
+  background-color: white;
+  width: 1px;
+  height: 50px;
+  top: 465px;
+  left: 250px;
+}
+
+.home_centerArea.playAnim {
+  animation: .3s ease-out 0s 1 normal forwards running centerAreaAnim;
+}
+
+@keyframes centerAreaAnim {
+  0% {
+    transform: scale(.7) rotate(45deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(45deg);
+  }
+}

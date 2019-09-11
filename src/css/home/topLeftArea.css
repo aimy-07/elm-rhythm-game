@@ -1,0 +1,41 @@
+.home_topLeftArea {
+  width: 0;
+  height: 0;
+  border-top: solid var(--color-elm-orange-w1) 130px;
+  border-right: solid transparent 130px;
+  border-bottom: solid transparent 130px;
+  border-left: solid transparent 130px;
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  filter: drop-shadow(0 0 10px var(--color-elm-orange));
+  cursor: default;
+}
+
+.homeTopLeft_modeText {
+  position: absolute;
+  top: -110px;
+  left: -100px;
+  width: 200px;
+  line-height: 50px;
+  color: white;
+  font-size: 28px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.home_topLeftArea.playAnim {
+  animation: .4s ease-out 0s 1 normal forwards running topLeftAreaAnim;
+}
+
+@keyframes topLeftAreaAnim {
+  0% {
+    top: 68px;
+    left: 68px;
+  }
+
+  100% {
+    top: 18px;
+    left: 18px;
+  }
+}

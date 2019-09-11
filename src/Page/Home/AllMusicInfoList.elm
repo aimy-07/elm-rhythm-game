@@ -1,4 +1,4 @@
-module Page.Home.AllMusicInfoList exposing (AllMusicInfoList, create, filterByMode, init, isLoaded, view)
+module Page.Home.AllMusicInfoList exposing (AllMusicInfoList, create, filteredMusicInfoListByMode, init, isLoaded, toMusicInfoList)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -18,6 +18,11 @@ init =
     NotLoaded
 
 
+create : List MusicInfo -> AllMusicInfoList
+create musicInfos =
+    Loaded musicInfos
+
+
 isLoaded : AllMusicInfoList -> Bool
 isLoaded allMusicInfoList =
     case allMusicInfoList of
@@ -28,52 +33,25 @@ isLoaded allMusicInfoList =
             False
 
 
-create : List MusicInfo -> AllMusicInfoList
-create musicInfos =
-    Loaded musicInfos
-
-
-filterByMode : Mode -> AllMusicInfoList -> AllMusicInfoList
-filterByMode mode allMusicInfoList =
+toMusicInfoList : AllMusicInfoList -> List MusicInfo
+toMusicInfoList allMusicInfoList =
     case allMusicInfoList of
         Loaded musicInfoList ->
-            Loaded
-                (musicInfoList
-                    |> List.filter
-                        (\musicInfo ->
-                            MusicInfo.toMode musicInfo == mode
-                        )
-                )
+            musicInfoList
 
         NotLoaded ->
-            NotLoaded
+            []
 
 
-view : AllMusicInfoList -> Html msg
-view allMusicInfoList =
+filteredMusicInfoListByMode : Mode -> AllMusicInfoList -> List MusicInfo
+filteredMusicInfoListByMode mode allMusicInfoList =
     case allMusicInfoList of
-        Loaded musicInfos ->
-            div [] (List.map viewMusicInfo musicInfos)
+        Loaded musicInfoList ->
+            musicInfoList
+                |> List.filter
+                    (\musicInfo ->
+                        MusicInfo.toMode musicInfo == mode
+                    )
 
         NotLoaded ->
-            text ""
-
-
-viewMusicInfo : MusicInfo -> Html msg
-viewMusicInfo musicInfo =
-    -- TODO: modeによって背景色を変える
-    div []
-        [ div []
-            [ a
-                [ Route.href <| Route.Play <| MusicInfo.toCsvFileName musicInfo ]
-                [ text <| MusicInfo.toMusicName musicInfo ]
-            ]
-        , div [] [ text <| MusicInfo.toComposer musicInfo ]
-        , div []
-            [ text <| "楽曲Lv: " ++ String.fromInt (MusicInfo.toLevel musicInfo)
-            , text <| "\u{3000}Bpm: " ++ String.fromInt (MusicInfo.toBpm musicInfo)
-            , text <| "\u{3000}曲の長さ: " ++ MusicInfo.toStringTime (MusicInfo.toFullTime musicInfo)
-            , text <| "\u{3000}最大Combo: " ++ String.fromInt (MusicInfo.toMaxCombo musicInfo)
-            , text <| "\u{3000}最大Score: " ++ String.fromInt (MusicInfo.toMaxScore musicInfo)
-            ]
-        ]
+            []

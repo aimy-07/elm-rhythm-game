@@ -1,0 +1,151 @@
+.homeMusicList_container {
+  height: calc(600px - (18px * 2) - 180px - 20px);
+  overflow: scroll;
+  box-sizing: border-box;
+  border-top: solid 1px white;
+  border-bottom: solid 1px white;
+}
+
+.homeMusicListItem_container {
+  margin: 20px 0;
+  cursor: pointer;
+}
+
+.homeMusicListItem_top {
+  display: inline-block;
+  vertical-align: top;
+  width: 280px;
+  height: 40px;
+  background-color: white;
+  filter: drop-shadow(0 0 5px white);
+  color: black;
+  position: relative;
+  z-index: 1;
+}
+
+.homeMusicListItem_top.is-selecting {
+  background-color: var(--color-elm-green);
+  filter: drop-shadow(0 0 5px var(--color-elm-green));
+  color: white;
+  font-weight: 600;
+}
+
+.homeMusicListItem_container:hover .homeMusicListItem_top {
+  background-color: var(--color-elm-green-w1);
+  filter: drop-shadow(0 0 5px var(--color-elm-green-w1));
+}
+
+.homeMusicListItem_topText {
+  width: 270px;
+  margin-left: 20px;
+  line-height: 40px;
+  font-size: 16px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.homeMusicListItem_topTail {
+  display: inline-block;
+  vertical-align: top;
+  width: 0;
+  height: 0;
+  border-top: solid transparent 20px;
+  border-right: solid transparent 20px;
+  border-bottom: solid white 20px;
+  border-left: solid white 20px;
+  filter: drop-shadow(0 0 5px white);
+}
+
+.homeMusicListItem_topTail.is-selecting {
+  border-bottom: solid var(--color-elm-green) 20px;
+  border-left: solid var(--color-elm-green) 20px;
+  filter: drop-shadow(0 0 5px var(--color-elm-green));
+}
+
+.homeMusicListItem_container:hover .homeMusicListItem_topTail {
+  border-bottom: solid var(--color-elm-green-w1) 20px;
+  border-left: solid var(--color-elm-green-w1) 20px;
+  filter: drop-shadow(0 0 5px var(--color-elm-green-w1));
+}
+
+.homeMusicListItem_rankBox {
+  display: inline-block;
+  vertical-align: top;
+  margin-top: 5px;
+  filter: drop-shadow(0 0 5px white);
+  position: relative;
+}
+
+.homeMusicListItem_rankBox.combo {
+  margin-left: -5px;
+}
+
+.homeMusicListItem_rankBox.score {
+  margin-left: 12px;
+}
+
+.homeMusicListItem_rankBoxBack {
+  width: 28px;
+  height: 28px;
+  transform: rotate(45deg);
+}
+
+.homeMusicListItem_rankBoxBack.combo {
+  background-color: var(--color-elm-darkblue);
+}
+
+.homeMusicListItem_rankBoxBack.score {
+  background-color: var(--color-elm-lightblue);
+}
+
+.homeMusicListItem_rankLabel {
+  position: absolute;
+  text-align: center;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
+}
+
+.homeMusicListItem_rankText {
+  position: absolute;
+  text-align: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  text-shadow: 0 0 2px white;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.homeMusicListItem_bottomText {
+  margin-left: 20px;
+  color: white;
+  text-shadow: 0 0 2px white;
+  letter-spacing: 4px;
+  font-size: 12px;
+}
+
+.homeMusicListItem_bottomLine {
+  width: 150px;
+  height: 1px;
+  background-color: white;
+  filter: drop-shadow(0 0 5px white);
+  position: relative;
+  z-index: -1;
+}
+
+.homeMusicListItem_bottomLineTail {
+  width: 40px;
+  height: 1px;
+  background-color: white;
+  filter: drop-shadow(0 0 5px white);
+  position: relative;
+  left: 144px;
+  bottom: 14px;
+  transform:rotate(-45deg);
+}
