@@ -43,4 +43,11 @@ body, html {
 @import url("./css/play/note.css");
 @import url("./css/play/judgeEffect.css");
 @import url("./css/play/displayArea.css");
+@import url("./css/play/overview.css");
 /* -------------------------- */
+
+
+@font-face {
+	font-family: "quantum";
+  src: url("../public/fonts/Quantum.otf") format('opentype');
+}

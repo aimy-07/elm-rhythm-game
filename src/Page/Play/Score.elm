@@ -4,7 +4,7 @@ module Page.Play.Score exposing
     , addLong
     , calcLongScore
     , init
-    , toString
+    , unwrap
     )
 
 import Page.Play.JudgeKind as JudgeKind exposing (JudgeKind)
@@ -21,9 +21,9 @@ init =
     Score 0
 
 
-toString : Score -> String
-toString (Score score) =
-    String.fromInt score
+unwrap : Score -> Int
+unwrap (Score score) =
+    score
 
 
 add : JudgeKind -> Score -> Score

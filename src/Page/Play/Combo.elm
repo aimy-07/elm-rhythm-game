@@ -4,7 +4,7 @@ module Page.Play.Combo exposing
     , calcLongCombo
     , init
     , isZero
-    , toString
+    , unwrap
     , update
     )
 
@@ -22,9 +22,9 @@ init =
     Combo 0
 
 
-toString : Combo -> String
-toString (Combo combo) =
-    String.fromInt combo
+unwrap : Combo -> Int
+unwrap (Combo combo) =
+    combo
 
 
 update : JudgeKind -> Combo -> Combo

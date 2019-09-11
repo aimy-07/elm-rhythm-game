@@ -3,7 +3,7 @@
 ------------------------------- */
 .playDisplay_circle {
   position: absolute;
-  top: 170px;
+  top: 200px;
   left: 350px;
   width: 240px;
   height: 240px;
@@ -113,9 +113,9 @@
 /* -------------------------------
   円の上の表示エリア
 ------------------------------- */
-.playTextArea1_container {
+.playTextArea_container {
   position: absolute;
-  top: 70px;
+  top: 90px;
   left: 350px;
   width: 260px;
   margin: 0 20px;
@@ -124,12 +124,12 @@
   color: white;
 }
 
-.playTextArea1_bigText {
+.playTextArea_bigText {
   font-size: 20px;
   margin-bottom: 5px;
 }
 
-.playTextArea1_smallText {
+.playTextArea_smallText {
   font-size: 12px;
   margin-bottom: 5px;
 }
@@ -137,7 +137,7 @@
 /* -------------------------------
   円の下の表示エリア
 ------------------------------- */
-.playTextArea2_container {
+.playTextArea_startText {
   position: absolute;
   top: 645px;
   left: 350px;
@@ -147,4 +147,5 @@
   overflow: hidden;
   color: white;
   font-size: 20px;
+  font-weight: 600;
 }

@@ -23,6 +23,7 @@ import Page.Play.NotesPerLane as NotesPerLane exposing (NotesPerLane)
 import Page.Play.PlayingMusicInfo as PlayingMusicInfo exposing (PlayingMusicInfo)
 import Page.Play.Score as Score exposing (Score)
 import Page.Play.Speed exposing (Speed)
+import Rank
 import Route
 import Session exposing (Session)
 import Task
@@ -51,14 +52,12 @@ type PlayStatus
     | Playing
     | Pause
     | Finish
+    | StartCountdown
+    | PauseCountdown
 
 
 init : Session -> CsvFileName -> ( Model, Cmd Msg )
 init session csvFileName =
-    let
-        _ =
-            Debug.log "csvFileName" csvFileName
-    in
     ( { session = session
       , playStatus = NotStart
       , playingMusicInfo = PlayingMusicInfo.init
@@ -81,17 +80,153 @@ init session csvFileName =
 
 
 type Msg
-    = Tick Time.Posix
-    | GotCurrentMusicTime CurrentMusicTime
-    | GotPlayingMusicInfo MusicInfoDto
+    = GotPlayingMusicInfo MusicInfoDto
     | GotAllNotes AllNotesDto
+    | PlayedCountdownAnim ()
     | KeyDown Keyboard.RawKey
     | KeyUp Keyboard.RawKey
+    | Tick Time.Posix
+    | GotCurrentMusicTime CurrentMusicTime
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        GotPlayingMusicInfo musicInfoDto ->
+            let
+                nextPlayingMusicInfo =
+                    PlayingMusicInfo.new musicInfoDto
+            in
+            ( { model | playingMusicInfo = nextPlayingMusicInfo }
+            , Cmd.none
+            )
+
+        GotAllNotes allNotesDto ->
+            let
+                nextAllNotes =
+                    AllNotes.new allNotesDto
+            in
+            ( { model | allNotes = nextAllNotes }
+            , Cmd.none
+            )
+
+        PlayedCountdownAnim () ->
+            case model.playStatus of
+                StartCountdown ->
+                    ( { model | playStatus = Playing }, startMusic () )
+
+                PauseCountdown ->
+                    ( { model | playStatus = Playing }, unPauseMusic () )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        KeyDown rawKey ->
+            let
+                maybeKey =
+                    Keyboard.anyKeyUpper rawKey
+            in
+            case maybeKey of
+                Just Keyboard.Spacebar ->
+                    case model.playStatus of
+                        NotStart ->
+                            if PlayingMusicInfo.isLoaded model.playingMusicInfo then
+                                ( { model | playStatus = StartCountdown }, playCountdownAnim () )
+
+                            else
+                                ( model, Cmd.none )
+
+                        Playing ->
+                            ( { model | playStatus = Pause }, pauseMusic () )
+
+                        Pause ->
+                            ( { model | playStatus = PauseCountdown }, playCountdownAnim () )
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                Just (Keyboard.Character keyStr) ->
+                    let
+                        notesPerLane =
+                            model.allNotes
+                                |> AllNotes.toNotesPerLane keyStr
+                    in
+                    if model.playStatus /= Playing then
+                        -- Playingの時しか判定しない
+                        ( model, Cmd.none )
+
+                    else if Lanes.isPressing keyStr model.lanes then
+                        -- すでにそのレーンのキーが押されている状態ではKeyDown判定しない
+                        ( model, Cmd.none )
+
+                    else
+                        let
+                            judgeKind =
+                                NotesPerLane.maybeHeadNote notesPerLane
+                                    |> JudgeKind.judgeKeyDown model.currentMusicTime
+
+                            nextAllNotes =
+                                model.allNotes
+                                    |> Page.updateIf
+                                        (not <| JudgeKind.isInvalid judgeKind)
+                                        (AllNotes.updateNotesKeyDown keyStr)
+
+                            judgeEffectCmd =
+                                JudgeEffect.keyDownEffectCmd judgeKind notesPerLane
+                                    |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
+
+                            comboEffectCmd =
+                                playComboEffectAnim ()
+                                    |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
+
+                            playTapSoundCmd =
+                                playTapSound ()
+                                    |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
+
+                            nextLanes =
+                                Lanes.updateKeyDown keyStr model.lanes
+                        in
+                        ( { model
+                            | allNotes = nextAllNotes
+                            , lanes = nextLanes
+                            , score = Score.add judgeKind model.score
+                            , combo = Combo.update judgeKind model.combo
+                          }
+                        , Cmd.batch
+                            [ judgeEffectCmd
+                            , comboEffectCmd
+                            , playTapSoundCmd
+                            ]
+                        )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        KeyUp rawKey ->
+            let
+                maybeKey =
+                    Keyboard.anyKeyUpper rawKey
+            in
+            case maybeKey of
+                Just (Keyboard.Character keyStr) ->
+                    let
+                        nextAllNotes =
+                            model.allNotes
+                                |> AllNotes.updateNotesKeyUp keyStr
+
+                        nextLanes =
+                            Lanes.updateKeyUp keyStr model.lanes
+                    in
+                    ( { model
+                        | allNotes = nextAllNotes
+                        , lanes = nextLanes
+                      }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+
         Tick _ ->
             ( model, getCurrentMusicTime () )
 
@@ -182,130 +317,6 @@ update msg model =
                 ]
             )
 
-        GotPlayingMusicInfo musicInfoDto ->
-            let
-                nextPlayingMusicInfo =
-                    PlayingMusicInfo.new musicInfoDto
-            in
-            ( { model | playingMusicInfo = nextPlayingMusicInfo }
-            , Cmd.none
-            )
-
-        GotAllNotes allNotesDto ->
-            let
-                nextAllNotes =
-                    AllNotes.new allNotesDto
-            in
-            ( { model | allNotes = nextAllNotes }
-            , Cmd.none
-            )
-
-        KeyDown rawKey ->
-            let
-                maybeKey =
-                    Keyboard.anyKeyUpper rawKey
-            in
-            case maybeKey of
-                Just Keyboard.Spacebar ->
-                    let
-                        ( nextPlayStatus, cmd ) =
-                            case model.playStatus of
-                                NotStart ->
-                                    if PlayingMusicInfo.isLoaded model.playingMusicInfo then
-                                        ( Playing, startMusic () )
-
-                                    else
-                                        ( NotStart, startMusic () )
-
-                                Playing ->
-                                    ( Pause, pauseMusic () )
-
-                                Pause ->
-                                    ( Playing, unPauseMusic () )
-
-                                Finish ->
-                                    ( Finish, Cmd.none )
-                    in
-                    ( { model | playStatus = nextPlayStatus }, cmd )
-
-                Just (Keyboard.Character keyStr) ->
-                    let
-                        notesPerLane =
-                            model.allNotes
-                                |> AllNotes.toNotesPerLane keyStr
-                    in
-                    -- すでにそのレーンのキーが押されている状態ではKeyDown判定しない
-                    if Lanes.isPressing keyStr model.lanes then
-                        ( model, Cmd.none )
-
-                    else
-                        let
-                            judgeKind =
-                                NotesPerLane.maybeHeadNote notesPerLane
-                                    |> JudgeKind.judgeKeyDown model.currentMusicTime
-
-                            nextAllNotes =
-                                model.allNotes
-                                    |> Page.updateIf
-                                        (not <| JudgeKind.isInvalid judgeKind)
-                                        (AllNotes.updateNotesKeyDown keyStr)
-
-                            judgeEffectCmd =
-                                JudgeEffect.keyDownEffectCmd judgeKind notesPerLane
-                                    |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
-
-                            comboEffectCmd =
-                                playComboEffectAnim ()
-                                    |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
-
-                            playTapSoundCmd =
-                                playTapSound ()
-                                    |> Page.cmdIf (not <| JudgeKind.isInvalid judgeKind)
-
-                            nextLanes =
-                                Lanes.updateKeyDown keyStr model.lanes
-                        in
-                        ( { model
-                            | allNotes = nextAllNotes
-                            , lanes = nextLanes
-                            , score = Score.add judgeKind model.score
-                            , combo = Combo.update judgeKind model.combo
-                          }
-                        , Cmd.batch
-                            [ judgeEffectCmd
-                            , comboEffectCmd
-                            , playTapSoundCmd
-                            ]
-                        )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        KeyUp rawKey ->
-            let
-                maybeKey =
-                    Keyboard.anyKeyUpper rawKey
-            in
-            case maybeKey of
-                Just (Keyboard.Character keyStr) ->
-                    let
-                        nextAllNotes =
-                            model.allNotes
-                                |> AllNotes.updateNotesKeyUp keyStr
-
-                        nextLanes =
-                            Lanes.updateKeyUp keyStr model.lanes
-                    in
-                    ( { model
-                        | allNotes = nextAllNotes
-                        , lanes = nextLanes
-                      }
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( model, Cmd.none )
-
 
 
 -- VIEW
@@ -320,39 +331,47 @@ view model =
                 [ div [ class "play_contentsContainer" ]
                     [ div [ class "play_contents" ]
                         [ Lanes.view model.lanes
-                        , AllNotes.view model.currentMusicTime model.speed model.allNotes
+                        , AllNotes.view
+                            model.currentMusicTime
+                            model.speed
+                            model.allNotes
                         , viewDisplayCircle model
-                        , div [ class "playTextArea1_container" ]
-                            [ div
-                                [ class "playTextArea1_bigText" ]
-                                [ text <| (MusicInfo.toMusicName <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
-                            , div
-                                [ class "playTextArea1_smallText" ]
-                                [ text <| (MusicInfo.toComposer <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo) ]
-                            , div
-                                [ class "playTextArea1_smallText" ]
-                                [ text <|
-                                    ((Mode.unwrap <| MusicInfo.toMode <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo)
-                                        ++ "\u{3000}"
-                                        ++ (MusicInfo.toStringLevel <| PlayingMusicInfo.toMusicInfo model.playingMusicInfo)
-                                    )
-                                ]
-                            ]
-                        , div [ class "playTextArea2_container" ]
-                            [ div [] [ text "Spaceキーでスタート" ]
-                                |> Page.viewIf (model.playStatus == NotStart)
-                            , div [] [ text "Finish!" ]
-                                |> Page.viewIf (model.playStatus == Finish)
-                            , a [ Route.href Route.Home ] [ text "Homeに戻る" ]
-                                |> Page.viewIf (model.playStatus == Finish)
-                            ]
+                        , viewMusicInfo model
                         ]
                     ]
+                , viewNotStart model
+                    |> Page.viewIf (model.playStatus == NotStart || model.playStatus == StartCountdown)
+                , viewPause model
+                    |> Page.viewIf (model.playStatus == Pause || model.playStatus == PauseCountdown)
+                , viewResult model
+                    |> Page.viewIf (model.playStatus == Finish)
                 ]
 
         else
             text ""
     }
+
+
+viewMusicInfo : Model -> Html msg
+viewMusicInfo model =
+    let
+        musicInfo =
+            PlayingMusicInfo.toMusicInfo model.playingMusicInfo
+    in
+    div [ class "playTextArea_container" ]
+        [ div
+            [ class "playTextArea_bigText" ]
+            [ text <| MusicInfo.toMusicName musicInfo ]
+        , div
+            [ class "playTextArea_smallText" ]
+            [ text <| MusicInfo.toComposer musicInfo ]
+        , div
+            [ class "playTextArea_smallText" ]
+            [ span [] [ text <| Mode.unwrap <| MusicInfo.toMode musicInfo ]
+            , span [] [ text "\u{3000}" ]
+            , span [] [ text <| MusicInfo.toStringLevel musicInfo ]
+            ]
+        ]
 
 
 viewDisplayCircle : Model -> Html msg
@@ -393,22 +412,117 @@ viewDisplayCircle model =
     in
     div [ class "playDisplay_circle" ]
         [ div [ class "playDisplay_circle-inner" ] []
-        , div
-            [ class "half1"
-            , style "transform" half1Rotate
-            ]
-            []
-        , div
-            [ class "half2"
-            , style "transform" half2Rotate
-            , style "background-color" half2Color
-            ]
-            []
+        , div [ class "half1", style "transform" half1Rotate ] []
+        , div [ class "half2", style "transform" half2Rotate, style "background-color" half2Color ] []
         , div [ class "playDisplay_centerTextArea" ]
             [ div [ class "playDisplay_scoreLabelText" ] [ text "- SCORE -" ]
-            , div [ class "playDisplay_scoreText" ] [ text <| Score.toString model.score ]
+            , div
+                [ class "playDisplay_scoreText" ]
+                [ text <| String.fromInt <| Score.unwrap model.score ]
             , div [ class "playDisplay_comboLabelText" ] [ text "- COMBO -" ]
-            , div [ class "playDisplay_comboText", id "comboText" ] [ text <| Combo.toString model.combo ]
+            , div
+                [ class "playDisplay_comboText", id "comboText" ]
+                [ text <| String.fromInt <| Combo.unwrap model.combo ]
+            ]
+        ]
+
+
+viewNotStart : Model -> Html msg
+viewNotStart model =
+    div [ class "play_overview" ]
+        [ div [ class "playOverview_startText" ] [ text "READY" ]
+            |> Page.viewIf (model.playStatus == NotStart)
+        , div [ class "playOverview_startSubText" ] [ text "Spaceキーでスタート" ]
+            |> Page.viewIf (model.playStatus == NotStart)
+        , div [ class "playOverview_cowntdownText", id "playOverview_cowntdownText" ] []
+        ]
+
+
+viewPause : Model -> Html msg
+viewPause model =
+    div [ class "play_overview" ]
+        [ div [ class "playOverview_pauseText" ] [ text "PAUSE" ]
+            |> Page.viewIf (model.playStatus == Pause)
+        , div [ class "playOverview_pauseSubText" ] [ text "Spaceキーで再開" ]
+            |> Page.viewIf (model.playStatus == Pause)
+        , div [ class "playOverview_cowntdownText", id "playOverview_cowntdownText" ] []
+        ]
+
+
+viewResult : Model -> Html msg
+viewResult model =
+    let
+        musicInfo =
+            PlayingMusicInfo.toMusicInfo model.playingMusicInfo
+
+        maxCombo =
+            MusicInfo.toMaxCombo musicInfo
+
+        isFullCombo =
+            Combo.unwrap model.combo == MusicInfo.toMaxCombo musicInfo
+
+        maxScore =
+            MusicInfo.toMaxScore musicInfo
+
+        -- TODO: ハイスコアかどうかの判定をする
+        isHighScore =
+            True
+    in
+    div [ class "play_overview" ]
+        [ div [ class "playOverview_contentsContainer" ]
+            [ div [ class "playOverview_back" ] []
+            , div [ class "playOverview_backInner" ] []
+            , div [ class "playOverview_titleText" ] [ text "RESULT" ]
+            , div [ class "playOverview_bigText" ]
+                [ text <| MusicInfo.toMusicName musicInfo ]
+            , div [ class "playOverview_smallText" ]
+                [ text <| MusicInfo.toComposer musicInfo ]
+            , div [ class "playOverview_smallText" ]
+                [ span [] [ text <| Mode.unwrap <| MusicInfo.toMode musicInfo ]
+                , span [] [ text "\u{3000}" ]
+                , span [] [ text <| MusicInfo.toStringLevel musicInfo ]
+                ]
+            , div [ class "playOverviewResultItem_container" ]
+                [ div [ class "playOverviewResultItem_box" ] []
+                , div [ class "playOverviewResultItem_labelText" ] [ text "COMBO" ]
+                , div [ class "playOverviewResultItem_rankText" ]
+                    [ text <|
+                        Rank.toString <|
+                            Rank.newComboRank (Combo.unwrap model.combo) maxCombo
+                    ]
+                , div [ class "playOverviewResultItem_effectText" ] [ text "Full Combo!" ]
+                    |> Page.viewIf isFullCombo
+                , div [ class "playOverviewResultItem_textContainer" ]
+                    [ span [ class "playOverviewResultItem_resultText" ]
+                        [ text <| String.fromInt <| Combo.unwrap model.combo ]
+                    , span [ class "playOverviewResultItem_maxText" ]
+                        [ text <| " / " ++ String.fromInt maxCombo ]
+                    ]
+                , div [ class "playOverviewResultItem_line" ] []
+                ]
+            , div [ class "playOverviewResultItem_container" ]
+                [ div [ class "playOverviewResultItem_box" ] []
+                , div [ class "playOverviewResultItem_labelText" ] [ text "SCORE" ]
+                , div [ class "playOverviewResultItem_rankText" ]
+                    [ text <|
+                        Rank.toString <|
+                            Rank.newScoreRank (Score.unwrap model.score) maxScore
+                    ]
+                , div [ class "playOverviewResultItem_effectText" ] [ text "High Score!" ]
+                    |> Page.viewIf isHighScore
+                , div [ class "playOverviewResultItem_textContainer" ]
+                    [ span [ class "playOverviewResultItem_resultText" ]
+                        [ text <| String.fromInt <| Score.unwrap model.score ]
+                    , span [ class "playOverviewResultItem_maxText" ]
+                        [ text <| " / " ++ String.fromInt maxScore ]
+                    ]
+                , div [ class "playOverviewResultItem_line" ] []
+                ]
+            , a
+                [ class "playOverviewResultItem_backBtn"
+                , Route.href Route.Home
+                ]
+                [ text "HOMEに戻る" ]
             ]
         ]
 
@@ -450,6 +564,12 @@ port playTapSound : () -> Cmd msg
 port playComboEffectAnim : () -> Cmd msg
 
 
+port playCountdownAnim : () -> Cmd msg
+
+
+port playedCountdownAnim : (() -> msg) -> Sub msg
+
+
 
 -- SUBSCRIPTIONS
 
@@ -457,6 +577,13 @@ port playComboEffectAnim : () -> Cmd msg
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.playStatus of
+        NotStart ->
+            Sub.batch
+                [ gotAllNotes GotAllNotes
+                , gotPlayingMusicInfo GotPlayingMusicInfo
+                , Keyboard.downs KeyDown
+                ]
+
         Playing ->
             Sub.batch
                 [ Time.every 10 Tick
@@ -465,13 +592,17 @@ subscriptions model =
                 , Keyboard.ups KeyUp
                 ]
 
-        _ ->
-            Sub.batch
-                [ Keyboard.downs KeyDown
-                , Keyboard.ups KeyUp
-                , gotAllNotes GotAllNotes
-                , gotPlayingMusicInfo GotPlayingMusicInfo
-                ]
+        Pause ->
+            Keyboard.downs KeyDown
+
+        Finish ->
+            Sub.none
+
+        StartCountdown ->
+            playedCountdownAnim PlayedCountdownAnim
+
+        PauseCountdown ->
+            playedCountdownAnim PlayedCountdownAnim
 
 
 

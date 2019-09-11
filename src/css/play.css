@@ -1,4 +1,3 @@
-
 /* -------------------------------
   全体
 ------------------------------- */
@@ -19,4 +18,18 @@
   -webkit-transform: translateX(-50%);
   transform: translateX(-50%);
   overflow: hidden;
+}
+
+
+/* -------------------------------
+  OverView
+------------------------------- */
+.play_overview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.8);
+  cursor: default;
 }

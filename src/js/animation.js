@@ -2,6 +2,31 @@
 	Subscriber
 ---------------------------------- */
 export function animationSetUpSubscriber (app) {
+  // カウントダウンを再生する
+  app.ports.playCountdownAnim.subscribe(() => {
+    const cowntdownText = document.getElementById("playOverview_cowntdownText");
+    cowntdownText.innerText = "3";
+    setTimeout(
+      () => {
+        cowntdownText.innerText = "2";
+      },
+      1000
+    );
+    setTimeout(
+      () => {
+        cowntdownText.innerText = "1";
+      },
+      2000
+    );
+    setTimeout(
+      () => {
+        cowntdownText.innerText = "";
+        app.ports.playedCountdownAnim.send(null); 
+      },
+      3000
+    );
+  })
+
   // 判定時の◇エフェクトアニメーションを再生する
   app.ports.playJudgeEffectAnim.subscribe(({keyStr, noteType}) => {
     const judgeEffect = document.getElementById("judgeEffect_" + keyStr);
