@@ -40,7 +40,7 @@ export function animationSetUpSubscriber (app) {
     const bottomRightArea = document.getElementById("home_bottomRightArea");
     replayAnim(bottomRightArea);
     const se = new Audio();
-    se.src = "./audios/se_music_select.mp3";
+    se.src = "./audios/se_music_select.wav";
     se.play();
   })
 }
