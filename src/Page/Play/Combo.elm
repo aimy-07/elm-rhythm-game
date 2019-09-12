@@ -53,7 +53,7 @@ calcLongCombo notesPerLane =
                     timeCounter =
                         LongNoteLine.toTimeCounter longNoteLine
                 in
-                if Basics.modBy 200 timeCounter == 0 && timeCounter >= 0 then
+                if Basics.modBy LongNoteLine.longCountDuration timeCounter == 0 && timeCounter >= 0 then
                     1
 
                 else

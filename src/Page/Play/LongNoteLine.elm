@@ -1,6 +1,7 @@
 module Page.Play.LongNoteLine exposing
     ( EndTime
     , LongNoteLine
+    , longCountDuration
     , new
     , toEndTime
     , toTimeCounter
@@ -55,6 +56,13 @@ calcTimeCounter note =
         / 100
         |> Basics.floor
         |> (*) 100
+        |> (-) longCountDuration
+        |> Basics.abs
+
+
+longCountDuration : Int
+longCountDuration =
+    200
 
 
 updateTimeCounter : LongNoteLine -> LongNoteLine

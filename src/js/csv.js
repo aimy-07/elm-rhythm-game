@@ -3,7 +3,7 @@
 ---------------------------------- */
 const perfectScore = 2000;
 const longScore = 100;
-const longScoreDuration = 200;
+const longCountDuration = 200;
 
 const csvFileNameList = [
   "sample_sound-normal",
@@ -117,9 +117,11 @@ const getMusicInfo = (csvFileName, csvArray) => {
         maxCombo += 1;
         maxScore += perfectScore;
         if (longTime > 0) {
-          const longTimeCount = Math.floor(longTime / longScoreDuration);
-          maxCombo += 1 * longTimeCount;
-          maxScore += longScore * longTimeCount;
+          const longTimeCount = Math.floor(longTime / longCountDuration) - 1;
+          if (longTimeCount > 0) {
+            maxCombo += 1 * longTimeCount;
+            maxScore += longScore * longTimeCount;
+          }
         }
       }
     });
