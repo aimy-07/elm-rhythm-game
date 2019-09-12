@@ -2,10 +2,10 @@ module Page.Play.Lane exposing
     ( Lane
     , leftFromKeyStr
     , new
+    , press
     , toIsPresing
     , toKeyStr
-    , updateKeyDown
-    , updateKeyUp
+    , unPress
     , view
     )
 
@@ -66,13 +66,13 @@ toIsPresing (Lane { isPressing }) =
     isPressing
 
 
-updateKeyDown : Lane -> Lane
-updateKeyDown (Lane lane) =
+press : Lane -> Lane
+press (Lane lane) =
     Lane { lane | isPressing = True }
 
 
-updateKeyUp : Lane -> Lane
-updateKeyUp (Lane lane) =
+unPress : Lane -> Lane
+unPress (Lane lane) =
     Lane { lane | isPressing = False }
 
 

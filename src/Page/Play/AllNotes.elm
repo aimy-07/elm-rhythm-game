@@ -10,6 +10,7 @@ module Page.Play.AllNotes exposing
     , updateNotesKeyDown
     , updateNotesKeyUp
     , updateNotesOverMiss
+    , updateNotesUnPause
     , view
     )
 
@@ -17,6 +18,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.KeyStr as KeyStr exposing (KeyStr)
+import Page.Play.Lanes as Lanes exposing (Lanes)
 import Page.Play.Note as Note exposing (Note, NoteDto)
 import Page.Play.NotesPerLane as NotesPerLane exposing (NotesPerLane)
 import Page.Play.Speed exposing (Speed)
@@ -112,6 +114,28 @@ updateNotesKeyUp keyStr (AllNotes allNotes) =
 
                     else
                         notesPerLane
+                )
+        )
+
+
+updateNotesUnPause : Lanes -> AllNotes -> AllNotes
+updateNotesUnPause lanes allNotes =
+    AllNotes
+        (KeyStr.allKeyStr
+            |> List.map
+                (\keyStr ->
+                    let
+                        isPressing =
+                            Lanes.isPressing keyStr lanes
+
+                        notesPerLane =
+                            toNotesPerLane keyStr allNotes
+                    in
+                    if isPressing then
+                        notesPerLane
+
+                    else
+                        NotesPerLane.updateKeyUp notesPerLane
                 )
         )
 

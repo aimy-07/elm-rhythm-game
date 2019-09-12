@@ -113,10 +113,19 @@ update msg model =
         PlayedCountdownAnim () ->
             case model.playStatus of
                 StartCountdown ->
-                    ( { model | playStatus = Playing }, startMusic () )
+                    ( { model | playStatus = Playing }
+                    , startMusic ()
+                    )
 
                 PauseCountdown ->
-                    ( { model | playStatus = Playing }, unPauseMusic () )
+                    let
+                        nextAllNotes =
+                            model.allNotes
+                                |> AllNotes.updateNotesUnPause model.lanes
+                    in
+                    ( { model | playStatus = Playing, allNotes = nextAllNotes }
+                    , unPauseMusic ()
+                    )
 
                 _ ->
                     ( model, Cmd.none )
@@ -153,7 +162,12 @@ update msg model =
                     in
                     if model.playStatus /= Playing then
                         -- Playingの時しか判定しない
-                        ( model, Cmd.none )
+                        -- keyを押しているかどうかだけ更新する
+                        let
+                            nextLanes =
+                                Lanes.updateKeyDown keyStr model.lanes
+                        in
+                        ( { model | lanes = nextLanes }, Cmd.none )
 
                     else if Lanes.isPressing keyStr model.lanes then
                         -- すでにそのレーンのキーが押されている状態ではKeyDown判定しない
@@ -209,20 +223,29 @@ update msg model =
             in
             case maybeKey of
                 Just (Keyboard.Character keyStr) ->
-                    let
-                        nextAllNotes =
-                            model.allNotes
-                                |> AllNotes.updateNotesKeyUp keyStr
+                    if model.playStatus /= Playing then
+                        -- Playingの時しか判定しない
+                        -- keyを押しているかどうかだけ更新する
+                        let
+                            nextLanes =
+                                Lanes.updateKeyUp keyStr model.lanes
+                        in
+                        ( { model | lanes = nextLanes }
+                        , Cmd.none
+                        )
 
-                        nextLanes =
-                            Lanes.updateKeyUp keyStr model.lanes
-                    in
-                    ( { model
-                        | allNotes = nextAllNotes
-                        , lanes = nextLanes
-                      }
-                    , Cmd.none
-                    )
+                    else
+                        let
+                            nextAllNotes =
+                                model.allNotes
+                                    |> AllNotes.updateNotesKeyUp keyStr
+
+                            nextLanes =
+                                Lanes.updateKeyUp keyStr model.lanes
+                        in
+                        ( { model | allNotes = nextAllNotes, lanes = nextLanes }
+                        , Cmd.none
+                        )
 
                 _ ->
                     ( model, Cmd.none )
@@ -302,10 +325,17 @@ update msg model =
                         |> Page.updateIf
                             (fullTime <= model.currentMusicTime)
                             (always Finish)
+
+                nextLanes =
+                    model.lanes
+                        |> Page.updateIf
+                            (nextPlayStatus == Finish)
+                            Lanes.updateFinish
             in
             ( { model
                 | currentMusicTime = updatedTime
                 , playStatus = nextPlayStatus
+                , lanes = nextLanes
                 , allNotes = nextAllNotes
                 , score = nextScore
                 , combo = nextCombo
@@ -582,6 +612,7 @@ subscriptions model =
                 [ gotAllNotes GotAllNotes
                 , gotPlayingMusicInfo GotPlayingMusicInfo
                 , Keyboard.downs KeyDown
+                , Keyboard.ups KeyUp
                 ]
 
         Playing ->
@@ -593,16 +624,27 @@ subscriptions model =
                 ]
 
         Pause ->
-            Keyboard.downs KeyDown
+            Sub.batch
+                [ Keyboard.downs KeyDown
+                , Keyboard.ups KeyUp
+                ]
 
         Finish ->
             Sub.none
 
         StartCountdown ->
-            playedCountdownAnim PlayedCountdownAnim
+            Sub.batch
+                [ playedCountdownAnim PlayedCountdownAnim
+                , Keyboard.downs KeyDown
+                , Keyboard.ups KeyUp
+                ]
 
         PauseCountdown ->
-            playedCountdownAnim PlayedCountdownAnim
+            Sub.batch
+                [ playedCountdownAnim PlayedCountdownAnim
+                , Keyboard.downs KeyDown
+                , Keyboard.ups KeyUp
+                ]
 
 
 

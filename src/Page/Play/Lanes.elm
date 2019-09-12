@@ -2,6 +2,7 @@ module Page.Play.Lanes exposing
     ( Lanes
     , init
     , isPressing
+    , updateFinish
     , updateKeyDown
     , updateKeyUp
     , view
@@ -39,7 +40,7 @@ updateKeyDown keyStr (Lanes lanes) =
             |> List.map
                 (\lane ->
                     if Lane.toKeyStr lane == keyStr then
-                        Lane.updateKeyDown lane
+                        Lane.press lane
 
                     else
                         lane
@@ -54,12 +55,17 @@ updateKeyUp keyStr (Lanes lanes) =
             |> List.map
                 (\lane ->
                     if Lane.toKeyStr lane == keyStr then
-                        Lane.updateKeyUp lane
+                        Lane.unPress lane
 
                     else
                         lane
                 )
         )
+
+
+updateFinish : Lanes -> Lanes
+updateFinish (Lanes lanes) =
+    Lanes (List.map Lane.unPress lanes)
 
 
 view : Lanes -> Html msg
