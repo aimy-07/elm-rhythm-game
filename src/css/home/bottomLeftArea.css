@@ -12,7 +12,6 @@
   bottom: 28px;
   left: 18px;
   filter: drop-shadow(0 0 10px var(--color-elm-darkblue));
-  cursor: default;
 }
 
 .homeBottomLeftArea1_label {
@@ -27,13 +26,13 @@
 
 .homeBottomLeftArea1_rankText {
   position: absolute;
-  top: -28px;
+  top: -25px;
   left: -120px;
   width: 100px;
   color: white;
-  font-size: 38px;
-  font-weight: 600;
+  font-size: 40px;
   text-align: center;
+  font-family: "fortunaDot";
 }
 
 .homeBottomLeftArea1_bestText {
@@ -43,6 +42,7 @@
   color: white;
   font-size: 16px;
   text-align: start;
+  font-family: "droidSansMono";
 }
 
 .homeBottomLeftArea1_maxText {
@@ -53,6 +53,7 @@
   font-size: 12px;
   width: 52px;
   text-align: end;
+  font-family: "droidSansMono";
 }
 
 /* -------------------------------
@@ -69,13 +70,12 @@
   bottom: 18px;
   left: 28px;
   filter: drop-shadow(0 0 10px var(--color-elm-lightblue));
-  cursor: default;
 }
 
 .homeBottomLeftArea2_label {
   position: absolute;
   top: 27px;
-  left: -27px;
+  left: -24px;
   color: white;
   font-size: 14px;
   font-weight: 600;
@@ -84,31 +84,33 @@
 
 .homeBottomLeftArea2_rankText {
   position: absolute;
-  top: 45px;
-  left: -51px;
+  top: 50px;
+  left: -49px;
   width: 100px;
   color: white;
   font-size: 38px;
-  font-weight: 600;
   text-align: center;
+  font-family: "fortunaDot";
 }
 
 .homeBottomLeftArea2_bestText {
   position: absolute;
   top: 95px;
-  left: -77px;
+  left: -79px;
   color: white;
   font-size: 16px;
   text-align: end;
+  font-family: "droidSansMono";
 }
 
 .homeBottomLeftArea2_maxText {
   position: absolute;
   top: 99px;
-  left: 0px;
+  left: -4px;
   color: white;
   font-size: 12px;
   text-align: start;
+  font-family: "droidSansMono";
 }
 
 .home_bottomLeftArea1.playAnim {

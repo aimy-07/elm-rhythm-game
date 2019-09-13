@@ -462,7 +462,7 @@ viewNotStart model =
     div [ class "play_overview" ]
         [ div [ class "playOverview_startText" ] [ text "READY" ]
             |> Page.viewIf (model.playStatus == NotStart)
-        , div [ class "playOverview_startSubText" ] [ text "Spaceキーでスタート" ]
+        , div [ class "playOverview_startSubText" ] [ text "- Press Space to Start -" ]
             |> Page.viewIf (model.playStatus == NotStart)
         , div [ class "playOverview_cowntdownText", id "playOverview_cowntdownText" ] []
         ]
@@ -473,7 +473,7 @@ viewPause model =
     div [ class "play_overview" ]
         [ div [ class "playOverview_pauseText" ] [ text "PAUSE" ]
             |> Page.viewIf (model.playStatus == Pause)
-        , div [ class "playOverview_pauseSubText" ] [ text "Spaceキーで再開" ]
+        , div [ class "playOverview_pauseSubText" ] [ text "- Press Space to UnPause -" ]
             |> Page.viewIf (model.playStatus == Pause)
         , div [ class "playOverview_cowntdownText", id "playOverview_cowntdownText" ] []
         ]
@@ -552,7 +552,7 @@ viewResult model =
                 [ class "playOverviewResultItem_backBtn"
                 , Route.href Route.Home
                 ]
-                [ text "HOMEに戻る" ]
+                [ text "- Back to Home -" ]
             ]
         ]
 

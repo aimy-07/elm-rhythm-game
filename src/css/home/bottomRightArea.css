@@ -18,7 +18,7 @@
 
 .homeBottomRight_playText {
   position: absolute;
-  top: -28px;
+  top: -18px;
   left: -10px;
   width: 180px;
   color: white;
@@ -35,7 +35,6 @@
   position: absolute;
   top: 384px;
   left: 38px;
-  cursor: default;
 }
 
 .homeBottomRight_transparentCover2 {
@@ -46,7 +45,6 @@
   position: absolute;
   top: 170px;
   left: 304px;
-  cursor: default;
 }
 
 .home_bottomRightArea.playAnim {

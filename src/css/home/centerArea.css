@@ -10,7 +10,6 @@
   transform: rotate(45deg);
   background-color: white;
   filter: drop-shadow(0 0 30px var(--color-elm-green));
-  cursor: default;
 }
 
 .homeCenterArea_Inner {
@@ -32,7 +31,6 @@
   left: -51px;
   position: absolute;
   text-align: center;
-  /* background-color: var(--color-elm-green-w1); */
 }
 
 .homeCenterArea_centerWideLine {
@@ -78,7 +76,7 @@
   font-weight: 600;
   text-shadow: 0 0 3px white;
   position: absolute;
-  top: 217px;
+  top: 220px;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -89,7 +87,7 @@
   font-size: 16px;
   text-shadow: 0 0 3px white;
   position: absolute;
-  top: 262px;
+  top: 265px;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -99,7 +97,7 @@
   font-size: 16px;
   letter-spacing: 4px;
   position: absolute;
-  top: 165px;
+  top: 170px;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -118,7 +116,7 @@
   font-size: 10px;
   position: absolute;
   width: 64px;
-  top: 90px;
+  top: 95px;
 }
 
 .homeCenterArea_boxText {
@@ -127,7 +125,7 @@
   font-weight: 600;
   position: absolute;
   width: 64px;
-  top: 106px;
+  top: 112px;
 }
 
 .homeCenterArea_box.left,
@@ -156,6 +154,7 @@
   width: 40px;
   left: 230px;
   text-align: center;
+  font-family: "fortunaDot";
 }
 
 .homeCenterArea_rankText.title {
@@ -163,47 +162,59 @@
 }
 
 .homeCenterArea_rankText.rank-SSS {
-  top: calc(330px + 18px * 0);
+  top: calc(330px + 20px * 0);
 }
 
 .homeCenterArea_rankText.rank-SS {
-  top: calc(330px + 18px * 1);
+  top: calc(330px + 20px * 1);
 }
 
 .homeCenterArea_rankText.rank-S {
-  top: calc(330px + 18px * 2);
+  top: calc(330px + 20px * 2);
 }
 
 .homeCenterArea_rankText.rank-A {
-  top: calc(330px + 18px * 3);
+  top: calc(330px + 20px * 3);
 }
 
 .homeCenterArea_rankText.rank-B {
-  top: calc(330px + 18px * 4);
+  top: calc(330px + 20px * 4);
 }
 
 .homeCenterArea_rankText.rank-C {
-  top: calc(330px + 18px * 5);
+  top: calc(330px + 20px * 5);
 }
 
 .homeCenterArea_rankText.rank-D {
-  top: calc(330px + 18px * 6);
+  top: calc(330px + 20px * 6);
+}
+
+.homeCenterArea_rankTitleText {
+  color: white;
+  font-size: 12px;
+  position: absolute;
+  top: 6px;
+  font-family: "makinas";
 }
 
 .homeCenterArea_rankDetailText {
   color: white;
-  font-size: 10px;
+  font-size: 12px;
   position: absolute;
-  top: 4px;
+  top: 1px;
+  font-family: "droidSansMono";
+  font-weight: 600;
 }
 
+.homeCenterArea_rankTitleText.score,
 .homeCenterArea_rankDetailText.score {
-  right: 45px;
+  right: 40px;
   text-align: end;
 }
 
+.homeCenterArea_rankTitleText.combo,
 .homeCenterArea_rankDetailText.combo {
-  left: 45px;
+  left: 40px;
   text-align: start;
 }
 
@@ -211,42 +222,42 @@
   position: absolute;
   background-color: white;
   height: 1px;
-  top: 18px;
+  top: 17px;
 }
 
 .homeCenterArea_rankLine.rank-SSS {
-  width: calc(320px - 34px * 0);
-  left: calc(-140px + 17px * 0);
+  width: calc(320px - 38px * 0);
+  left: calc(-140px + 19px * 0);
 }
 
 .homeCenterArea_rankLine.rank-SS {
-  width: calc(320px - 34px * 1);
-  left: calc(-140px + 17px * 1);
+  width: calc(320px - 38px * 1);
+  left: calc(-140px + 19px * 1);
 }
 
 .homeCenterArea_rankLine.rank-S {
-  width: calc(320px - 34px * 2);
-  left: calc(-140px + 17px * 2);
+  width: calc(320px - 38px * 2);
+  left: calc(-140px + 19px * 2);
 }
 
 .homeCenterArea_rankLine.rank-A {
-  width: calc(320px - 34px * 3);
-  left: calc(-140px + 17px * 3);
+  width: calc(320px - 38px * 3);
+  left: calc(-140px + 19px * 3);
 }
 
 .homeCenterArea_rankLine.rank-B {
-  width: calc(320px - 34px * 4);
-  left: calc(-140px + 17px * 4);
+  width: calc(320px - 38px * 4);
+  left: calc(-140px + 19px * 4);
 }
 
 .homeCenterArea_rankLine.rank-C {
-  width: calc(320px - 34px * 5);
-  left: calc(-140px + 17px * 5);
+  width: calc(320px - 38px * 5);
+  left: calc(-140px + 19px * 5);
 }
 
 .homeCenterArea_rankLine.rank-D {
-  width: calc(320px - 34px * 6);
-  left: calc(-140px + 17px * 6);
+  width: calc(320px - 38px * 6);
+  left: calc(-140px + 19px * 6);
 }
 
 .homeCenterArea_rankCenterLine1 {
@@ -262,8 +273,8 @@
   position: absolute;
   background-color: white;
   width: 1px;
-  height: 50px;
-  top: 465px;
+  height: 40px;
+  top: 475px;
   left: 250px;
 }
 

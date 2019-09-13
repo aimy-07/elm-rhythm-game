@@ -9,7 +9,6 @@
   top: 18px;
   left: 18px;
   filter: drop-shadow(0 0 10px var(--color-elm-orange));
-  cursor: default;
 }
 
 .homeTopLeft_modeText {

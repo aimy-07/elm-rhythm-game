@@ -6,9 +6,17 @@
   font-size: 200px;
   color: rgba(255,255,255,0.5);
   font-weight: 600;
-  font-style: italic;
-  letter-spacing: 10px;
-  margin-top: 200px;
+  letter-spacing: 20px;
+}
+
+.playOverview_startText {
+  margin-top: 240px;
+  margin-left: 60px;
+}
+
+.playOverview_pauseText {
+  margin-top: 250px;
+  margin-left: -22px;
 }
 
 .playOverview_startSubText,
@@ -19,9 +27,17 @@
   font-weight: 600;
 }
 
+.playOverview_startSubText {
+  margin-top: 30px;
+}
+
+.playOverview_pauseSubText {
+  margin-top: 20px;
+}
+
 .playOverview_cowntdownText {
   position: absolute;
-  top: 275px;
+  top: 300px;
   left: 0;
   width: 100%;
   text-align: center;
@@ -74,7 +90,7 @@
 
 .playOverview_titleText {
   position: absolute;
-  top: -70px;
+  top: -60px;
   width: 300px;
   text-align: center;
   color: white;
@@ -88,7 +104,7 @@
   text-align: center;
   color: white;
   font-size: 20px;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
 }
 
 .playOverview_smallText {
@@ -96,7 +112,7 @@
   text-align: center;
   color: white;
   font-size: 12px;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
 }
 
 .playOverviewResultItem_container {
@@ -133,17 +149,17 @@
 .playOverviewResultItem_rankText {
   position: absolute;
   top: 40px;
-  left: 0;
+  left: 2px;
   width: 99px;
   text-align: center;
   color: black;
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 32px;
+  font-family: "fortunaDot";
 }
 
 .playOverviewResultItem_effectText {
   position: absolute;
-  top: 46px;
+  top: 50px;
   right: 10px;
   color: var(--color-elm-orange);
   font-size: 14px;
@@ -159,14 +175,16 @@
 
 .playOverviewResultItem_resultText {
   color: white;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 600;
   text-shadow: 0 0 3px white;
+  font-family: "droidSansMono";
 }
 
 .playOverviewResultItem_maxText {
   color: white;
   font-size: 16px;
+  font-family: "droidSansMono";
 }
 
 .playOverviewResultItem_line {

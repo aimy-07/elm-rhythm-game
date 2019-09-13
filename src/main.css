@@ -13,6 +13,8 @@ body, html {
   margin: 0;
   width: 100%;
   height: 100%;
+  cursor: default;
+  font-family: "makinas";
   --color-elm-green: #8CD636;
   --color-elm-lightblue: #5FB4CB;
   --color-elm-orange: #EEA41D;
@@ -47,7 +49,20 @@ body, html {
 /* -------------------------- */
 
 
+/* メインフォント */
 @font-face {
-	font-family: "quantum";
-  src: url("../public/fonts/Quantum.otf") format('opentype');
+	font-family: "makinas";
+  src: url("../public/fonts/Makinas.otf") format('opentype');
+}
+
+/* 数字 */
+@font-face {
+	font-family: "fortunaDot";
+  src: url("../public/fonts/FortunaDot.ttf") format('truetype');
+}
+
+/* ランク */
+@font-face {
+	font-family: "droidSansMono";
+  src: url("../public/fonts/DroidSansMono.ttf") format('truetype');
 }

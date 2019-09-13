@@ -40,9 +40,6 @@
   margin-left: 20px;
   line-height: 40px;
   font-size: 16px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .homeMusicListItem_topTail {
@@ -105,21 +102,21 @@
   color: white;
   font-size: 10px;
   font-weight: 600;
-  top: -5px;
+  top: -16px;
   left: 50%;
-  transform: translateX(-50%) scale(0.8);
+  transform: translateX(-50%);
 }
 
 .homeMusicListItem_rankText {
   position: absolute;
   text-align: center;
   color: white;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
   text-shadow: 0 0 2px white;
-  top: 8px;
+  top: 6px;
   left: 50%;
   transform: translateX(-50%);
+  font-family: "fortunaDot";
 }
 
 .homeMusicListItem_bottomText {
@@ -128,6 +125,7 @@
   text-shadow: 0 0 2px white;
   letter-spacing: 4px;
   font-size: 12px;
+  line-height: 16px;
 }
 
 .homeMusicListItem_bottomLine {

@@ -315,8 +315,8 @@ viewCenterArea currentMusicInfo =
             -- ランク内訳
             , div [ class "homeCenterArea_rankText title" ]
                 [ text ""
-                , div [ class "homeCenterArea_rankDetailText score" ] [ text "SCORE" ]
-                , div [ class "homeCenterArea_rankDetailText combo" ] [ text "COMBO" ]
+                , div [ class "homeCenterArea_rankTitleText score" ] [ text "SCORE" ]
+                , div [ class "homeCenterArea_rankTitleText combo" ] [ text "COMBO" ]
                 ]
             , div []
                 (Rank.allRankList

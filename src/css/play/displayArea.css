@@ -69,23 +69,25 @@
 
 .playDisplay_scoreText {
   position: relative;
-  top: 25px;
+  top: 30px;
   font-size: 30px;
   font-weight: 600;
+  font-family: "droidSansMono";
 }
 
 .playDisplay_comboLabelText {
   position: relative;
-  top: 40px;
+  top: 55px;
   font-size: 18px;
 }
 
 .playDisplay_comboText {
   position: relative;
-  top: 65px;
+  top: 85px;
   font-size: 30px;
   font-weight: 600;
   transform: translate(0, -50%);
+  font-family: "droidSansMono";
 }
 
 .playDisplay_comboText.playAnim {
@@ -126,12 +128,12 @@
 
 .playTextArea_bigText {
   font-size: 20px;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
 }
 
 .playTextArea_smallText {
   font-size: 12px;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
 }
 
 /* -------------------------------
