@@ -55,13 +55,13 @@ body, html {
   src: url("../public/fonts/Makinas.otf") format('opentype');
 }
 
-/* 数字 */
+/* ランク */
 @font-face {
 	font-family: "fortunaDot";
   src: url("../public/fonts/FortunaDot.ttf") format('truetype');
 }
 
-/* ランク */
+/* 等幅数字 */
 @font-face {
 	font-family: "droidSansMono";
   src: url("../public/fonts/DroidSansMono.ttf") format('truetype');
