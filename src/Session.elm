@@ -1,31 +1,48 @@
-module Session exposing (Session, fromViewer, navKey)
+module Session exposing (Session, fromUser, init, toNavKey, toUser)
 
 import Browser.Navigation as Nav
-
-
-
--- TYPES
+import User exposing (User, UserDto)
 
 
 type Session
-    = Guest Nav.Key
+    = LoggedIn Nav.Key User
+    | NotLogin Nav.Key
 
 
-
--- INFO
-
-
-navKey : Session -> Nav.Key
-navKey session =
+toUser : Session -> Maybe User
+toUser session =
     case session of
-        Guest key ->
+        LoggedIn _ user ->
+            Just user
+
+        NotLogin _ ->
+            Nothing
+
+
+toNavKey : Session -> Nav.Key
+toNavKey session =
+    case session of
+        LoggedIn key _ ->
+            key
+
+        NotLogin key ->
             key
 
 
+init : Nav.Key -> Session
+init key =
+    NotLogin key
 
--- CHANGES
 
+fromUser : Nav.Key -> Maybe UserDto -> Session
+fromUser key maybeUserDto =
+    case maybeUserDto of
+        Just userDto ->
+            let
+                user =
+                    User.new userDto
+            in
+            LoggedIn key user
 
-fromViewer : Nav.Key -> Session
-fromViewer key =
-    Guest key
+        Nothing ->
+            NotLogin key

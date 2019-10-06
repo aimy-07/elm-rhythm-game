@@ -10,6 +10,7 @@ import Page.Home.AllMusicInfoList as AllMusicInfoList exposing (AllMusicInfoList
 import Rank exposing (Rank)
 import Route
 import Session exposing (Session)
+import User exposing (User)
 
 
 
@@ -43,6 +44,7 @@ type Msg
     = GotAllMusicInfoList (List MusicInfoDto)
     | ChangeMode Mode
     | ChangeMusic MusicInfo
+    | SignOut
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -98,6 +100,9 @@ update msg model =
             , playMusicSelectAnim ()
             )
 
+        SignOut ->
+            ( model, signOut () )
+
 
 
 -- PORT
@@ -112,21 +117,18 @@ port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg
 port playMusicSelectAnim : () -> Cmd msg
 
 
+port signOut : () -> Cmd msg
+
+
 
 -- VIEW
 
 
 view : Model -> { title : String, content : Html Msg }
 view model =
-    let
-        isLoaded =
-            model.maybeCurrentMode /= Nothing && model.maybeCurrentMusicInfo /= Nothing
-    in
     { title = "Home"
     , content =
-        div [ class "mainWide" ]
-            [ viewContents model
-            ]
+        div [ class "mainWide" ] [ viewContents model ]
     }
 
 
@@ -134,14 +136,37 @@ viewContents : Model -> Html Msg
 viewContents model =
     case ( model.maybeCurrentMode, model.maybeCurrentMusicInfo ) of
         ( Just currentMode, Just currentMusicInfo ) ->
+            let
+                userName =
+                    Session.toUser model.session
+                        |> Maybe.map User.toUserName
+                        |> Maybe.withDefault ""
+
+                pictureUrl =
+                    Session.toUser model.session
+                        |> Maybe.map User.toPictureUrl
+                        |> Maybe.withDefault ""
+            in
             div [ class "home_contentsContainer" ]
                 -- 左側
                 [ div [ class "home_leftContentsContainer" ]
                     [ div [ class "home_leftContents" ]
                         [ div [ class "homeUserSetting_container" ]
                             [ div [ class "homeUserSetting_leftContents" ]
-                                [ img [ class "homeUserSetting_userIcon", src "./img/icon_user.png" ] []
-                                , div [ class "homeUserSetting_userNameText" ] [ text "ユウナ" ]
+                                [ img
+                                    [ class "homeUserSetting_userIcon"
+                                    , src pictureUrl
+                                    ]
+                                    []
+                                , div
+                                    [ class "homeUserSetting_userNameText" ]
+                                    [ text userName ]
+                                , img
+                                    [ class "homeUserSetting_logoutIcon"
+                                    , src "./img/icon_logout.png"
+                                    , onClick SignOut
+                                    ]
+                                    []
                                 ]
                             , div [ class "homeUserSetting_rightContents" ]
                                 [ div [ class "homeUserSetting_settingContainer" ]

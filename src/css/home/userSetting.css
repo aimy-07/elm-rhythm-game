@@ -10,6 +10,7 @@
   display: inline-block;
   vertical-align: top;
   padding: 0 18px;
+  position: relative;
 }
 
 .homeUserSetting_userIcon {
@@ -30,6 +31,15 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   border-bottom: solid 1px white;
+}
+
+.homeUserSetting_logoutIcon {
+  position: absolute;
+  top: 4px;
+  left: 20px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
 }
 
 .homeUserSetting_rightContents {

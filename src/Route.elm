@@ -14,6 +14,7 @@ import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 
 type Route
     = Home
+    | Login
     | Play CsvFileName
 
 
@@ -21,6 +22,7 @@ parser : Parser (Route -> a) a
 parser =
     oneOf
         [ Parser.map Home Parser.top
+        , Parser.map Login (s "login")
         , Parser.map Play (s "play" </> string)
         ]
 
@@ -41,11 +43,12 @@ replaceUrl key route =
 
 fromUrl : Url -> Maybe Route
 fromUrl url =
-    { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
-        |> Parser.parse parser
+    Parser.parse parser url
 
 
 
+-- { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
+--     |> Parser.parse parser
 -- INTERNAL
 
 
@@ -57,7 +60,10 @@ routeToString page =
                 Home ->
                     []
 
+                Login ->
+                    [ "login" ]
+
                 Play csvFileName ->
                     [ "play", csvFileName ]
     in
-    "#/" ++ String.join "/" pieces
+    "/" ++ String.join "/" pieces

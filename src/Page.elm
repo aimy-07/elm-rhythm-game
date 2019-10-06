@@ -9,6 +9,7 @@ import Html.Events exposing (..)
 type Page
     = Other
     | Home
+    | Login
     | Play
 
 
