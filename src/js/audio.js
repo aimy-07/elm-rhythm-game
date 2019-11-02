@@ -1,15 +1,28 @@
-let musicAudio;
+import firebase from 'firebase/app';
+import 'firebase/storage';
+
+let musicAudio = new Audio();
+
+
 
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
 export function audioSetUpSubscriber (app) {
+  // 曲を取得する
+  app.ports.setMusic.subscribe((audioFileName) => {
+    getAudio(audioFileName);
+  })
+
   // 曲を再生する
   app.ports.startMusic.subscribe(() => {
-    musicAudio = new Audio();
-    musicAudio.src = "./audios/sample_sound.wav";
-    musicAudio.play();
-    app.ports.gotCurrentMusicTime.send(0); 
+    if (musicAudio.src) {
+      musicAudio.play();
+      musicAudio.currentTime = 0;
+      app.ports.gotCurrentMusicTime.send(0);
+    } else {
+      console.error('musicAudio is undefined');
+    }
   })
 
   // 曲を一時停止する
@@ -38,4 +51,20 @@ export function audioSetUpSubscriber (app) {
     // tapAudio.src = "./audios/tapSound2.wav";
     // tapAudio.play();
   })
+
+  app.ports.startHomeMusic.subscribe(() => {
+    musicAudio.pause();
+    musicAudio.currentTime = 0
+  })
+}
+
+// 曲を取得する
+const getAudio = (audioFileName) => {
+  const audioFileRef = firebase.storage().ref('audio/' + audioFileName + '.wav');
+  audioFileRef.getDownloadURL().then(url => {
+    musicAudio.src = url;
+  })
+  .catch(error => {
+    console.error(error);
+  });
 }

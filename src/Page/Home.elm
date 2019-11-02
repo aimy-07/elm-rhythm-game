@@ -32,7 +32,10 @@ init session =
       , maybeCurrentMusicInfo = Nothing
       , maybeCurrentMode = Nothing
       }
-    , getAllMusicInfoList ()
+    , Cmd.batch
+        [ getAllMusicInfoList ()
+        , startHomeMusic ()
+        ]
     )
 
 
@@ -115,6 +118,9 @@ port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg
 
 
 port playMusicSelectAnim : () -> Cmd msg
+
+
+port startHomeMusic : () -> Cmd msg
 
 
 port signOut : () -> Cmd msg

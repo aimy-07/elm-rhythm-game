@@ -1,9 +1,10 @@
 module Page.Play.Lane exposing
     ( Lane
+    , allUnPress
+    , isPressing
     , leftFromKeyStr
     , new
     , press
-    , toIsPresing
     , toKeyStr
     , unPress
     , view
@@ -16,18 +17,18 @@ import Page.Play.KeyStr as KeyStr exposing (KeyStr)
 
 type Lane
     = Lane
-        { isPressing : Bool
-        , keyStr : KeyStr
+        { keyStr : KeyStr
         , left : Int
+        , isPressing : Bool
         }
 
 
 new : KeyStr -> Lane
 new keyStr =
     Lane
-        { isPressing = False
-        , keyStr = keyStr
+        { keyStr = keyStr
         , left = leftFromKeyStr keyStr
+        , isPressing = False
         }
 
 
@@ -61,41 +62,65 @@ toKeyStr (Lane { keyStr }) =
     keyStr
 
 
-toIsPresing : Lane -> Bool
-toIsPresing (Lane { isPressing }) =
-    isPressing
+isPressing : KeyStr -> Lane -> Bool
+isPressing keyStr (Lane lane) =
+    if lane.keyStr == keyStr then
+        lane.isPressing
+
+    else
+        False
 
 
-press : Lane -> Lane
-press (Lane lane) =
-    Lane { lane | isPressing = True }
+press : KeyStr -> Lane -> Lane
+press keyStr (Lane lane) =
+    if lane.keyStr == keyStr then
+        Lane { lane | isPressing = True }
+
+    else
+        Lane lane
 
 
-unPress : Lane -> Lane
-unPress (Lane lane) =
+unPress : KeyStr -> Lane -> Lane
+unPress keyStr (Lane lane) =
+    if lane.keyStr == keyStr then
+        Lane { lane | isPressing = False }
+
+    else
+        Lane lane
+
+
+allUnPress : Lane -> Lane
+allUnPress (Lane lane) =
     Lane { lane | isPressing = False }
 
 
 view : Lane -> Html msg
-view (Lane { isPressing, keyStr, left }) =
-    let
-        isPressingStyleClass =
-            if isPressing then
-                " is-pressing"
-
-            else
-                ""
-    in
+view (Lane lane) =
     div
-        [ class <| "playLane_lane" ++ isPressingStyleClass
-        , style "left" (String.fromInt left ++ "px")
+        [ classList
+            [ ( "playLane_lane", True )
+            , ( "is-pressing", lane.isPressing )
+            ]
+        , style "left" (String.fromInt lane.left ++ "px")
         ]
-        [ div [ class <| "playCenterLine_judgeArea" ] []
-        , div [ class <| "playCenterLine_judgeAreaLine left" ] []
-        , div [ class <| "playCenterLine_judgeAreaLine right" ] []
+        [ div [ class "playCenterLine_judgeArea" ] []
+        , div [ class "playCenterLine_judgeAreaLine left" ] []
+        , div [ class "playCenterLine_judgeAreaLine right" ] []
         , div
-            [ class <| "playLane_keyText" ++ isPressingStyleClass ]
-            [ text keyStr ]
-        , div [ class "playJudgeEffect_effect", id <| "judgeEffect_" ++ keyStr ] []
-        , div [ class "playJudgeEffect_text", id <| "judgeEffectText_" ++ keyStr ] []
+            [ classList
+                [ ( "playLane_keyText", True )
+                , ( "is-pressing", lane.isPressing )
+                ]
+            ]
+            [ text lane.keyStr ]
+        , div
+            [ class "playJudgeEffect_effect"
+            , id <| "judgeEffect_" ++ lane.keyStr
+            ]
+            []
+        , div
+            [ class "playJudgeEffect_text"
+            , id <| "judgeEffectText_" ++ lane.keyStr
+            ]
+            []
         ]

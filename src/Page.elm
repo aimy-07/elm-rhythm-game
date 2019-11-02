@@ -1,4 +1,4 @@
-module Page exposing (Page(..), cmdIf, updateIf, view, viewIf, viewLoading)
+module Page exposing (Page(..), cmdIf, view, viewIf, viewLoading)
 
 import Browser exposing (Document)
 import Html exposing (..)
@@ -38,16 +38,6 @@ cmdIf execute cmd =
 
         False ->
             Cmd.none
-
-
-updateIf : Bool -> (a -> a) -> a -> a
-updateIf update func variable =
-    case update of
-        True ->
-            func variable
-
-        False ->
-            variable
 
 
 viewLoading : Html msg

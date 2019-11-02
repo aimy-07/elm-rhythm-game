@@ -1,9 +1,17 @@
+import axios from 'axios'
+import firebase from 'firebase/app';
+import 'firebase/storage';
+
+
+
 /* ---------------------------------
 	定数
 ---------------------------------- */
 const perfectScore = 2000;
 const longScore = 100;
-const longCountDuration = 200;
+const longTimeOffset = 150;
+const longTimeDuration = 200;
+
 
 const csvFileNameList = [
   "sample_sound-normal",
@@ -26,168 +34,108 @@ export function csvSetUpSubscriber (app) {
   // 全ての楽曲の情報をCSVから取得する
   app.ports.getAllMusicInfoList.subscribe(() => {
     const promises = csvFileNameList.map((csvFileName) => {
+      const csvFileRef = firebase.storage().ref('csv/' + csvFileName + '.csv');
       return new Promise((resolve) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("GET", `./csv/${csvFileName}.csv`, true);
-        xhr.onload = () => {
-          const csvArray = createArray(xhr.responseText);
-          resolve(getMusicInfo(csvFileName, csvArray));
-        };
-        xhr.onerror = (e) => {
-          console.error(e);
-        };
-        xhr.send(null);
+        csvFileRef.getDownloadURL().then(url => {
+          return axios.get(url)
+        })
+        .then(response => {
+          const csvArray = createArray(response.data);
+          resolve(getMusicInfo(csvFileName, csvArray).musicInfo);
+        })
+        .catch(error => {
+          console.log(error);
+        });
       })
     })
     Promise.all(promises).then((allMusicInfoList) => {
-      console.log("allMusicInfoList", allMusicInfoList);
       app.ports.gotAllMusicInfoList.send(allMusicInfoList);
     });
   })
 
   // プレイ楽曲の楽曲情報をCSVから取得する
-  app.ports.getPlayingMusicInfo.subscribe((csvFileName) => {
+  app.ports.getCurrentMusicInfo.subscribe((csvFileName) => {
     if (!csvFileNameList.includes(csvFileName)) {
       console.error("invalid csvFileName.");
       location.href = "/";
       return;
     }
-    const promise = new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("GET", `./csv/${csvFileName}.csv`, true);
-      xhr.onload = () => {
-        const csvArray = createArray(xhr.responseText);
-        resolve(getMusicInfo(csvFileName, csvArray));
-      };
-      xhr.onerror = (e) => {
-        console.error(e);
-      };
-      xhr.send(null);
-    });
-    promise.then((playingMusicInfo) => {
-      console.log("playingMusicInfo", playingMusicInfo);
-      app.ports.gotPlayingMusicInfo.send(playingMusicInfo);
-    });
-  })
-
-  // プレイ楽曲のノーツ情報をCSVから取得する
-  app.ports.getAllNotes.subscribe((csvFileName) => {
-    if (!csvFileNameList.includes(csvFileName)) {
-      console.error("invalid url.");
-      location.href = "/";
-      return;
-    }
-    const promise = new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("GET", `./csv/${csvFileName}.csv`, true);
-      xhr.onload = () => {
-        const csvArray = createArray(xhr.responseText);
-        resolve(getAllNotes(csvArray));
-      };
-      xhr.onerror = (e) => {
-        console.error(e);
-      };
-      xhr.send(null);
-    });
-    promise.then((allNotes) => {
-      console.log("allNotes", allNotes);
-      app.ports.gotAllNotes.send(allNotes);
+    const csvFileRef = firebase.storage().ref('csv/' + csvFileName + '.csv');
+    csvFileRef.getDownloadURL().then(url => {
+      return axios.get(url)
+    })
+    .then(response => {
+      const csvArray = createArray(response.data);
+      const {musicInfo, allNotes} = getMusicInfo(csvFileName, csvArray);
+      app.ports.gotCurrentMusicInfo.send({
+        musicInfoDto: musicInfo,
+        noteDtos: allNotes,
+      });
+    })
+    .catch(error => {
+      console.log(error);
     });
   })
 }
 
 
 
+// 楽曲の楽曲情報をCSVから取得する
 const getMusicInfo = (csvFileName, csvArray) => {
   const musicName = csvArray[0][0];
   const composer = csvArray[1][0];
   const mode = csvArray[2][0];
   const level = parseInt(csvArray[3][0], 10);
-  const bpm = parseFloat(csvArray[4][0]);
+  const fullTime = parseFloat(csvArray[4][0]) * 1000;
+  const bpm = parseFloat(csvArray[5][0]);
+  const beatPerMeasure = parseFloat(csvArray[6][0]);
+  const offset = parseFloat(csvArray[7][0]);
+  csvArray.splice(0, 8);
+
+  const timePerBeat = 60 * 1000 / bpm;
   let maxCombo = 0;
   let maxScore = 0;
+  const allNotes = [];
 
-  const timePerBeat = 60 * 1000 / bpm;
-  csvArray.splice(0, 7);
   csvArray.forEach((csvRow) => {
-    csvRow.splice(0, 2);
-    csvRow.forEach((note) => {
-      if (note && !isNaN(parseInt(note, 10))) {
-        const longTime = (parseInt(note, 10) === 0) ? 0 : parseFloat(note) * timePerBeat;
-        maxCombo += 1;
-        maxScore += perfectScore;
-        if (longTime > 0) {
-          const longTimeCount = Math.floor(longTime / longCountDuration) - 1;
-          if (longTimeCount > 0) {
-            maxCombo += 1 * longTimeCount;
-            maxScore += longScore * longTimeCount;
-          }
-        }
-      }
-    });
-  });
-
-  const musicAudio = new Audio();
-  const audioName = csvFileName.split("-")[0];
-  musicAudio.src = `./audios/${audioName}.wav`;
-  musicAudio.load();
-  const promise = new Promise((resolve) => {
-    musicAudio.addEventListener('loadedmetadata', (e) => {
-      const fullTime = musicAudio.duration * 1000;
-      const musicInfo = {
-        csvFileName,
-        musicName,
-        composer,
-        mode,
-        level,
-        bpm,
-        maxCombo,
-        maxScore,
-        fullTime,
-      }
-      resolve(musicInfo);
-    });
-  });
-  return promise.then((musicInfo) => {
-    console.log("musicInfo", musicInfo);
-    return musicInfo;
-  });
-}
-
-const getAllNotes = (csvArray) => {
-  const bpm = parseFloat(csvArray[4][0]);
-  const beatPerMeasure = parseFloat(csvArray[5][0]);
-  const offset = parseFloat(csvArray[6][0]);
-  const timePerBeat = 60 * 1000 / bpm;
-
-  csvArray.splice(0, 7);
-  const allNotes_ = csvArray.map((csvRow) => {
     const measure = parseFloat(csvRow[0]);
     const beat = parseFloat(csvRow[1]);
     const justTime = (measure * beatPerMeasure + beat) * timePerBeat + offset * 1000;
 
     csvRow.splice(0, 2);
-    const notes = csvRow.map((note) => {
-      if (note && !isNaN(parseInt(note, 10))) {
-        const longTime = (parseInt(note, 10) === 0) ? 0 : parseFloat(note, 10) * timePerBeat;
-        return {justTime, longTime};
+    csvRow.forEach((note, index) => {
+      const keyStr = createKeyStr(index);
+      let longTime = -1;
+      if (note && !isNaN(parseInt(note, 10)) && keyStr != "") {
+        longTime = (parseInt(note, 10) === 0) ? 0 : parseFloat(note) * timePerBeat;
+        maxCombo += 1;
+        maxScore += perfectScore;
+        if (longTime > 0) {
+          const longCount = Math.floor ((longTime - longTimeOffset) / longTimeDuration) + 1
+          if (longCount > 0) {
+            maxCombo += 1 * longCount;
+            maxScore += longScore * longCount;
+          }
+        }
       }
-      const longTime = -1;
-      return {justTime, longTime};
+      allNotes.push({keyStr, justTime, longTime})
     })
-    return notes;
-  })
-  const tAllNotes = transpose(allNotes_);
-  const allNotes = {
-    laneS: tAllNotes[0],
-    laneD: tAllNotes[1],
-    laneF: tAllNotes[2],
-    laneJ: tAllNotes[3],
-    laneK: tAllNotes[4],
-    laneL: tAllNotes[5],
+  });
+
+  const musicInfo = {
+    csvFileName,
+    musicName,
+    composer,
+    mode,
+    level,
+    fullTime,
+    bpm,
+    maxCombo,
+    maxScore
   }
-  console.log(allNotes);
-  return allNotes;
+  console.log("musicInfo", musicInfo);
+  console.log("allNotes", allNotes);
+  return {musicInfo, allNotes};
 }
 
 // csvデータを配列に変換する
@@ -200,5 +148,22 @@ const createArray = (csvData) => {
   return csvArray
 }
 
-// 配列を転置する
-const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
+// csvの列番号をキーに変換する
+const createKeyStr = (csvNum) => {
+  switch(csvNum) {
+    case 0:
+      return "S";
+    case 1:
+      return "D";
+    case 2:
+      return "F";
+    case 3:
+      return "J";
+    case 4:
+      return "K";
+    case 5:
+      return "L";
+    default:
+      return "";
+  }
+}

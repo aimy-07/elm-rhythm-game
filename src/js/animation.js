@@ -28,10 +28,10 @@ export function animationSetUpSubscriber (app) {
   })
 
   // 判定時の◇エフェクトアニメーションを再生する
-  app.ports.playJudgeEffectAnim.subscribe(({keyStr, noteType}) => {
+  app.ports.playJudgeEffectAnim.subscribe(({keyStr, isLongNote}) => {
     const judgeEffect = document.getElementById("judgeEffect_" + keyStr);
     judgeEffect.classList.remove("long");
-    if (noteType === "LONG") {
+    if (isLongNote) {
       judgeEffect.classList.add("long");
     }
     replayAnim(judgeEffect);

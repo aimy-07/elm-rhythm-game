@@ -1,67 +1,91 @@
-module Page.Play.Combo exposing
+port module Page.Play.Combo exposing
     ( Combo
-    , addLong
-    , calcLongCombo
+    , comboEffectCmd
     , init
-    , isZero
+    , toMaxCombo
     , unwrap
     , update
+    , updateKeyDown
     )
 
-import Page.Play.JudgeKind as JudgeKind exposing (JudgeKind)
-import Page.Play.LongNoteLine as LongNoteLine exposing (LongNoteLine)
-import Page.Play.NotesPerLane as NotesPerLane exposing (NotesPerLane)
+import Page
+import Page.Play.Judge as Judge exposing (Judge(..))
 
 
 type Combo
-    = Combo Int
+    = Combo Int MaxCombo
+
+
+type alias MaxCombo =
+    Int
 
 
 init : Combo
 init =
-    Combo 0
+    Combo 0 0
 
 
 unwrap : Combo -> Int
-unwrap (Combo combo) =
+unwrap (Combo combo maxCombo) =
     combo
 
 
-update : JudgeKind -> Combo -> Combo
-update judgeKind (Combo combo) =
-    if JudgeKind.isPerfect judgeKind || JudgeKind.isGreat judgeKind || JudgeKind.isGood judgeKind then
-        Combo (combo + 1)
+toMaxCombo : Combo -> MaxCombo
+toMaxCombo (Combo combo maxCombo) =
+    maxCombo
 
-    else if judgeKind == JudgeKind.miss then
-        Combo 0
+
+update : Bool -> Int -> Combo -> Combo
+update hasDisabledNotes judgedLongNoteCount (Combo combo maxCombo) =
+    let
+        -- Disabledノーツがあったら先にCombo = 0を実行する
+        nextCombo =
+            if hasDisabledNotes then
+                1 * judgedLongNoteCount
+
+            else
+                combo + judgedLongNoteCount
+    in
+    Combo nextCombo (updateMaxCombo nextCombo maxCombo)
+
+
+updateKeyDown : Judge -> Combo -> Combo
+updateKeyDown judge (Combo combo maxCombo) =
+    let
+        -- Disabledノーツがあったら先にCombo = 0を実行する
+        nextCombo =
+            case judge of
+                Perfect ->
+                    combo + 1
+
+                Great ->
+                    combo + 1
+
+                Good ->
+                    combo + 1
+
+                Miss ->
+                    0
+
+                Invalid ->
+                    combo
+    in
+    Combo nextCombo (updateMaxCombo nextCombo maxCombo)
+
+
+updateMaxCombo : Int -> MaxCombo -> MaxCombo
+updateMaxCombo combo maxCombo =
+    if combo > maxCombo then
+        combo
 
     else
-        Combo combo
+        maxCombo
 
 
-addLong : Combo -> Int -> Combo
-addLong (Combo combo) addingCombo =
-    Combo (combo + addingCombo)
+comboEffectCmd : Combo -> Combo -> Cmd msg
+comboEffectCmd prevCombo nextCombo =
+    playComboEffectAnim ()
+        |> Page.cmdIf (unwrap nextCombo > unwrap prevCombo)
 
 
-calcLongCombo : NotesPerLane -> Int
-calcLongCombo notesPerLane =
-    NotesPerLane.toMaybeLongNoteLine notesPerLane
-        |> Maybe.map
-            (\longNoteLine ->
-                let
-                    timeCounter =
-                        LongNoteLine.toTimeCounter longNoteLine
-                in
-                if Basics.modBy LongNoteLine.longCountDuration timeCounter == 0 && timeCounter >= 0 then
-                    1
-
-                else
-                    0
-            )
-        |> Maybe.withDefault 0
-
-
-isZero : Combo -> Bool
-isZero (Combo combo) =
-    combo == 0
+port playComboEffectAnim : () -> Cmd msg

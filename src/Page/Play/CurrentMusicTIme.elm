@@ -1,10 +1,10 @@
-module Page.Play.CurrentMusicTime exposing (CurrentMusicTime, updateCurrentMusicTime)
+module Page.Play.CurrentMusicTime exposing (CurrentMusicTime, update)
 
 
 type alias CurrentMusicTime =
     Float
 
 
-updateCurrentMusicTime : CurrentMusicTime -> CurrentMusicTime
-updateCurrentMusicTime currentMusicTime =
+update : CurrentMusicTime -> CurrentMusicTime
+update currentMusicTime =
     currentMusicTime + 10

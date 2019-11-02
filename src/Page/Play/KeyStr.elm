@@ -1,10 +1,5 @@
-module Page.Play.KeyStr exposing (KeyStr, allKeyStr)
+module Page.Play.KeyStr exposing (KeyStr)
 
 
 type alias KeyStr =
     String
-
-
-allKeyStr : List KeyStr
-allKeyStr =
-    [ "S", "D", "F", "J", "K", "L" ]

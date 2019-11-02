@@ -40,10 +40,10 @@ type alias MusicInfoDto =
     , composer : String
     , mode : String
     , level : Int
+    , fullTime : Float
     , bpm : Int
     , maxCombo : Int
     , maxScore : Int
-    , fullTime : Float
     }
 
 
@@ -55,10 +55,10 @@ new musicInfoDto =
         , composer = musicInfoDto.composer
         , mode = Mode.new musicInfoDto.mode
         , level = musicInfoDto.level
+        , fullTime = musicInfoDto.fullTime
         , bpm = musicInfoDto.bpm
         , maxCombo = musicInfoDto.maxCombo
         , maxScore = musicInfoDto.maxScore
-        , fullTime = musicInfoDto.fullTime
         }
 
 
@@ -70,10 +70,10 @@ empty =
         , composer = ""
         , mode = Mode.new ""
         , level = 0
+        , fullTime = 0
         , bpm = 0
         , maxCombo = 0
         , maxScore = 0
-        , fullTime = 0
         }
 
 
@@ -107,6 +107,16 @@ toStringLevel (MusicInfo { level }) =
     String.repeat level "◆" ++ String.repeat (8 - level) "◇"
 
 
+toFullTime : MusicInfo -> Float
+toFullTime (MusicInfo { fullTime }) =
+    fullTime
+
+
+toBpm : MusicInfo -> Int
+toBpm (MusicInfo { bpm }) =
+    bpm
+
+
 toMaxCombo : MusicInfo -> Int
 toMaxCombo (MusicInfo { maxCombo }) =
     maxCombo
@@ -115,16 +125,6 @@ toMaxCombo (MusicInfo { maxCombo }) =
 toMaxScore : MusicInfo -> Int
 toMaxScore (MusicInfo { maxScore }) =
     maxScore
-
-
-toBpm : MusicInfo -> Int
-toBpm (MusicInfo { bpm }) =
-    bpm
-
-
-toFullTime : MusicInfo -> Float
-toFullTime (MusicInfo { fullTime }) =
-    fullTime
 
 
 toStringTime : Float -> String

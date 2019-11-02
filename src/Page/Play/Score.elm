@@ -1,15 +1,13 @@
 module Page.Play.Score exposing
     ( Score
-    , add
-    , addLong
-    , calcLongScore
     , init
     , unwrap
+    , update
+    , updateKeyDown
     )
 
-import Page.Play.JudgeKind as JudgeKind exposing (JudgeKind)
-import Page.Play.LongNoteLine as LongNoteLine exposing (LongNoteLine)
-import Page.Play.NotesPerLane as NotesPerLane exposing (NotesPerLane)
+import Constants exposing (goodScore, greatScore, longScore, perfectScore)
+import Page.Play.Judge as Judge exposing (Judge(..))
 
 
 type Score
@@ -26,63 +24,25 @@ unwrap (Score score) =
     score
 
 
-add : JudgeKind -> Score -> Score
-add judgeKind (Score score) =
-    if JudgeKind.isPerfect judgeKind then
-        Score (score + perfectScore)
-
-    else if JudgeKind.isGreat judgeKind then
-        Score (score + greatScore)
-
-    else if JudgeKind.isGood judgeKind then
-        Score (score + goodScore)
-
-    else
-        Score score
+update : Int -> Score -> Score
+update judgedLongNoteCount (Score score) =
+    Score (score + judgedLongNoteCount * longScore)
 
 
-addLong : Score -> Int -> Score
-addLong (Score score) addingScore =
-    Score (score + addingScore)
+updateKeyDown : Judge -> Score -> Score
+updateKeyDown judge (Score score) =
+    case judge of
+        Perfect ->
+            Score (score + perfectScore)
 
+        Great ->
+            Score (score + greatScore)
 
-calcLongScore : NotesPerLane -> Int
-calcLongScore notesPerLane =
-    NotesPerLane.toMaybeLongNoteLine notesPerLane
-        |> Maybe.map
-            (\longNoteLine ->
-                let
-                    timeCounter =
-                        LongNoteLine.toTimeCounter longNoteLine
-                in
-                if Basics.modBy LongNoteLine.longCountDuration timeCounter == 0 && timeCounter >= 0 then
-                    longScore
+        Good ->
+            Score (score + goodScore)
 
-                else
-                    0
-            )
-        |> Maybe.withDefault 0
+        Miss ->
+            Score score
 
-
-
--- CONST
-
-
-perfectScore : Int
-perfectScore =
-    2000
-
-
-greatScore : Int
-greatScore =
-    1500
-
-
-goodScore : Int
-goodScore =
-    1000
-
-
-longScore : Int
-longScore =
-    100
+        Invalid ->
+            Score score
