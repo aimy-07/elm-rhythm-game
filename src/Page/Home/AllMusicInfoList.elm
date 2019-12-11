@@ -4,8 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import MusicInfo as MusicInfo exposing (MusicInfo)
-import MusicInfo.Mode as Mode exposing (Mode)
-import Route
+import MusicInfo.Mode exposing (Mode)
 
 
 type AllMusicInfoList

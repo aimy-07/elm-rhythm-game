@@ -12,7 +12,7 @@ port module Page.Play.Judge exposing
 import Constants exposing (goodRange, greatRange, missRange, perfectRange)
 import Page
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
-import Page.Play.KeyStr as KeyStr exposing (KeyStr)
+import Page.Play.KeyStr exposing (KeyStr)
 import Page.Play.Note.JustTime exposing (JustTime)
 
 

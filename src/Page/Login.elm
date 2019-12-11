@@ -11,8 +11,7 @@ import Session exposing (Session)
 
 
 type alias Model =
-    { session : Session
-    }
+    { session : Session }
 
 
 init : Session -> ( Model, Cmd Msg )

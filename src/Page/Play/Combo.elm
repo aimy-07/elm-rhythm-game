@@ -9,7 +9,7 @@ port module Page.Play.Combo exposing
     )
 
 import Page
-import Page.Play.Judge as Judge exposing (Judge(..))
+import Page.Play.Judge exposing (Judge(..))
 
 
 type Combo

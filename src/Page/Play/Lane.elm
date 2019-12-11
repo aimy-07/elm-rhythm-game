@@ -12,7 +12,7 @@ module Page.Play.Lane exposing
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Page.Play.KeyStr as KeyStr exposing (KeyStr)
+import Page.Play.KeyStr exposing (KeyStr)
 
 
 type Lane

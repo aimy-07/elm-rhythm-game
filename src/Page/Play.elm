@@ -4,11 +4,10 @@ import Constants exposing (allKeyStr)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Json.Decode as Json
 import Keyboard exposing (Key(..))
-import MusicInfo exposing (MusicInfo, MusicInfoDto)
+import MusicInfo exposing (MusicInfoDto)
 import MusicInfo.CsvFileName as CsvFileName exposing (CsvFileName)
-import MusicInfo.Mode as Mode exposing (Mode)
+import MusicInfo.Mode as Mode
 import Page
 import Page.Play.Combo as Combo exposing (Combo)
 import Page.Play.CurrentMusicInfo as CurrentMusicInfo exposing (CurrentMusicInfo)
@@ -22,7 +21,6 @@ import Rank
 import Route
 import Session exposing (Session)
 import Set
-import Task
 import Time
 
 
@@ -112,9 +110,7 @@ update msg model =
         PlayedCountdownAnim () ->
             case model.playStatus of
                 StartCountdown ->
-                    ( { model | playStatus = Playing }
-                    , startMusic ()
-                    )
+                    ( { model | playStatus = Playing }, startMusic () )
 
                 PauseCountdown ->
                     let
@@ -169,9 +165,7 @@ update msg model =
                     if model.playStatus /= Playing then
                         -- Playingの時しか判定しない
                         -- keyを押しているかどうかだけ更新する
-                        ( { model | lanes = nextLanes }
-                        , Cmd.none
-                        )
+                        ( { model | lanes = nextLanes }, Cmd.none )
 
                     else if List.any (Lane.isPressing keyStr) model.lanes then
                         -- すでにそのレーンのキーが押されている状態ではKeyDown判定しない
@@ -246,9 +240,7 @@ update msg model =
                     if model.playStatus /= Playing then
                         -- Playingの時しか判定しない
                         -- keyを押しているかどうかだけ更新する
-                        ( { model | lanes = nextLanes }
-                        , Cmd.none
-                        )
+                        ( { model | lanes = nextLanes }, Cmd.none )
 
                     else if not <| List.any (Lane.isPressing keyStr) model.lanes then
                         -- もうそのレーンのキーが押されていない状態ではKeyUp判定しない

@@ -4,7 +4,7 @@ import Browser exposing (Document)
 import Browser.Navigation as Nav
 import Html exposing (..)
 import MusicInfo.CsvFileName exposing (CsvFileName)
-import Page exposing (Page)
+import Page
 import Page.Blank as Blank
 import Page.Home as Home
 import Page.Login as Login
@@ -13,7 +13,7 @@ import Page.Play as Play
 import Route exposing (Route)
 import Session exposing (Session)
 import Url exposing (Url)
-import User exposing (User, UserDto)
+import User exposing (UserDto)
 
 
 
@@ -30,7 +30,7 @@ type Model
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ url navKey =
+init _ _ navKey =
     -- onAuthChangedのレスポンスを受け取るまでInit
     ( Init (Session.init navKey), Cmd.none )
 
@@ -67,7 +67,7 @@ view model =
         Login login ->
             viewPage Page.Other GotLoginMsg (Login.view login)
 
-        Play csvFileName play ->
+        Play _ play ->
             viewPage Page.Play GotPlayMsg (Play.view play)
 
 

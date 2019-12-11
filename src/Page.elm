@@ -22,22 +22,20 @@ view page { title, content } =
 
 viewIf : Bool -> Html msg -> Html msg
 viewIf show element =
-    case show of
-        True ->
-            element
+    if show then
+        element
 
-        False ->
-            text ""
+    else
+        text ""
 
 
 cmdIf : Bool -> Cmd msg -> Cmd msg
 cmdIf execute cmd =
-    case execute of
-        True ->
-            cmd
+    if execute then
+        cmd
 
-        False ->
-            Cmd.none
+    else
+        Cmd.none
 
 
 viewLoading : Html msg

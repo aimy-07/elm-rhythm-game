@@ -7,7 +7,7 @@ module Page.Play.Score exposing
     )
 
 import Constants exposing (goodScore, greatScore, longScore, perfectScore)
-import Page.Play.Judge as Judge exposing (Judge(..))
+import Page.Play.Judge exposing (Judge(..))
 
 
 type Score

@@ -12,7 +12,7 @@ module Constants exposing
     , perfectScore
     )
 
-import Page.Play.KeyStr as KeyStr exposing (KeyStr)
+import Page.Play.KeyStr exposing (KeyStr)
 
 
 allKeyStr : List KeyStr

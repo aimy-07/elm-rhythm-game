@@ -25,7 +25,7 @@ import Html.Attributes exposing (..)
 import Page
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..))
-import Page.Play.KeyStr as KeyStr exposing (KeyStr)
+import Page.Play.KeyStr exposing (KeyStr)
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note.JustTime exposing (JustTime)
 import Page.Play.Speed exposing (Speed)
@@ -148,11 +148,7 @@ isSameKey keyStr note =
 
 isSameNote : Note -> Note -> Bool
 isSameNote a b =
-    if not (isDisabled a) && not (isDisabled b) then
-        (toKeyStr a == toKeyStr b) && (toJustTime a == toJustTime b)
-
-    else
-        False
+    not (isDisabled a) && not (isDisabled b) && (toKeyStr a == toKeyStr b) && (toJustTime a == toJustTime b)
 
 
 isLongNote : Note -> Bool
@@ -200,10 +196,8 @@ isMissDisabled note =
             False
 
 
-
--- 毎フレームUpdateごとに、ノーツの状態を更新する
-
-
+{-| 毎フレームUpdateごとに、ノーツの状態を更新する
+-}
 update : CurrentMusicTime -> Note -> Note
 update currentMusicTime note =
     case note of
@@ -241,10 +235,8 @@ update currentMusicTime note =
             note
 
 
-
--- 毎フレームUpdateごとに、伸ばしているノングノーツのスコア・コンボ増分を計算するための関数
-
-
+{-| 毎フレームUpdateごとに、伸ばしているノングノーツのスコア・コンボ増分を計算するための関数
+-}
 judgedLongNoteKeys : CurrentMusicTime -> Note -> List KeyStr
 judgedLongNoteKeys currentMusicTime note =
     case note of
@@ -263,10 +255,8 @@ judgedLongNoteKeys currentMusicTime note =
             []
 
 
-
--- KeyDown時に、判定結果に応じてノーツの状態を更新する
-
-
+{-| KeyDown時に、判定結果に応じてノーツの状態を更新する
+-}
 updateOnKeyDown : Judge -> Note -> Note
 updateOnKeyDown judge note =
     case note of
@@ -298,10 +288,8 @@ updateOnKeyDown judge note =
             note
 
 
-
--- KeyUp時に、isLongJudgingのノーツをDisabledに更新する
-
-
+{-| KeyUp時に、isLongJudgingのノーツをDisabledに更新する
+-}
 updateOnKeyUp : Note -> Note
 updateOnKeyUp note =
     case note of

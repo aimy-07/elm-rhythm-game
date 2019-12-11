@@ -1,4 +1,4 @@
-module User exposing (User, UserDto, new, toPictureUrl, toUserName)
+module User exposing (User, UserDto, new, toPictureUrl, toUid, toUserName)
 
 
 type User

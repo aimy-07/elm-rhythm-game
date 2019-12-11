@@ -10,7 +10,7 @@ import Page.Home.AllMusicInfoList as AllMusicInfoList exposing (AllMusicInfoList
 import Rank exposing (Rank)
 import Route
 import Session exposing (Session)
-import User exposing (User)
+import User
 
 
 
