@@ -343,7 +343,7 @@ update msg model =
                     MusicInfo.toFullTime <| CurrentMusicInfo.toMusicInfo model.currentMusicInfo
 
                 nextPlayStatus =
-                    if fullTime <= model.currentMusicTime then
+                    if fullTime * 1000 <= model.currentMusicTime then
                         Finish
 
                     else
@@ -511,7 +511,7 @@ viewMusicInfo model =
             [ text <| MusicInfo.toComposer musicInfo ]
         , div
             [ class "playTextArea_smallText" ]
-            [ span [] [ text <| Mode.unwrap <| MusicInfo.toMode musicInfo ]
+            [ span [] [ text <| Mode.toString <| MusicInfo.toMode musicInfo ]
             , span [] [ text "\u{3000}" ]
             , span [] [ text <| MusicInfo.toStringLevel musicInfo ]
             ]
@@ -525,7 +525,7 @@ viewDisplayCircle model =
             MusicInfo.toFullTime <| CurrentMusicInfo.toMusicInfo model.currentMusicInfo
 
         rate =
-            model.currentMusicTime / fullTime
+            model.currentMusicTime / (fullTime * 1000)
 
         half1Rotate =
             if rate <= 0.5 then
@@ -622,7 +622,7 @@ viewResult model =
             , div [ class "playOverview_smallText" ]
                 [ text <| MusicInfo.toComposer musicInfo ]
             , div [ class "playOverview_smallText" ]
-                [ span [] [ text <| Mode.unwrap <| MusicInfo.toMode musicInfo ]
+                [ span [] [ text <| Mode.toString <| MusicInfo.toMode musicInfo ]
                 , span [] [ text "\u{3000}" ]
                 , span [] [ text <| MusicInfo.toStringLevel musicInfo ]
                 ]

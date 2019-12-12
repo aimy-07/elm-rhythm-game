@@ -131,9 +131,9 @@ toStringTime : Float -> String
 toStringTime time =
     let
         sec =
-            modBy 60 (Basics.round (time / 1000))
+            modBy 60 (Basics.round time)
 
         min =
-            Basics.round (time / 1000) // 60
+            Basics.round time // 60
     in
     String.fromInt min ++ "分" ++ String.fromInt sec ++ "秒"

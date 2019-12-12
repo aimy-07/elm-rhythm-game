@@ -237,7 +237,7 @@ viewModeTabBtn currentMode mode =
             ]
         , onClick <| ChangeMode mode
         ]
-        [ text <| Mode.unwrap mode ]
+        [ text <| Mode.toString mode ]
 
 
 viewMusicList : Mode -> MusicInfo -> AllMusicInfoList -> Html Msg
@@ -385,7 +385,7 @@ viewTopLeftArea : MusicInfo -> Html msg
 viewTopLeftArea currentMusicInfo =
     div [ class "home_topLeftArea", id "home_topLeftArea" ]
         [ div [ class "homeTopLeft_modeText" ]
-            [ text <| Mode.unwrap (MusicInfo.toMode currentMusicInfo) ]
+            [ text <| Mode.toString (MusicInfo.toMode currentMusicInfo) ]
         ]
 
 

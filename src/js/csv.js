@@ -7,12 +7,6 @@ import 'firebase/storage';
 /* ---------------------------------
 	定数
 ---------------------------------- */
-const perfectScore = 2000;
-const longScore = 100;
-const longTimeOffset = 150;
-const longTimeDuration = 200;
-
-
 const csvFileNameList = [
   "sample_sound-normal",
   "sample_sound-hard",
@@ -31,111 +25,90 @@ const csvFileNameList = [
 	Subscriber
 ---------------------------------- */
 export function csvSetUpSubscriber (app) {
-  // 全ての楽曲の情報をCSVから取得する
+  // 全ての楽曲の情報をFirebaseから取得する
   app.ports.getAllMusicInfoList.subscribe(() => {
-    const promises = csvFileNameList.map((csvFileName) => {
-      const csvFileRef = firebase.storage().ref('csv/' + csvFileName + '.csv');
-      return new Promise((resolve) => {
-        csvFileRef.getDownloadURL().then(url => {
-          return axios.get(url)
-        })
-        .then(response => {
-          const csvArray = createArray(response.data);
-          resolve(getMusicInfo(csvFileName, csvArray).musicInfo);
-        })
-        .catch(error => {
-          console.log(error);
+    const allMusicInfoList = [];
+    firebase.database().ref('/music_infos').once('value').then((snapshot) => {
+      const datas = snapshot.val();
+      Object.keys(datas).forEach((key) => {
+        const musicInfo = datas[key];
+        allMusicInfoList.push({
+          csvFileName: musicInfo.csv_file_name,
+          musicName: musicInfo.music_name,
+          composer: musicInfo.composer,
+          mode: musicInfo.mode,
+          level: musicInfo.level,
+          fullTime: musicInfo.full_time,
+          bpm: musicInfo.bpm,
+          maxCombo: musicInfo.max_combo,
+          maxScore: musicInfo.max_score
         });
-      })
-    })
-    Promise.all(promises).then((allMusicInfoList) => {
+      });
+      console.log('allMusicInfoList', allMusicInfoList);
       app.ports.gotAllMusicInfoList.send(allMusicInfoList);
     });
   })
 
-  // プレイ楽曲の楽曲情報をCSVから取得する
+  // プレイ楽曲の楽曲情報をFirebaseとCSVから取得する
   app.ports.getCurrentMusicInfo.subscribe((csvFileName) => {
     if (!csvFileNameList.includes(csvFileName)) {
       console.error("invalid csvFileName.");
       location.href = "/";
       return;
     }
-    const csvFileRef = firebase.storage().ref('csv/' + csvFileName + '.csv');
-    csvFileRef.getDownloadURL().then(url => {
-      return axios.get(url)
-    })
-    .then(response => {
-      const csvArray = createArray(response.data);
-      const {musicInfo, allNotes} = getMusicInfo(csvFileName, csvArray);
-      app.ports.gotCurrentMusicInfo.send({
-        musicInfoDto: musicInfo,
-        noteDtos: allNotes,
+
+    firebase.database().ref(`/music_infos/${csvFileName}`).once('value').then((snapshot) => {
+      const musicInfo = snapshot.val();
+      const csvFileRef = firebase.storage().ref(`csv/${csvFileName}.csv`);
+      csvFileRef.getDownloadURL().then(url => {
+        return axios.get(url)
+      })
+      .then(response => {
+        const csvArray = createArray(response.data);
+        const musicInfoDto = {
+          csvFileName: musicInfo.csv_file_name,
+          musicName: musicInfo.music_name,
+          composer: musicInfo.composer,
+          mode: musicInfo.mode,
+          level: musicInfo.level,
+          fullTime: musicInfo.full_time,
+          bpm: musicInfo.bpm,
+          maxCombo: musicInfo.max_combo,
+          maxScore: musicInfo.max_score
+        }
+        const noteDtos = getNoteDtos(musicInfo.bpm, musicInfo.beats_count_per_measure, musicInfo.offset, csvArray);
+        app.ports.gotCurrentMusicInfo.send({musicInfoDto, noteDtos});
+      })
+      .catch(error => {
+        console.log(error);
       });
-    })
-    .catch(error => {
-      console.log(error);
     });
   })
 }
 
 
 
-// 楽曲の楽曲情報をCSVから取得する
-const getMusicInfo = (csvFileName, csvArray) => {
-  const musicName = csvArray[0][0];
-  const composer = csvArray[1][0];
-  const mode = csvArray[2][0];
-  const level = parseInt(csvArray[3][0], 10);
-  const fullTime = parseFloat(csvArray[4][0]) * 1000;
-  const bpm = parseFloat(csvArray[5][0]);
-  const beatPerMeasure = parseFloat(csvArray[6][0]);
-  const offset = parseFloat(csvArray[7][0]);
-  csvArray.splice(0, 8);
-
+// 楽曲の譜面情報をCSVから取得する
+const getNoteDtos = (bpm, beatsCountPerMeasure, offset, csvArray) => {
   const timePerBeat = 60 * 1000 / bpm;
-  let maxCombo = 0;
-  let maxScore = 0;
-  const allNotes = [];
+  const noteDtos = [];
 
   csvArray.forEach((csvRow) => {
     const measure = parseFloat(csvRow[0]);
     const beat = parseFloat(csvRow[1]);
-    const justTime = (measure * beatPerMeasure + beat) * timePerBeat + offset * 1000;
-
+    const justTime = (measure * beatsCountPerMeasure + beat) * timePerBeat + offset * 1000;
     csvRow.splice(0, 2);
     csvRow.forEach((note, index) => {
       const keyStr = createKeyStr(index);
       let longTime = -1;
       if (note && !isNaN(parseInt(note, 10)) && keyStr != "") {
         longTime = (parseInt(note, 10) === 0) ? 0 : parseFloat(note) * timePerBeat;
-        maxCombo += 1;
-        maxScore += perfectScore;
-        if (longTime > 0) {
-          const longCount = Math.floor ((longTime - longTimeOffset) / longTimeDuration) + 1
-          if (longCount > 0) {
-            maxCombo += 1 * longCount;
-            maxScore += longScore * longCount;
-          }
-        }
       }
-      allNotes.push({keyStr, justTime, longTime})
+      noteDtos.push({keyStr, justTime, longTime})
     })
   });
 
-  const musicInfo = {
-    csvFileName,
-    musicName,
-    composer,
-    mode,
-    level,
-    fullTime,
-    bpm,
-    maxCombo,
-    maxScore
-  }
-  console.log("musicInfo", musicInfo);
-  console.log("allNotes", allNotes);
-  return {musicInfo, allNotes};
+  return noteDtos;
 }
 
 // csvデータを配列に変換する

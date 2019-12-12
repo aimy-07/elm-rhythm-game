@@ -1,4 +1,6 @@
-module MusicInfo.Mode exposing (Mode, hard, isInvalid, master, new, normal, unwrap)
+module MusicInfo.Mode exposing (Mode, hard, isInvalid, master, new, normal, toString, unwrap)
+
+import String.Extra as ExString
 
 
 type Mode
@@ -11,13 +13,13 @@ type Mode
 new : String -> Mode
 new rawMode =
     case rawMode of
-        "Normal" ->
+        "normal" ->
             Normal
 
-        "Hard" ->
+        "hard" ->
             Hard
 
-        "Master" ->
+        "master" ->
             Master
 
         _ ->
@@ -28,16 +30,22 @@ unwrap : Mode -> String
 unwrap mode =
     case mode of
         Normal ->
-            "Normal"
+            "normal"
 
         Hard ->
-            "Hard"
+            "hard"
 
         Master ->
-            "Master"
+            "master"
 
         Invalid ->
             ""
+
+
+toString : Mode -> String
+toString mode =
+    unwrap mode
+        |> ExString.toTitleCase
 
 
 normal : Mode
