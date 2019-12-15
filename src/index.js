@@ -78,11 +78,13 @@ const uuidv4 = require('uuid/v4');
 
 app.ports.saveRecord.subscribe(({csvFileName, record}) => {
   const recordId = uuidv4();
+  const createdAt = Date.now();
   firebase.database().ref(`/records/${csvFileName}/${recordId}/`).set(
     {
       uid: record.uid,
       combo: record.combo,
-      score: record.score
+      score: record.score,
+      createdAt: createdAt
     },
     (err) => {
       if (err) {
@@ -109,14 +111,14 @@ app.ports.getOwnBestRecord.subscribe(({csvFileName, uid}) => {
         const ownBestRecord = {
           uid: uid,
           combo: Math.max(...records.map(r => r.combo)),
-          score: Math.max(...records.map(r => r.score))
+          score: Math.max(...records.map(r => r.score)),
         }
         app.ports.gotOwnBestRecord.send(ownBestRecord);
       } else {
         const emptyRecord = {
           uid: uid,
           combo: 0,
-          score: 0
+          score: 0,
         }
         app.ports.gotOwnBestRecord.send(emptyRecord);
       }
