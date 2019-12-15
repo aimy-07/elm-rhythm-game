@@ -1,17 +1,20 @@
 port module Page.Home exposing (Model, Msg, init, subscriptions, toSession, update, view)
 
+import AllMusicInfoList exposing (AllMusicInfoList)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import MusicInfo as MusicInfo exposing (MusicInfo, MusicInfoDto)
+import MusicInfo.CsvFileName as CsvFileName
 import MusicInfo.Level as Level
 import MusicInfo.Mode as Mode exposing (Mode)
+import MusicInfo.MusicId exposing (MusicId)
+import OwnRecord exposing (OwnRecord, OwnRecordDto)
 import Page
-import Page.Home.AllMusicInfoList as AllMusicInfoList exposing (AllMusicInfoList)
 import Rank exposing (Rank)
 import Route
 import Session exposing (Session)
-import User
+import User exposing (Uid)
 
 
 
@@ -20,21 +23,32 @@ import User
 
 type alias Model =
     { session : Session
-    , allMusicInfoList : AllMusicInfoList
-    , maybeCurrentMusicInfo : Maybe MusicInfo
+    , maybeCurrentMusicId : Maybe MusicId
     , maybeCurrentMode : Maybe Mode
+    , maybeOwnRecords : Maybe (List OwnRecord)
     }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
+    let
+        allMusicInfoList =
+            Session.toAllMusicInfoList session
+
+        getOwnBestRecordsCmd =
+            Session.toUser session
+                |> Maybe.map (\user -> getOwnBestRecords user.uid)
+                |> Maybe.withDefault Cmd.none
+    in
     ( { session = session
-      , allMusicInfoList = AllMusicInfoList.init
-      , maybeCurrentMusicInfo = Nothing
-      , maybeCurrentMode = Nothing
+      , maybeCurrentMusicId = Just "sample_sound"
+      , maybeCurrentMode = Just Mode.normal
+      , maybeOwnRecords = Nothing
       }
     , Cmd.batch
         [ getAllMusicInfoList ()
+            |> Page.cmdIf (not <| AllMusicInfoList.isLoaded allMusicInfoList)
+        , getOwnBestRecordsCmd
         , startHomeMusic ()
         ]
     )
@@ -46,8 +60,9 @@ init session =
 
 type Msg
     = GotAllMusicInfoList (List MusicInfoDto)
+    | GotOwnBestRecords (List OwnRecordDto)
     | ChangeMode Mode
-    | ChangeMusic MusicInfo
+    | ChangeMusic MusicId
     | SignOut
 
 
@@ -56,51 +71,33 @@ update msg model =
     case msg of
         GotAllMusicInfoList musicInfoDtos ->
             let
-                allMusicInfoList =
-                    musicInfoDtos
-                        |> List.map MusicInfo.new
-                        |> AllMusicInfoList.create
-
-                -- TODO: 前回選択したMode、曲名を取ってきた時にやる
-                currentMusicInfo =
-                    allMusicInfoList
-                        |> AllMusicInfoList.filteredMusicInfoListByMode Mode.normal
-                        |> List.head
+                session =
+                    Session.updateAllMusicInfoList musicInfoDtos model.session
             in
-            ( { model
-                | allMusicInfoList = allMusicInfoList
-                , maybeCurrentMusicInfo = currentMusicInfo
-                , maybeCurrentMode = Just Mode.normal
-              }
-              -- TODO: 前回選択したMode、曲名を取ってくる
-            , Cmd.none
-            )
+            ( { model | session = session }, Cmd.none )
+
+        GotOwnBestRecords ownRecordDto ->
+            let
+                ownRecords =
+                    List.map OwnRecord.new ownRecordDto
+            in
+            ( { model | maybeOwnRecords = Just ownRecords }, Cmd.none )
 
         ChangeMode mode ->
-            case ( model.maybeCurrentMode, model.maybeCurrentMusicInfo ) of
-                ( Just currentMode, Just currentMusicInfo ) ->
-                    let
-                        nextCurrentMusicInfo =
-                            model.allMusicInfoList
-                                |> AllMusicInfoList.filteredMusicInfoListByMode mode
-                                |> List.filter
-                                    (\musicInfo -> musicInfo.musicName == currentMusicInfo.musicName)
-                                |> List.head
-                    in
-                    ( { model
-                        | maybeCurrentMode = Just mode
-                        , maybeCurrentMusicInfo = nextCurrentMusicInfo
-                      }
-                    , playMusicSelectAnim ()
-                    )
+            case model.maybeCurrentMode of
+                Just _ ->
+                    ( { model | maybeCurrentMode = Just mode }, playMusicSelectAnim () )
 
-                _ ->
+                Nothing ->
                     ( model, Cmd.none )
 
-        ChangeMusic musicInfo ->
-            ( { model | maybeCurrentMusicInfo = Just musicInfo }
-            , playMusicSelectAnim ()
-            )
+        ChangeMusic musicId ->
+            case model.maybeCurrentMusicId of
+                Just _ ->
+                    ( { model | maybeCurrentMusicId = Just musicId }, playMusicSelectAnim () )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         SignOut ->
             ( model, signOut () )
@@ -116,6 +113,12 @@ port getAllMusicInfoList : () -> Cmd msg
 port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg
 
 
+port getOwnBestRecords : Uid -> Cmd msg
+
+
+port gotOwnBestRecords : (List OwnRecordDto -> msg) -> Sub msg
+
+
 port playMusicSelectAnim : () -> Cmd msg
 
 
@@ -123,6 +126,18 @@ port startHomeMusic : () -> Cmd msg
 
 
 port signOut : () -> Cmd msg
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ gotAllMusicInfoList GotAllMusicInfoList
+        , gotOwnBestRecords GotOwnBestRecords
+        ]
 
 
 
@@ -138,8 +153,23 @@ view model =
 
 viewContents : Model -> Html Msg
 viewContents model =
-    case ( model.maybeCurrentMode, model.maybeCurrentMusicInfo ) of
-        ( Just currentMode, Just currentMusicInfo ) ->
+    let
+        allMusicInfoList =
+            Session.toAllMusicInfoList model.session
+
+        csvFileName =
+            case ( model.maybeCurrentMusicId, model.maybeCurrentMode ) of
+                ( Just currentMusicId, Just currentMode ) ->
+                    CsvFileName.create currentMusicId currentMode
+
+                _ ->
+                    ""
+
+        maybeCurrentMusicInfo =
+            AllMusicInfoList.findByCsvFileName csvFileName allMusicInfoList
+    in
+    case ( maybeCurrentMusicInfo, model.maybeCurrentMode, model.maybeOwnRecords ) of
+        ( Just currentMusicInfo, Just currentMode, Just ownRecords ) ->
             let
                 userName =
                     Session.toUser model.session
@@ -150,6 +180,9 @@ viewContents model =
                     Session.toUser model.session
                         |> Maybe.map .pictureUrl
                         |> Maybe.withDefault ""
+
+                maybeCurrentOwnRecord =
+                    OwnRecord.findByCsvFileName currentMusicInfo.csvFileName ownRecords
             in
             div [ class "home_contentsContainer" ]
                 -- 左側
@@ -187,7 +220,7 @@ viewContents model =
                             , viewModeTabBtn currentMode Mode.hard
                             , viewModeTabBtn currentMode Mode.master
                             ]
-                        , viewMusicList currentMode currentMusicInfo model.allMusicInfoList
+                        , viewMusicList currentMode currentMusicInfo allMusicInfoList ownRecords
                         ]
                     ]
 
@@ -196,11 +229,11 @@ viewContents model =
                     [ class "home_rightContentsContainer" ]
                     [ div
                         [ class "home_rightContents" ]
-                        [ viewCenterArea currentMusicInfo
+                        [ viewCenterArea currentMusicInfo maybeCurrentOwnRecord
                         , viewTopLeftArea currentMusicInfo
                         , viewTopRightArea
-                        , viewBottomRightArea1 currentMusicInfo
-                        , viewBottomRightArea2 currentMusicInfo
+                        , viewBottomLeftArea1 currentMusicInfo maybeCurrentOwnRecord
+                        , viewBottomLeftArea2 currentMusicInfo maybeCurrentOwnRecord
                         , viewBottomRightArea currentMusicInfo
                         ]
                     ]
@@ -245,19 +278,28 @@ viewModeTabBtn currentMode mode =
         [ text <| Mode.toString mode ]
 
 
-viewMusicList : Mode -> MusicInfo -> AllMusicInfoList -> Html Msg
-viewMusicList currentMode currentMusicInfo allMusicInfoList =
+viewMusicList : Mode -> MusicInfo -> AllMusicInfoList -> List OwnRecord -> Html Msg
+viewMusicList currentMode currentMusicInfo allMusicInfoList ownRecords =
     let
         filteredMusicInfoList =
             allMusicInfoList
-                |> AllMusicInfoList.filteredMusicInfoListByMode currentMode
+                |> AllMusicInfoList.filterByMode currentMode
     in
     div [ class "homeMusicList_container" ]
-        (List.map (viewMusicListItem currentMusicInfo) filteredMusicInfoList)
+        (filteredMusicInfoList
+            |> List.map
+                (\musicInfo ->
+                    let
+                        maybeOwnRecord =
+                            OwnRecord.findByCsvFileName musicInfo.csvFileName ownRecords
+                    in
+                    viewMusicListItem currentMusicInfo musicInfo maybeOwnRecord
+                )
+        )
 
 
-viewMusicListItem : MusicInfo -> MusicInfo -> Html Msg
-viewMusicListItem currentMusicInfo musicInfo =
+viewMusicListItem : MusicInfo -> MusicInfo -> Maybe OwnRecord -> Html Msg
+viewMusicListItem currentMusicInfo musicInfo maybeOwnRecord =
     let
         clsIsSelecting =
             if musicInfo.musicName == currentMusicInfo.musicName then
@@ -268,7 +310,7 @@ viewMusicListItem currentMusicInfo musicInfo =
     in
     div
         [ class "homeMusicListItem_container"
-        , onClick <| ChangeMusic musicInfo
+        , onClick <| ChangeMusic musicInfo.musicId
         ]
         [ div
             []
@@ -281,16 +323,16 @@ viewMusicListItem currentMusicInfo musicInfo =
                 [ class "homeMusicListItem_rankBox combo" ]
                 [ div [ class "homeMusicListItem_rankBoxBack combo" ] []
                 , div [ class "homeMusicListItem_rankLabel" ] [ text "COMBO" ]
-
-                -- TODO: クリア実績を代入する
-                , div [ class "homeMusicListItem_rankText" ] [ text "SSS" ]
+                , div
+                    [ class "homeMusicListItem_rankText" ]
+                    [ text <| OwnRecord.toStringComboRank maybeOwnRecord musicInfo.maxCombo ]
                 ]
             , div [ class "homeMusicListItem_rankBox score" ]
                 [ div [ class "homeMusicListItem_rankBoxBack score" ] []
                 , div [ class "homeMusicListItem_rankLabel" ] [ text "SCORE" ]
-
-                -- TODO: クリア実績を代入する
-                , div [ class "homeMusicListItem_rankText" ] [ text "SSS" ]
+                , div
+                    [ class "homeMusicListItem_rankText" ]
+                    [ text <| OwnRecord.toStringScoreRank maybeOwnRecord musicInfo.maxScore ]
                 ]
             ]
         , div [ class "homeMusicListItem_bottomText" ] [ text <| Level.toString musicInfo.level ]
@@ -300,8 +342,8 @@ viewMusicListItem currentMusicInfo musicInfo =
         ]
 
 
-viewCenterArea : MusicInfo -> Html msg
-viewCenterArea currentMusicInfo =
+viewCenterArea : MusicInfo -> Maybe OwnRecord -> Html msg
+viewCenterArea currentMusicInfo maybeOwnRecord =
     div [ class "home_centerArea", id "home_centerArea" ]
         [ div [ class "homeCenterArea_Inner" ] []
         , div
@@ -318,11 +360,9 @@ viewCenterArea currentMusicInfo =
             , div [ class "homeCenterArea_box center" ] []
             , div [ class "homeCenterArea_boxLabel center" ] [ text "曲の長さ" ]
             , div [ class "homeCenterArea_boxText center" ] [ text <| MusicInfo.toStringTime currentMusicInfo.fullTime ]
-
-            -- TODO: クリア実績を代入する
             , div [ class "homeCenterArea_box right" ] []
             , div [ class "homeCenterArea_boxLabel right" ] [ text "プレイ回数" ]
-            , div [ class "homeCenterArea_boxText right" ] [ text "10回" ]
+            , div [ class "homeCenterArea_boxText right" ] [ text <| OwnRecord.toPlayCount maybeOwnRecord ++ "回" ]
             , div
                 [ class "homeCenterArea_rankText title" ]
                 [ div [ class "homeCenterArea_rankTitleText score" ] [ text "SCORE" ]
@@ -384,32 +424,32 @@ viewTopRightArea =
         ]
 
 
-viewBottomRightArea1 : MusicInfo -> Html msg
-viewBottomRightArea1 currentMusicInfo =
+viewBottomLeftArea1 : MusicInfo -> Maybe OwnRecord -> Html msg
+viewBottomLeftArea1 currentMusicInfo maybeOwnRecord =
     div [ class "home_bottomLeftArea1", id "home_bottomLeftArea1" ]
         [ div [ class "homeBottomLeftArea1_label" ] [ text "COMBO" ]
-
-        -- TODO: クリア実績を代入する
-        , div [ class "homeBottomLeftArea1_rankText" ] [ text "SSS" ]
-
-        -- TODO: クリア実績を代入する
-        , div [ class "homeBottomLeftArea1_bestText" ] [ text "9999" ]
+        , div
+            [ class "homeBottomLeftArea1_rankText" ]
+            [ text <| OwnRecord.toStringComboRank maybeOwnRecord currentMusicInfo.maxCombo ]
+        , div
+            [ class "homeBottomLeftArea1_bestText" ]
+            [ text <| OwnRecord.toStringCombo maybeOwnRecord ]
         , div
             [ class "homeBottomLeftArea1_maxText" ]
             [ text <| "/ " ++ String.fromInt currentMusicInfo.maxCombo ]
         ]
 
 
-viewBottomRightArea2 : MusicInfo -> Html msg
-viewBottomRightArea2 currentMusicInfo =
+viewBottomLeftArea2 : MusicInfo -> Maybe OwnRecord -> Html msg
+viewBottomLeftArea2 currentMusicInfo maybeOwnRecord =
     div [ class "home_bottomLeftArea2", id "home_bottomLeftArea2" ]
         [ div [ class "homeBottomLeftArea2_label" ] [ text "SCORE" ]
-
-        -- TODO: クリア実績を代入する
-        , div [ class "homeBottomLeftArea2_rankText" ] [ text "SSS" ]
-
-        -- TODO: クリア実績を代入する
-        , div [ class "homeBottomLeftArea2_bestText" ] [ text "9999999" ]
+        , div
+            [ class "homeBottomLeftArea2_rankText" ]
+            [ text <| OwnRecord.toStringScoreRank maybeOwnRecord currentMusicInfo.maxScore ]
+        , div
+            [ class "homeBottomLeftArea2_bestText" ]
+            [ text <| OwnRecord.toStringScore maybeOwnRecord ]
         , div
             [ class "homeBottomLeftArea2_maxText" ]
             [ text <| "/ " ++ String.fromInt currentMusicInfo.maxScore ]
@@ -427,17 +467,6 @@ viewBottomRightArea currentMusicInfo =
             ]
         , div [ class "homeBottomRight_transparentCover1" ] []
         , div [ class "homeBottomRight_transparentCover2" ] []
-        ]
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.batch
-        [ gotAllMusicInfoList GotAllMusicInfoList
         ]
 
 

@@ -2,7 +2,7 @@ port module Main exposing (main)
 
 import Browser exposing (Document)
 import Browser.Navigation as Nav
-import Html exposing (..)
+import Html
 import MusicInfo.CsvFileName exposing (CsvFileName)
 import Page
 import Page.Blank as Blank
@@ -24,8 +24,8 @@ type Model
     = Init Session
     | Redirect Session
     | NotFound Session
-    | Home Home.Model
     | Login Login.Model
+    | Home Home.Model
     | Play CsvFileName Play.Model
 
 

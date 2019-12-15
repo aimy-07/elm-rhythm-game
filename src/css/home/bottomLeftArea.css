@@ -74,7 +74,7 @@
 
 .homeBottomLeftArea2_label {
   position: absolute;
-  top: 27px;
+  top: 30px;
   left: -24px;
   color: white;
   font-size: 14px;
@@ -95,6 +95,7 @@
 
 .homeBottomLeftArea2_bestText {
   position: absolute;
+  width: 68px;
   top: 95px;
   left: -79px;
   color: white;

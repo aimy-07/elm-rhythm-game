@@ -1,16 +1,15 @@
-module Page.Home.AllMusicInfoList exposing
+module AllMusicInfoList exposing
     ( AllMusicInfoList
     , create
-    , filteredMusicInfoListByMode
+    , filterByMode
+    , findByCsvFileName
     , init
     , isLoaded
     , toMusicInfoList
     )
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
 import MusicInfo exposing (MusicInfo)
+import MusicInfo.CsvFileName exposing (CsvFileName)
 import MusicInfo.Mode exposing (Mode)
 
 
@@ -49,8 +48,8 @@ toMusicInfoList allMusicInfoList =
             []
 
 
-filteredMusicInfoListByMode : Mode -> AllMusicInfoList -> List MusicInfo
-filteredMusicInfoListByMode mode allMusicInfoList =
+filterByMode : Mode -> AllMusicInfoList -> List MusicInfo
+filterByMode mode allMusicInfoList =
     case allMusicInfoList of
         Loaded musicInfoList ->
             musicInfoList
@@ -58,3 +57,15 @@ filteredMusicInfoListByMode mode allMusicInfoList =
 
         NotLoaded ->
             []
+
+
+findByCsvFileName : CsvFileName -> AllMusicInfoList -> Maybe MusicInfo
+findByCsvFileName csvFileName allMusicInfoList =
+    case allMusicInfoList of
+        Loaded musicInfoList ->
+            musicInfoList
+                |> List.filter (.csvFileName >> (==) csvFileName)
+                |> List.head
+
+        NotLoaded ->
+            Nothing

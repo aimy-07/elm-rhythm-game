@@ -3,7 +3,6 @@ module Page exposing (Page(..), cmdIf, view, viewIf, viewLoaded, viewLoading)
 import Browser exposing (Document)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (..)
 
 
 type Page

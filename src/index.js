@@ -76,25 +76,58 @@ animationSetUpSubscriber(app);
 ---------------------------------- */
 const uuidv4 = require('uuid/v4');
 
-app.ports.saveRecord.subscribe(({csvFileName, record}) => {
+app.ports.saveRecord.subscribe(({uid, csvFileName, combo, score}) => {
   const recordId = uuidv4();
   const createdAt = Date.now();
-  firebase.database().ref(`/records/${csvFileName}/${recordId}/`).set(
-    {
-      uid: record.uid,
-      combo: record.combo,
-      score: record.score,
-      createdAt: createdAt
-    },
-    (err) => {
-      if (err) {
-        console.error(err);
-        // TODO: ネットワークエラー画面に飛ばす
-      } else {
-        app.ports.savedRecord.send(null);
-      }
+  const saveRecord = firebase.database().ref(`/records/${csvFileName}/${uid}/${recordId}/`).set({
+      uid: uid,
+      csv_file_name: csvFileName,
+      combo: combo,
+      score: score,
+      created_at: createdAt
     }
   );
+  let isHighScore;
+  const updateOwnPlayRecord = firebase.database().ref(`/users/${uid}/play_records/${csvFileName}`).transaction((playRecord) => {
+    if (playRecord) {
+      isHighScore = score > playRecord.best_score;
+      return {
+        csv_file_name: csvFileName,
+        best_combo: combo > playRecord.best_score ? combo : playRecord.best_score,
+        best_score: score > playRecord.best_score ? score : playRecord.best_score,
+        play_count: playRecord.play_count + 1
+      }
+    } else {
+      isHighScore = true;
+      return {
+        csv_file_name: csvFileName,
+        best_combo: combo,
+        best_score: score,
+        play_count: 1
+      }
+    }
+  });
+  Promise.all( [saveRecord, updateOwnPlayRecord] )
+    .then(() => {
+      app.ports.savedRecord.send(isHighScore);
+    })
+    .catch((err) => {
+      console.error(err);
+      // TODO: ネットワークエラー画面に飛ばす
+    })
+  // 全体のハイスコアを更新
+  // const updatePublicHighScore = firebase.database().ref(`/music_infos/${csvFileName}`).transaction((musicInfo) => {
+  //   if (musicInfo) {
+  //     const bestCombo = record.combo > playRecord.bestCombo ? record.combo : playRecord.bestCombo;
+  //     const bestScore = record.score > playRecord.bestScore ? record.score : playRecord.bestScore;
+  //     const playCount = record.playCount + 1;
+  //     return {
+  //       bestCombo,
+  //       bestScore,
+  //       playCount
+  //     }
+  //   }
+  // });
 });
 
 
@@ -102,25 +135,22 @@ app.ports.saveRecord.subscribe(({csvFileName, record}) => {
 /* ---------------------------------
   過去の自分のプレイデータの取得
 ---------------------------------- */
-app.ports.getOwnBestRecord.subscribe(({csvFileName, uid}) => {
-  firebase.database().ref(`/records/${csvFileName}/`).orderByChild("uid").equalTo(uid).once('value').then(
+app.ports.getOwnBestRecords.subscribe(uid => {
+  firebase.database().ref(`/users/${uid}/play_records`).once('value').then(
     (snapshot) => {
       const datas = snapshot.val();
       if (datas) {
-        const records = toArrFromObj(datas);
-        const ownBestRecord = {
-          uid: uid,
-          combo: Math.max(...records.map(r => r.combo)),
-          score: Math.max(...records.map(r => r.score)),
-        }
-        app.ports.gotOwnBestRecord.send(ownBestRecord);
+        const records = toArrFromObj(datas).map(record => {
+          return {
+            csvFileName: record.csv_file_name,
+            bestCombo: record.best_combo,
+            bestScore: record.best_score,
+            playCount: record.play_count
+          }
+        });
+        app.ports.gotOwnBestRecords.send(records);
       } else {
-        const emptyRecord = {
-          uid: uid,
-          combo: 0,
-          score: 0,
-        }
-        app.ports.gotOwnBestRecord.send(emptyRecord);
+        app.ports.gotOwnBestRecords.send([]);
       }
     },
     (err) => {
@@ -130,7 +160,7 @@ app.ports.getOwnBestRecord.subscribe(({csvFileName, uid}) => {
   );
 })
 
-const toArrFromObj = obj => {
+export const toArrFromObj = obj => {
   const arr = [];
   Object.keys(obj).forEach((key) => {
     arr.push(obj[key]);

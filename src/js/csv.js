@@ -1,24 +1,7 @@
 import axios from 'axios'
 import firebase from 'firebase/app';
 import 'firebase/storage';
-
-
-
-/* ---------------------------------
-	定数
----------------------------------- */
-const csvFileNameList = [
-  "sample_sound-normal",
-  "sample_sound-hard",
-  "sample_sound-master",
-  "sample_sound1-normal",
-  "sample_sound1-hard",
-  "sample_sound1-master",
-  "sample_sound2-normal",
-  "sample_sound2-hard",
-  "sample_sound2-master",
-]
-
+import {toArrFromObj} from '../index';
 
 
 /* ---------------------------------
@@ -27,61 +10,48 @@ const csvFileNameList = [
 export function csvSetUpSubscriber (app) {
   // 全ての楽曲の情報をFirebaseから取得する
   app.ports.getAllMusicInfoList.subscribe(() => {
-    const allMusicInfoList = [];
-    firebase.database().ref('/music_infos').once('value').then((snapshot) => {
-      const datas = snapshot.val();
-      Object.keys(datas).forEach((key) => {
-        const musicInfo = datas[key];
-        allMusicInfoList.push({
-          csvFileName: musicInfo.csv_file_name,
-          musicName: musicInfo.music_name,
-          composer: musicInfo.composer,
-          mode: musicInfo.mode,
-          level: musicInfo.level,
-          fullTime: musicInfo.full_time,
-          bpm: musicInfo.bpm,
-          maxCombo: musicInfo.max_combo,
-          maxScore: musicInfo.max_score
-        });
-      });
-      console.log('allMusicInfoList', allMusicInfoList);
-      app.ports.gotAllMusicInfoList.send(allMusicInfoList);
-    });
+    firebase.database().ref('/music_infos').once('value').then(
+      (snapshot) => {
+        const musicInfos = toArrFromObj(snapshot.val());
+        const allMusicInfoList = musicInfos.map(musicInfo => {
+          return {
+            musicId: musicInfo.music_id,
+            csvFileName: musicInfo.csv_file_name,
+            musicName: musicInfo.music_name,
+            composer: musicInfo.composer,
+            mode: musicInfo.mode,
+            level: musicInfo.level,
+            fullTime: musicInfo.full_time,
+            bpm: musicInfo.bpm,
+            beatsCountPerMeasure: musicInfo.beats_count_per_measure,
+            offset: musicInfo.offset,
+            maxCombo: musicInfo.max_combo,
+            maxScore: musicInfo.max_score
+          }
+        })
+        console.log('allMusicInfoList', allMusicInfoList);
+        app.ports.gotAllMusicInfoList.send(allMusicInfoList);
+      },
+      (err) => {
+        console.error(err);
+        // TODO: ネットワークエラー画面に飛ばす
+      }
+    );
   })
 
-  // プレイ楽曲の楽曲情報をFirebaseとCSVから取得する
-  app.ports.getCurrentMusicInfo.subscribe((csvFileName) => {
-    if (!csvFileNameList.includes(csvFileName)) {
-      console.error("invalid csvFileName.");
-      location.href = "/";
-      return;
-    }
-
-    firebase.database().ref(`/music_infos/${csvFileName}`).once('value').then((snapshot) => {
-      const musicInfo = snapshot.val();
-      const csvFileRef = firebase.storage().ref(`csv/${csvFileName}.csv`);
-      csvFileRef.getDownloadURL().then(url => {
-        return axios.get(url)
-      })
-      .then(response => {
-        const csvArray = createArray(response.data);
-        const musicInfoDto = {
-          csvFileName: musicInfo.csv_file_name,
-          musicName: musicInfo.music_name,
-          composer: musicInfo.composer,
-          mode: musicInfo.mode,
-          level: musicInfo.level,
-          fullTime: musicInfo.full_time,
-          bpm: musicInfo.bpm,
-          maxCombo: musicInfo.max_combo,
-          maxScore: musicInfo.max_score
-        }
-        const noteDtos = getNoteDtos(musicInfo.bpm, musicInfo.beats_count_per_measure, musicInfo.offset, csvArray);
-        app.ports.gotCurrentMusicInfo.send({musicInfoDto, noteDtos});
-      })
-      .catch(error => {
-        console.error(error);
-      });
+  // プレイ楽曲の楽曲情報をCSVから取得する
+  app.ports.getAllNotes.subscribe(({csvFileName, bpm, beatsCountPerMeasure, offset}) => {
+    const csvFileRef = firebase.storage().ref(`csv/${csvFileName}.csv`);
+    csvFileRef.getDownloadURL().then(url => {
+      return axios.get(url);
+    })
+    .then(response => {
+      const csvArray = createArray(response.data);
+      const noteDtos = getNoteDtos(bpm, beatsCountPerMeasure, offset, csvArray);
+      app.ports.gotAllNotes.send(noteDtos);
+    })
+    .catch(error => {
+      console.error(error);
     });
   })
 }

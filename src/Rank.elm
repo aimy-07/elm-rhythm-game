@@ -3,6 +3,7 @@ module Rank exposing
     , allRankList
     , boundaryCombo
     , boundaryScore
+    , invalidRankStr
     , newComboRank
     , newScoreRank
     , toString
@@ -16,6 +17,11 @@ type Rank
 toString : Rank -> String
 toString (Rank rank) =
     rank
+
+
+invalidRankStr : String
+invalidRankStr =
+    "---"
 
 
 allRankList : List Rank
@@ -55,7 +61,7 @@ newScoreRank score maxScore =
             "D"
 
          else
-            ""
+            "---"
         )
 
 
@@ -112,7 +118,7 @@ newComboRank combo maxCombo =
             "D"
 
          else
-            ""
+            "---"
         )
 
 

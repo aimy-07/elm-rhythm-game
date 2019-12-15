@@ -1,11 +1,12 @@
 port module Page.Play exposing (Model, Msg, init, subscriptions, toSession, update, view)
 
+import AllMusicInfoList
 import Constants exposing (allKeyStr)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Keyboard exposing (Key(..))
-import MusicInfo exposing (MusicInfo, MusicInfoDto)
+import MusicInfo exposing (MusicInfo)
 import MusicInfo.CsvFileName as CsvFileName exposing (CsvFileName)
 import MusicInfo.Level as Level
 import MusicInfo.Mode as Mode
@@ -19,13 +20,12 @@ import Page.Play.Score as Score exposing (Score)
 import Page.Play.Speed exposing (Speed)
 import Process
 import Rank
-import Record exposing (Record, RecordDto)
+import Record exposing (RecordDto)
 import Route
 import Session exposing (Session)
 import Set
 import Task
 import Time
-import User exposing (Uid)
 
 
 
@@ -37,6 +37,7 @@ type alias Model =
     , playStatus : PlayStatus
     , currentMusicInfo : Maybe MusicInfo
     , allNotes : List Note
+    , isLoadedNotes : Bool
     , lanes : List Lane
     , currentMusicTime : CurrentMusicTime
     , speed : Speed
@@ -49,8 +50,8 @@ type PlayStatus
     = NotStart
     | Playing
     | Pause
-    | PreFinish (Maybe Record)
-    | Finish Record
+    | PreFinish
+    | Finish Bool
     | StartCountdown
     | PauseCountdown
 
@@ -60,21 +61,41 @@ init session csvFileName =
     let
         audioFileName =
             CsvFileName.toAudioFileName csvFileName
+
+        allMusicInfoList =
+            Session.toAllMusicInfoList session
+
+        currentMusicInfo =
+            AllMusicInfoList.findByCsvFileName csvFileName allMusicInfoList
+
+        cmds =
+            case currentMusicInfo of
+                Just musicInfo ->
+                    Cmd.batch
+                        [ getAllNotes
+                            { csvFileName = csvFileName
+                            , bpm = musicInfo.bpm
+                            , beatsCountPerMeasure = musicInfo.beatsCountPerMeasure
+                            , offset = musicInfo.offset
+                            }
+                        , setMusic audioFileName
+                        ]
+
+                Nothing ->
+                    Route.replaceUrl (Session.toNavKey session) Route.Home
     in
     ( { session = session
       , playStatus = NotStart
-      , currentMusicInfo = Nothing
+      , currentMusicInfo = currentMusicInfo
       , allNotes = []
+      , isLoadedNotes = False
       , lanes = List.map Lane.new allKeyStr
       , currentMusicTime = 0
       , speed = 0.4
       , score = Score.init
       , combo = Combo.init
       }
-    , Cmd.batch
-        [ getCurrentMusicInfo csvFileName
-        , setMusic audioFileName
-        ]
+    , cmds
     )
 
 
@@ -83,20 +104,19 @@ init session csvFileName =
 
 
 type Msg
-    = GotCurrentMusicInfo { musicInfoDto : MusicInfoDto, noteDtos : List NoteDto }
+    = GotAllNotes (List NoteDto)
     | FinishedCountdown ()
     | KeyDown Keyboard.RawKey
     | KeyUp Keyboard.RawKey
     | Tick Time.Posix
     | GotCurrentMusicTime CurrentMusicTime
-    | GotOwnBestRecord RecordDto
-    | SavedRecord ()
+    | SavedRecord Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotCurrentMusicInfo { musicInfoDto, noteDtos } ->
+        GotAllNotes noteDtos ->
             let
                 allNotes =
                     noteDtos
@@ -104,12 +124,7 @@ update msg model =
                         |> List.filter (\noteDto -> noteDto.longTime >= 0)
                         |> List.map Note.new
             in
-            ( { model
-                | currentMusicInfo = Just (MusicInfo.new musicInfoDto)
-                , allNotes = allNotes
-              }
-            , Cmd.none
-            )
+            ( { model | allNotes = allNotes, isLoadedNotes = True }, Cmd.none )
 
         FinishedCountdown () ->
             case model.playStatus of
@@ -350,22 +365,27 @@ update msg model =
 
                 nextPlayStatus =
                     if fullTime * 1000 <= model.currentMusicTime then
-                        PreFinish Nothing
+                        PreFinish
 
                     else
                         model.playStatus
 
                 nextLanes =
-                    if nextPlayStatus == PreFinish Nothing then
+                    if nextPlayStatus == PreFinish then
                         List.map Lane.allUnPress model.lanes
 
                     else
                         model.lanes
 
-                getOwnBestRecordCmd =
+                saveRecordCmd =
                     case ( model.currentMusicInfo, Session.toUser model.session ) of
                         ( Just musicInfo, Just user ) ->
-                            getOwnBestRecord { csvFileName = musicInfo.csvFileName, uid = user.uid }
+                            saveRecord
+                                { uid = user.uid
+                                , csvFileName = musicInfo.csvFileName
+                                , combo = Combo.toMaxCombo model.combo
+                                , score = Score.unwrap model.score
+                                }
 
                         _ ->
                             Cmd.none
@@ -382,47 +402,23 @@ update msg model =
                 [ missEffectCmds
                 , longEffectCmds
                 , comboEffectCmd
-                , getOwnBestRecordCmd
-                    |> Page.cmdIf (nextPlayStatus == PreFinish Nothing)
+                , saveRecordCmd
+                    |> Page.cmdIf (nextPlayStatus == PreFinish)
                 ]
             )
 
-        GotOwnBestRecord recordDto ->
-            let
-                saveRecordCmd =
-                    case ( model.currentMusicInfo, Session.toUser model.session ) of
-                        ( Just musicInfo, Just user ) ->
-                            saveRecord
-                                { csvFileName = musicInfo.csvFileName
-                                , record =
-                                    { uid = user.uid
-                                    , combo = Combo.unwrap model.combo
-                                    , score = Score.unwrap model.score
-                                    }
-                                }
-
-                        _ ->
-                            Cmd.none
-            in
-            ( { model | playStatus = PreFinish <| Just (Record.new recordDto) }, saveRecordCmd )
-
-        SavedRecord () ->
-            case model.playStatus of
-                PreFinish (Just record) ->
-                    ( { model | playStatus = Finish record }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
+        SavedRecord isHighScore ->
+            ( { model | playStatus = Finish isHighScore }, Cmd.none )
 
 
 
 -- PORT
 
 
-port getCurrentMusicInfo : CsvFileName -> Cmd msg
+port getAllNotes : { csvFileName : CsvFileName, bpm : Int, beatsCountPerMeasure : Int, offset : Float } -> Cmd msg
 
 
-port gotCurrentMusicInfo : ({ musicInfoDto : MusicInfoDto, noteDtos : List NoteDto } -> msg) -> Sub msg
+port gotAllNotes : (List NoteDto -> msg) -> Sub msg
 
 
 port getCurrentMusicTime : () -> Cmd msg
@@ -446,16 +442,10 @@ port unPauseMusic : () -> Cmd msg
 port playTapSound : () -> Cmd msg
 
 
-port saveRecord : { csvFileName : CsvFileName, record : RecordDto } -> Cmd msg
+port saveRecord : RecordDto -> Cmd msg
 
 
-port savedRecord : (() -> msg) -> Sub msg
-
-
-port getOwnBestRecord : { csvFileName : CsvFileName, uid : Uid } -> Cmd msg
-
-
-port gotOwnBestRecord : (RecordDto -> msg) -> Sub msg
+port savedRecord : (Bool -> msg) -> Sub msg
 
 
 
@@ -467,7 +457,7 @@ subscriptions model =
     case model.playStatus of
         NotStart ->
             Sub.batch
-                [ gotCurrentMusicInfo GotCurrentMusicInfo
+                [ gotAllNotes GotAllNotes
                 , Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
                 ]
@@ -486,11 +476,8 @@ subscriptions model =
                 , Keyboard.ups KeyUp
                 ]
 
-        PreFinish _ ->
-            Sub.batch
-                [ savedRecord SavedRecord
-                , gotOwnBestRecord GotOwnBestRecord
-                ]
+        PreFinish ->
+            savedRecord SavedRecord
 
         Finish _ ->
             Sub.none
@@ -521,25 +508,29 @@ view model =
 
 viewContents : Model -> Html Msg
 viewContents model =
-    case model.currentMusicInfo of
-        Just musicInfo ->
-            div [ class "mainWide" ]
-                [ div
-                    [ class "play_contentsContainer" ]
+    if model.isLoadedNotes then
+        case model.currentMusicInfo of
+            Just musicInfo ->
+                div [ class "mainWide" ]
                     [ div
-                        [ class "play_contents" ]
-                        [ viewLanes model
-                        , viewNotes model
-                        , viewMusicInfo musicInfo
-                        , viewDisplayCircle musicInfo model
+                        [ class "play_contentsContainer" ]
+                        [ div
+                            [ class "play_contents" ]
+                            [ viewLanes model
+                            , viewNotes model
+                            , viewMusicInfo musicInfo
+                            , viewDisplayCircle musicInfo model
+                            ]
+                        , viewOverView musicInfo model
+                        , div [] [ Page.viewLoaded ]
                         ]
-                    , viewOverView musicInfo model
-                    , div [] [ Page.viewLoaded ]
                     ]
-                ]
 
-        Nothing ->
-            div [ class "play_contentsContainer" ] [ Page.viewLoading ]
+            Nothing ->
+                text ""
+
+    else
+        div [ class "play_contentsContainer" ] [ Page.viewLoading ]
 
 
 viewOverView : MusicInfo -> Model -> Html msg
@@ -554,11 +545,14 @@ viewOverView musicInfo model =
         Pause ->
             viewPause
 
-        PreFinish _ ->
+        PreFinish ->
             Page.viewLoading
 
-        Finish ownBestRecord ->
-            viewResult musicInfo ownBestRecord model
+        Finish isHighScore ->
+            div []
+                [ viewResult musicInfo isHighScore model
+                , Page.viewLoaded
+                ]
 
         StartCountdown ->
             viewCountdown
@@ -669,14 +663,11 @@ viewCountdown =
         ]
 
 
-viewResult : MusicInfo -> Record -> Model -> Html msg
-viewResult musicInfo ownBestRecord model =
+viewResult : MusicInfo -> Bool -> Model -> Html msg
+viewResult musicInfo isHighScore model =
     let
         isFullCombo =
             Combo.unwrap model.combo == musicInfo.maxCombo
-
-        isHighScore =
-            Score.unwrap model.score > ownBestRecord.score
 
         comboRank =
             Rank.newComboRank (Combo.toMaxCombo model.combo) musicInfo.maxCombo

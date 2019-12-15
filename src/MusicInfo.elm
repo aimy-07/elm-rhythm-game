@@ -1,7 +1,6 @@
 module MusicInfo exposing
     ( MusicInfo
     , MusicInfoDto
-    , empty
     , new
     , toStringTime
     )
@@ -9,10 +8,12 @@ module MusicInfo exposing
 import MusicInfo.CsvFileName exposing (CsvFileName)
 import MusicInfo.Level exposing (Level)
 import MusicInfo.Mode as Mode exposing (Mode)
+import MusicInfo.MusicId exposing (MusicId)
 
 
 type alias MusicInfo =
-    { csvFileName : CsvFileName
+    { musicId : MusicId
+    , csvFileName : CsvFileName
     , musicName : String
     , composer : String
     , mode : Mode
@@ -21,11 +22,24 @@ type alias MusicInfo =
     , bpm : Int
     , maxCombo : Int
     , maxScore : Int
+    , beatsCountPerMeasure : Int
+    , offset : Float
+
+    -- , publicRecord : PublicRecord
     }
 
 
+
+-- type alias PublicRecord =
+--     { first : { uid : Uid, score : Int }
+--     , second : { uid : Uid, score : Int }
+--     , third : { uid : Uid, score : Int }
+--     }
+
+
 type alias MusicInfoDto =
-    { csvFileName : String
+    { musicId : String
+    , csvFileName : String
     , musicName : String
     , composer : String
     , mode : String
@@ -34,12 +48,21 @@ type alias MusicInfoDto =
     , bpm : Int
     , maxCombo : Int
     , maxScore : Int
+    , beatsCountPerMeasure : Int
+    , offset : Float
+
+    -- , publicRecord
+    --     { first : {uid: Uid, score : Int}
+    --     , second : {uid: Uid, score : Int}
+    --     , third : {uid: Uid, score : Int}
+    --     }
     }
 
 
 new : MusicInfoDto -> MusicInfo
 new musicInfoDto =
-    { csvFileName = musicInfoDto.csvFileName
+    { musicId = musicInfoDto.musicId
+    , csvFileName = musicInfoDto.csvFileName
     , musicName = musicInfoDto.musicName
     , composer = musicInfoDto.composer
     , mode = Mode.new musicInfoDto.mode
@@ -48,20 +71,10 @@ new musicInfoDto =
     , bpm = musicInfoDto.bpm
     , maxCombo = musicInfoDto.maxCombo
     , maxScore = musicInfoDto.maxScore
-    }
+    , beatsCountPerMeasure = musicInfoDto.beatsCountPerMeasure
+    , offset = musicInfoDto.offset
 
-
-empty : MusicInfo
-empty =
-    { csvFileName = ""
-    , musicName = ""
-    , composer = ""
-    , mode = Mode.new ""
-    , level = 0
-    , fullTime = 0
-    , bpm = 0
-    , maxCombo = 0
-    , maxScore = 0
+    -- , publicRecord = musicInfoDto.publicRecord
     }
 
 
