@@ -5,23 +5,27 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Keyboard exposing (Key(..))
-import MusicInfo exposing (MusicInfoDto)
+import MusicInfo exposing (MusicInfo, MusicInfoDto)
 import MusicInfo.CsvFileName as CsvFileName exposing (CsvFileName)
+import MusicInfo.Level as Level
 import MusicInfo.Mode as Mode
 import Page
 import Page.Play.Combo as Combo exposing (Combo)
-import Page.Play.CurrentMusicInfo as CurrentMusicInfo exposing (CurrentMusicInfo)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime, update)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note as Note exposing (Note, NoteDto)
 import Page.Play.Score as Score exposing (Score)
 import Page.Play.Speed exposing (Speed)
+import Process
 import Rank
+import Record exposing (Record, RecordDto)
 import Route
 import Session exposing (Session)
 import Set
+import Task
 import Time
+import User exposing (Uid)
 
 
 
@@ -31,7 +35,7 @@ import Time
 type alias Model =
     { session : Session
     , playStatus : PlayStatus
-    , currentMusicInfo : CurrentMusicInfo
+    , currentMusicInfo : Maybe MusicInfo
     , allNotes : List Note
     , lanes : List Lane
     , currentMusicTime : CurrentMusicTime
@@ -45,7 +49,8 @@ type PlayStatus
     = NotStart
     | Playing
     | Pause
-    | Finish
+    | PreFinish (Maybe Record)
+    | Finish Record
     | StartCountdown
     | PauseCountdown
 
@@ -58,7 +63,7 @@ init session csvFileName =
     in
     ( { session = session
       , playStatus = NotStart
-      , currentMusicInfo = CurrentMusicInfo.init
+      , currentMusicInfo = Nothing
       , allNotes = []
       , lanes = List.map Lane.new allKeyStr
       , currentMusicTime = 0
@@ -79,11 +84,13 @@ init session csvFileName =
 
 type Msg
     = GotCurrentMusicInfo { musicInfoDto : MusicInfoDto, noteDtos : List NoteDto }
-    | PlayedCountdownAnim ()
+    | FinishedCountdown ()
     | KeyDown Keyboard.RawKey
     | KeyUp Keyboard.RawKey
     | Tick Time.Posix
     | GotCurrentMusicTime CurrentMusicTime
+    | GotOwnBestRecord RecordDto
+    | SavedRecord ()
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -91,9 +98,6 @@ update msg model =
     case msg of
         GotCurrentMusicInfo { musicInfoDto, noteDtos } ->
             let
-                nextCurrentMusicInfo =
-                    CurrentMusicInfo.new musicInfoDto
-
                 allNotes =
                     noteDtos
                         -- ここで無効なノーツをはじいておく
@@ -101,13 +105,13 @@ update msg model =
                         |> List.map Note.new
             in
             ( { model
-                | currentMusicInfo = nextCurrentMusicInfo
+                | currentMusicInfo = Just (MusicInfo.new musicInfoDto)
                 , allNotes = allNotes
               }
             , Cmd.none
             )
 
-        PlayedCountdownAnim () ->
+        FinishedCountdown () ->
             case model.playStatus of
                 StartCountdown ->
                     ( { model | playStatus = Playing }, startMusic () )
@@ -142,17 +146,24 @@ update msg model =
                 Just Keyboard.Spacebar ->
                     case model.playStatus of
                         NotStart ->
-                            if CurrentMusicInfo.isLoaded model.currentMusicInfo then
-                                ( { model | playStatus = StartCountdown }, playCountdownAnim () )
-
-                            else
-                                ( model, Cmd.none )
+                            model.currentMusicInfo
+                                |> Maybe.map
+                                    (\_ ->
+                                        ( { model | playStatus = StartCountdown }
+                                        , Process.sleep 1500
+                                            |> Task.perform (\_ -> FinishedCountdown ())
+                                        )
+                                    )
+                                |> Maybe.withDefault ( model, Cmd.none )
 
                         Playing ->
                             ( { model | playStatus = Pause }, pauseMusic () )
 
                         Pause ->
-                            ( { model | playStatus = PauseCountdown }, playCountdownAnim () )
+                            ( { model | playStatus = PauseCountdown }
+                            , Process.sleep 1500
+                                |> Task.perform (\_ -> FinishedCountdown ())
+                            )
 
                         _ ->
                             ( model, Cmd.none )
@@ -332,22 +343,32 @@ update msg model =
                 comboEffectCmd =
                     Combo.comboEffectCmd model.combo nextCombo
 
+                fullTime =
+                    model.currentMusicInfo
+                        |> Maybe.map .fullTime
+                        |> Maybe.withDefault 0
+
+                nextPlayStatus =
+                    if fullTime * 1000 <= model.currentMusicTime then
+                        PreFinish Nothing
+
+                    else
+                        model.playStatus
+
                 nextLanes =
-                    if nextPlayStatus == Finish then
+                    if nextPlayStatus == PreFinish Nothing then
                         List.map Lane.allUnPress model.lanes
 
                     else
                         model.lanes
 
-                fullTime =
-                    MusicInfo.toFullTime <| CurrentMusicInfo.toMusicInfo model.currentMusicInfo
+                getOwnBestRecordCmd =
+                    case ( model.currentMusicInfo, Session.toUser model.session ) of
+                        ( Just musicInfo, Just user ) ->
+                            getOwnBestRecord { csvFileName = musicInfo.csvFileName, uid = user.uid }
 
-                nextPlayStatus =
-                    if fullTime * 1000 <= model.currentMusicTime then
-                        Finish
-
-                    else
-                        model.playStatus
+                        _ ->
+                            Cmd.none
             in
             ( { model
                 | currentMusicTime = updatedTime
@@ -361,8 +382,37 @@ update msg model =
                 [ missEffectCmds
                 , longEffectCmds
                 , comboEffectCmd
+                , getOwnBestRecordCmd
+                    |> Page.cmdIf (nextPlayStatus == PreFinish Nothing)
                 ]
             )
+
+        GotOwnBestRecord recordDto ->
+            let
+                saveRecordCmd =
+                    case ( model.currentMusicInfo, Session.toUser model.session ) of
+                        ( Just musicInfo, Just user ) ->
+                            saveRecord
+                                { csvFileName = musicInfo.csvFileName
+                                , record =
+                                    { uid = user.uid
+                                    , combo = Combo.unwrap model.combo
+                                    , score = Score.unwrap model.score
+                                    }
+                                }
+
+                        _ ->
+                            Cmd.none
+            in
+            ( { model | playStatus = PreFinish <| Just (Record.new recordDto) }, saveRecordCmd )
+
+        SavedRecord () ->
+            case model.playStatus of
+                PreFinish (Just record) ->
+                    ( { model | playStatus = Finish record }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
 
 
@@ -396,10 +446,16 @@ port unPauseMusic : () -> Cmd msg
 port playTapSound : () -> Cmd msg
 
 
-port playCountdownAnim : () -> Cmd msg
+port saveRecord : { csvFileName : CsvFileName, record : RecordDto } -> Cmd msg
 
 
-port playedCountdownAnim : (() -> msg) -> Sub msg
+port savedRecord : (() -> msg) -> Sub msg
+
+
+port getOwnBestRecord : { csvFileName : CsvFileName, uid : Uid } -> Cmd msg
+
+
+port gotOwnBestRecord : (RecordDto -> msg) -> Sub msg
 
 
 
@@ -430,20 +486,24 @@ subscriptions model =
                 , Keyboard.ups KeyUp
                 ]
 
-        Finish ->
+        PreFinish _ ->
+            Sub.batch
+                [ savedRecord SavedRecord
+                , gotOwnBestRecord GotOwnBestRecord
+                ]
+
+        Finish _ ->
             Sub.none
 
         StartCountdown ->
             Sub.batch
-                [ playedCountdownAnim PlayedCountdownAnim
-                , Keyboard.downs KeyDown
+                [ Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
                 ]
 
         PauseCountdown ->
             Sub.batch
-                [ playedCountdownAnim PlayedCountdownAnim
-                , Keyboard.downs KeyDown
+                [ Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
                 ]
 
@@ -455,28 +515,56 @@ subscriptions model =
 view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Play"
-    , content =
-        if CurrentMusicInfo.isLoaded model.currentMusicInfo then
+    , content = div [ class "mainWide" ] [ viewContents model ]
+    }
+
+
+viewContents : Model -> Html Msg
+viewContents model =
+    case model.currentMusicInfo of
+        Just musicInfo ->
             div [ class "mainWide" ]
-                [ div [ class "play_contentsContainer" ]
-                    [ div [ class "play_contents" ]
+                [ div
+                    [ class "play_contentsContainer" ]
+                    [ div
+                        [ class "play_contents" ]
                         [ viewLanes model
                         , viewNotes model
-                        , viewMusicInfo model
-                        , viewDisplayCircle model
+                        , viewMusicInfo musicInfo
+                        , viewDisplayCircle musicInfo model
                         ]
+                    , viewOverView musicInfo model
+                    , div [] [ Page.viewLoaded ]
                     ]
-                , viewNotStart model
-                    |> Page.viewIf (model.playStatus == NotStart || model.playStatus == StartCountdown)
-                , viewPause model
-                    |> Page.viewIf (model.playStatus == Pause || model.playStatus == PauseCountdown)
-                , viewResult model
-                    |> Page.viewIf (model.playStatus == Finish)
                 ]
 
-        else
+        Nothing ->
+            div [ class "play_contentsContainer" ] [ Page.viewLoading ]
+
+
+viewOverView : MusicInfo -> Model -> Html msg
+viewOverView musicInfo model =
+    case model.playStatus of
+        NotStart ->
+            viewNotStart
+
+        Playing ->
             text ""
-    }
+
+        Pause ->
+            viewPause
+
+        PreFinish _ ->
+            Page.viewLoading
+
+        Finish ownBestRecord ->
+            viewResult musicInfo ownBestRecord model
+
+        StartCountdown ->
+            viewCountdown
+
+        PauseCountdown ->
+            viewCountdown
 
 
 viewLanes : Model -> Html msg
@@ -491,41 +579,29 @@ viewLanes model =
 
 viewNotes : Model -> Html msg
 viewNotes model =
-    div
-        [ class "playCenterLine_judgeLine", id "judge_area" ]
+    div [ class "playCenterLine_judgeLine", id "judge_area" ]
         (List.map (Note.view model.currentMusicTime model.speed) model.allNotes)
 
 
-viewMusicInfo : Model -> Html msg
-viewMusicInfo model =
-    let
-        musicInfo =
-            CurrentMusicInfo.toMusicInfo model.currentMusicInfo
-    in
+viewMusicInfo : MusicInfo -> Html msg
+viewMusicInfo musicInfo =
     div [ class "playTextArea_container" ]
-        [ div
-            [ class "playTextArea_bigText" ]
-            [ text <| MusicInfo.toMusicName musicInfo ]
+        [ div [ class "playTextArea_bigText" ] [ text musicInfo.musicName ]
+        , div [ class "playTextArea_smallText" ] [ text musicInfo.composer ]
         , div
             [ class "playTextArea_smallText" ]
-            [ text <| MusicInfo.toComposer musicInfo ]
-        , div
-            [ class "playTextArea_smallText" ]
-            [ span [] [ text <| Mode.toString <| MusicInfo.toMode musicInfo ]
+            [ span [] [ text <| Mode.toString musicInfo.mode ]
             , span [] [ text "\u{3000}" ]
-            , span [] [ text <| MusicInfo.toStringLevel musicInfo ]
+            , span [] [ text <| Level.toString musicInfo.level ]
             ]
         ]
 
 
-viewDisplayCircle : Model -> Html msg
-viewDisplayCircle model =
+viewDisplayCircle : MusicInfo -> Model -> Html msg
+viewDisplayCircle musicInfo model =
     let
-        fullTime =
-            MusicInfo.toFullTime <| CurrentMusicInfo.toMusicInfo model.currentMusicInfo
-
         rate =
-            model.currentMusicTime / (fullTime * 1000)
+            model.currentMusicTime / (musicInfo.fullTime * 1000)
 
         half1Rotate =
             if rate <= 0.5 then
@@ -558,114 +634,108 @@ viewDisplayCircle model =
         [ div [ class "playDisplay_circle-inner" ] []
         , div [ class "half1", style "transform" half1Rotate ] []
         , div [ class "half2", style "transform" half2Rotate, style "background-color" half2Color ] []
-        , div [ class "playDisplay_centerTextArea" ]
+        , div
+            [ class "playDisplay_centerTextArea" ]
             [ div [ class "playDisplay_scoreLabelText" ] [ text "- SCORE -" ]
-            , div
-                [ class "playDisplay_scoreText" ]
-                [ text <| String.fromInt <| Score.unwrap model.score ]
+            , div [ class "playDisplay_scoreText" ] [ text <| String.fromInt (Score.unwrap model.score) ]
             , div [ class "playDisplay_comboLabelText" ] [ text "- COMBO -" ]
-            , div
-                [ class "playDisplay_comboText", id "comboText" ]
-                [ text <| String.fromInt <| Combo.unwrap model.combo ]
+            , div [ class "playDisplay_comboText", id "comboText" ] [ text <| String.fromInt (Combo.unwrap model.combo) ]
             ]
         ]
 
 
-viewNotStart : Model -> Html msg
-viewNotStart model =
+viewNotStart : Html msg
+viewNotStart =
     div [ class "play_overview" ]
         [ div [ class "playOverview_startText" ] [ text "READY" ]
-            |> Page.viewIf (model.playStatus == NotStart)
         , div [ class "playOverview_startSubText" ] [ text "- Press Space to Start -" ]
-            |> Page.viewIf (model.playStatus == NotStart)
-        , div [ class "playOverview_cowntdownText", id "playOverview_cowntdownText" ] []
         ]
 
 
-viewPause : Model -> Html msg
-viewPause model =
+viewPause : Html msg
+viewPause =
     div [ class "play_overview" ]
         [ div [ class "playOverview_pauseText" ] [ text "PAUSE" ]
-            |> Page.viewIf (model.playStatus == Pause)
         , div [ class "playOverview_pauseSubText" ] [ text "- Press Space to UnPause -" ]
-            |> Page.viewIf (model.playStatus == Pause)
-        , div [ class "playOverview_cowntdownText", id "playOverview_cowntdownText" ] []
         ]
 
 
-viewResult : Model -> Html msg
-viewResult model =
+viewCountdown : Html msg
+viewCountdown =
+    div [ class "play_overview" ]
+        [ div [ class "playOverview_cowntdownText is-first" ] []
+        , div [ class "playOverview_cowntdownText is-second" ] []
+        , div [ class "playOverview_cowntdownText is-third" ] []
+        ]
+
+
+viewResult : MusicInfo -> Record -> Model -> Html msg
+viewResult musicInfo ownBestRecord model =
     let
-        musicInfo =
-            CurrentMusicInfo.toMusicInfo model.currentMusicInfo
-
-        maxCombo =
-            MusicInfo.toMaxCombo musicInfo
-
         isFullCombo =
-            Combo.unwrap model.combo == MusicInfo.toMaxCombo musicInfo
+            Combo.unwrap model.combo == musicInfo.maxCombo
 
-        maxScore =
-            MusicInfo.toMaxScore musicInfo
-
-        -- TODO: ハイスコアかどうかの判定をする
         isHighScore =
-            True
+            Score.unwrap model.score > ownBestRecord.score
+
+        comboRank =
+            Rank.newComboRank (Combo.toMaxCombo model.combo) musicInfo.maxCombo
+
+        scoreRank =
+            Rank.newScoreRank (Score.unwrap model.score) musicInfo.maxScore
     in
     div [ class "play_overview" ]
-        [ div [ class "playOverview_contentsContainer" ]
+        [ div
+            [ class "playOverview_contentsContainer" ]
             [ div [ class "playOverview_back" ] []
             , div [ class "playOverview_backInner" ] []
             , div [ class "playOverview_titleText" ] [ text "RESULT" ]
-            , div [ class "playOverview_bigText" ]
-                [ text <| MusicInfo.toMusicName musicInfo ]
-            , div [ class "playOverview_smallText" ]
-                [ text <| MusicInfo.toComposer musicInfo ]
-            , div [ class "playOverview_smallText" ]
-                [ span [] [ text <| Mode.toString <| MusicInfo.toMode musicInfo ]
+            , div [ class "playOverview_bigText" ] [ text musicInfo.musicName ]
+            , div [ class "playOverview_smallText" ] [ text musicInfo.composer ]
+            , div
+                [ class "playOverview_smallText" ]
+                [ span [] [ text <| Mode.toString musicInfo.mode ]
                 , span [] [ text "\u{3000}" ]
-                , span [] [ text <| MusicInfo.toStringLevel musicInfo ]
+                , span [] [ text <| Level.toString musicInfo.level ]
                 ]
-            , div [ class "playOverviewResultItem_container" ]
+            , div
+                [ class "playOverviewResultItem_container" ]
                 [ div [ class "playOverviewResultItem_box" ] []
                 , div [ class "playOverviewResultItem_labelText" ] [ text "COMBO" ]
-                , div [ class "playOverviewResultItem_rankText" ]
-                    [ text <|
-                        Rank.toString <|
-                            Rank.newComboRank (Combo.toMaxCombo model.combo) maxCombo
-                    ]
-                , div [ class "playOverviewResultItem_effectText" ] [ text "Full Combo!" ]
+                , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString comboRank ]
+                , div [ class "playOverviewResultItem_effectText" ] [ text "Full Combo!!" ]
                     |> Page.viewIf isFullCombo
-                , div [ class "playOverviewResultItem_textContainer" ]
-                    [ span [ class "playOverviewResultItem_resultText" ]
-                        [ text <| String.fromInt <| Combo.toMaxCombo model.combo ]
-                    , span [ class "playOverviewResultItem_maxText" ]
-                        [ text <| " / " ++ String.fromInt maxCombo ]
+                , div
+                    [ class "playOverviewResultItem_textContainer" ]
+                    [ span
+                        [ class "playOverviewResultItem_resultText" ]
+                        [ text <| String.fromInt (Combo.toMaxCombo model.combo) ]
+                    , span
+                        [ class "playOverviewResultItem_maxText" ]
+                        [ text <| " / " ++ String.fromInt musicInfo.maxCombo ]
                     ]
                 , div [ class "playOverviewResultItem_line" ] []
                 ]
-            , div [ class "playOverviewResultItem_container" ]
+            , div
+                [ class "playOverviewResultItem_container" ]
                 [ div [ class "playOverviewResultItem_box" ] []
                 , div [ class "playOverviewResultItem_labelText" ] [ text "SCORE" ]
-                , div [ class "playOverviewResultItem_rankText" ]
-                    [ text <|
-                        Rank.toString <|
-                            Rank.newScoreRank (Score.unwrap model.score) maxScore
-                    ]
-                , div [ class "playOverviewResultItem_effectText" ] [ text "High Score!" ]
+                , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString scoreRank ]
+                , div [ class "playOverviewResultItem_effectText" ] [ text "High Score!!" ]
                     |> Page.viewIf isHighScore
-                , div [ class "playOverviewResultItem_textContainer" ]
-                    [ span [ class "playOverviewResultItem_resultText" ]
-                        [ text <| String.fromInt <| Score.unwrap model.score ]
-                    , span [ class "playOverviewResultItem_maxText" ]
-                        [ text <| " / " ++ String.fromInt maxScore ]
+                , div
+                    [ class "playOverviewResultItem_textContainer" ]
+                    [ span
+                        [ class "playOverviewResultItem_resultText" ]
+                        [ text <| String.fromInt (Score.unwrap model.score) ]
+                    , span
+                        [ class "playOverviewResultItem_maxText" ]
+                        [ text <| " / " ++ String.fromInt musicInfo.maxScore ]
                     ]
                 , div [ class "playOverviewResultItem_line" ] []
                 ]
             , a
-                [ class "playOverviewResultItem_backBtn"
-                , Route.href Route.Home
-                ]
+                [ class "playOverviewResultItem_backBtn", Route.href Route.Home ]
                 [ text "- Back to Home -" ]
             ]
         ]

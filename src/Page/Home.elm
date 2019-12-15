@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import MusicInfo as MusicInfo exposing (MusicInfo, MusicInfoDto)
+import MusicInfo.Level as Level
 import MusicInfo.Mode as Mode exposing (Mode)
 import Page
 import Page.Home.AllMusicInfoList as AllMusicInfoList exposing (AllMusicInfoList)
@@ -83,9 +84,7 @@ update msg model =
                             model.allMusicInfoList
                                 |> AllMusicInfoList.filteredMusicInfoListByMode mode
                                 |> List.filter
-                                    (\musicInfo ->
-                                        MusicInfo.toMusicName musicInfo == MusicInfo.toMusicName currentMusicInfo
-                                    )
+                                    (\musicInfo -> musicInfo.musicName == currentMusicInfo.musicName)
                                 |> List.head
                     in
                     ( { model
@@ -133,8 +132,7 @@ port signOut : () -> Cmd msg
 view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Home"
-    , content =
-        div [ class "mainWide" ] [ viewContents model ]
+    , content = div [ class "mainWide" ] [ viewContents model ]
     }
 
 
@@ -145,28 +143,26 @@ viewContents model =
             let
                 userName =
                     Session.toUser model.session
-                        |> Maybe.map User.toUserName
+                        |> Maybe.map .userName
                         |> Maybe.withDefault ""
 
                 pictureUrl =
                     Session.toUser model.session
-                        |> Maybe.map User.toPictureUrl
+                        |> Maybe.map .pictureUrl
                         |> Maybe.withDefault ""
             in
             div [ class "home_contentsContainer" ]
                 -- 左側
-                [ div [ class "home_leftContentsContainer" ]
-                    [ div [ class "home_leftContents" ]
-                        [ div [ class "homeUserSetting_container" ]
-                            [ div [ class "homeUserSetting_leftContents" ]
-                                [ img
-                                    [ class "homeUserSetting_userIcon"
-                                    , src pictureUrl
-                                    ]
-                                    []
-                                , div
-                                    [ class "homeUserSetting_userNameText" ]
-                                    [ text userName ]
+                [ div
+                    [ class "home_leftContentsContainer" ]
+                    [ div
+                        [ class "home_leftContents" ]
+                        [ div
+                            [ class "homeUserSetting_container" ]
+                            [ div
+                                [ class "homeUserSetting_leftContents" ]
+                                [ img [ class "homeUserSetting_userIcon", src pictureUrl ] []
+                                , div [ class "homeUserSetting_userNameText" ] [ text userName ]
                                 , img
                                     [ class "homeUserSetting_logoutIcon"
                                     , src "./img/icon_logout.png"
@@ -174,8 +170,10 @@ viewContents model =
                                     ]
                                     []
                                 ]
-                            , div [ class "homeUserSetting_rightContents" ]
-                                [ div [ class "homeUserSetting_settingContainer" ]
+                            , div
+                                [ class "homeUserSetting_rightContents" ]
+                                [ div
+                                    [ class "homeUserSetting_settingContainer" ]
                                     [ viewSettingItem "ノーツ速度"
                                     , viewSettingItem "BGM Volume"
                                     , viewSettingItem "タップ音 Volume"
@@ -183,21 +181,21 @@ viewContents model =
                                     ]
                                 ]
                             ]
-                        , div [ class "homeModeSelectTab_container" ]
+                        , div
+                            [ class "homeModeSelectTab_container" ]
                             [ viewModeTabBtn currentMode Mode.normal
                             , viewModeTabBtn currentMode Mode.hard
                             , viewModeTabBtn currentMode Mode.master
                             ]
-                        , viewMusicList
-                            currentMode
-                            currentMusicInfo
-                            model.allMusicInfoList
+                        , viewMusicList currentMode currentMusicInfo model.allMusicInfoList
                         ]
                     ]
 
                 -- 右側
-                , div [ class "home_rightContentsContainer" ]
-                    [ div [ class "home_rightContents" ]
+                , div
+                    [ class "home_rightContentsContainer" ]
+                    [ div
+                        [ class "home_rightContents" ]
                         [ viewCenterArea currentMusicInfo
                         , viewTopLeftArea currentMusicInfo
                         , viewTopRightArea
@@ -206,11 +204,11 @@ viewContents model =
                         , viewBottomRightArea currentMusicInfo
                         ]
                     ]
+                , div [] [ Page.viewLoaded ]
                 ]
 
         _ ->
-            div [ class "home_contentsContainer" ]
-                [ Page.viewLoading ]
+            div [ class "home_contentsContainer" ] [ Page.viewLoading ]
 
 
 viewSettingItem : String -> Html Msg
@@ -218,7 +216,8 @@ viewSettingItem labelText =
     -- TODO: 設定変更機能を実装する
     div [ class "homeUserSetting_settingItem" ]
         [ text labelText
-        , div [ class "homeUserSetting_settingBtnContainer" ]
+        , div
+            [ class "homeUserSetting_settingBtnContainer" ]
             [ span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
             , span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
             , span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
@@ -230,11 +229,17 @@ viewSettingItem labelText =
 
 viewModeTabBtn : Mode -> Mode -> Html Msg
 viewModeTabBtn currentMode mode =
+    let
+        clsIsSelecting =
+            if mode == currentMode then
+                "is-selecting"
+
+            else
+                ""
+    in
     div
-        [ classList
-            [ ( "homeModeSelectTab_item", True )
-            , ( "is-selecting", mode == currentMode )
-            ]
+        [ class "homeModeSelectTab_item"
+        , class clsIsSelecting
         , onClick <| ChangeMode mode
         ]
         [ text <| Mode.toString mode ]
@@ -254,31 +259,26 @@ viewMusicList currentMode currentMusicInfo allMusicInfoList =
 viewMusicListItem : MusicInfo -> MusicInfo -> Html Msg
 viewMusicListItem currentMusicInfo musicInfo =
     let
-        isSelecting =
-            MusicInfo.toMusicName musicInfo == MusicInfo.toMusicName currentMusicInfo
+        clsIsSelecting =
+            if musicInfo.musicName == currentMusicInfo.musicName then
+                "is-selecting"
+
+            else
+                ""
     in
     div
         [ class "homeMusicListItem_container"
         , onClick <| ChangeMusic musicInfo
         ]
-        [ div []
+        [ div
+            []
             [ div
-                [ classList
-                    [ ( "homeMusicListItem_top", True )
-                    , ( "is-selecting", isSelecting )
-                    ]
+                [ class "homeMusicListItem_top", class clsIsSelecting ]
+                [ div [ class "homeMusicListItem_topText" ] [ text musicInfo.musicName ]
                 ]
-                [ div [ class "homeMusicListItem_topText" ]
-                    [ text <| MusicInfo.toMusicName musicInfo ]
-                ]
+            , div [ class "homeMusicListItem_topTail", class clsIsSelecting ] []
             , div
-                [ classList
-                    [ ( "homeMusicListItem_topTail", True )
-                    , ( "is-selecting", isSelecting )
-                    ]
-                ]
-                []
-            , div [ class "homeMusicListItem_rankBox combo" ]
+                [ class "homeMusicListItem_rankBox combo" ]
                 [ div [ class "homeMusicListItem_rankBoxBack combo" ] []
                 , div [ class "homeMusicListItem_rankLabel" ] [ text "COMBO" ]
 
@@ -293,10 +293,10 @@ viewMusicListItem currentMusicInfo musicInfo =
                 , div [ class "homeMusicListItem_rankText" ] [ text "SSS" ]
                 ]
             ]
-        , div [ class "homeMusicListItem_bottomText" ]
-            [ text <| MusicInfo.toStringLevel musicInfo ]
+        , div [ class "homeMusicListItem_bottomText" ] [ text <| Level.toString musicInfo.level ]
         , div [ class "homeMusicListItem_bottomLine" ]
-            [ div [ class "homeMusicListItem_bottomLineTail" ] [] ]
+            [ div [ class "homeMusicListItem_bottomLineTail" ] []
+            ]
         ]
 
 
@@ -304,55 +304,33 @@ viewCenterArea : MusicInfo -> Html msg
 viewCenterArea currentMusicInfo =
     div [ class "home_centerArea", id "home_centerArea" ]
         [ div [ class "homeCenterArea_Inner" ] []
-        , div [ class "homeCenterArea_ContentsContainer" ]
+        , div
+            [ class "homeCenterArea_ContentsContainer" ]
             [ div [ class "homeCenterArea_centerWideLine" ] []
             , div [ class "homeCenterArea_centerWideLineLeft" ] []
             , div [ class "homeCenterArea_centerWideLineRight" ] []
-
-            -- 曲名
-            , div [ class "homeCenterArea_musicName" ]
-                [ text <| MusicInfo.toMusicName currentMusicInfo ]
-
-            -- 作曲者名
-            , div [ class "homeCenterArea_composer" ]
-                [ text <| MusicInfo.toComposer currentMusicInfo ]
-
-            -- 難易度
-            , div [ class "homeCenterArea_levelText" ]
-                [ text <| MusicInfo.toStringLevel currentMusicInfo ]
-
-            -- Bpm
+            , div [ class "homeCenterArea_musicName" ] [ text currentMusicInfo.musicName ]
+            , div [ class "homeCenterArea_composer" ] [ text currentMusicInfo.composer ]
+            , div [ class "homeCenterArea_levelText" ] [ text <| Level.toString currentMusicInfo.level ]
             , div [ class "homeCenterArea_box left" ] []
-            , div [ class "homeCenterArea_boxLabel left" ]
-                [ text "BPM" ]
-            , div [ class "homeCenterArea_boxText left" ]
-                [ text <| String.fromInt (MusicInfo.toBpm currentMusicInfo) ]
-
-            -- 曲の長さ
+            , div [ class "homeCenterArea_boxLabel left" ] [ text "BPM" ]
+            , div [ class "homeCenterArea_boxText left" ] [ text <| String.fromInt currentMusicInfo.bpm ]
             , div [ class "homeCenterArea_box center" ] []
-            , div [ class "homeCenterArea_boxLabel center" ]
-                [ text "曲の長さ" ]
-            , div [ class "homeCenterArea_boxText center" ]
-                [ text <| MusicInfo.toStringTime (MusicInfo.toFullTime currentMusicInfo) ]
+            , div [ class "homeCenterArea_boxLabel center" ] [ text "曲の長さ" ]
+            , div [ class "homeCenterArea_boxText center" ] [ text <| MusicInfo.toStringTime currentMusicInfo.fullTime ]
 
-            -- プレイ回数
             -- TODO: クリア実績を代入する
             , div [ class "homeCenterArea_box right" ] []
-            , div [ class "homeCenterArea_boxLabel right" ]
-                [ text "プレイ回数" ]
-            , div [ class "homeCenterArea_boxText right" ]
-                [ text "10回" ]
-
-            -- ランク内訳
-            , div [ class "homeCenterArea_rankText title" ]
-                [ text ""
-                , div [ class "homeCenterArea_rankTitleText score" ] [ text "SCORE" ]
+            , div [ class "homeCenterArea_boxLabel right" ] [ text "プレイ回数" ]
+            , div [ class "homeCenterArea_boxText right" ] [ text "10回" ]
+            , div
+                [ class "homeCenterArea_rankText title" ]
+                [ div [ class "homeCenterArea_rankTitleText score" ] [ text "SCORE" ]
                 , div [ class "homeCenterArea_rankTitleText combo" ] [ text "COMBO" ]
                 ]
-            , div []
-                (Rank.allRankList
-                    |> List.map (viewCenterAreaRankDetail currentMusicInfo)
-                )
+            , div
+                []
+                (List.map (viewCenterAreaRankDetail currentMusicInfo) Rank.allRankList)
             , div [ class "homeCenterArea_rankCenterLine1" ] []
             , div [ class "homeCenterArea_rankCenterLine2" ] []
             ]
@@ -362,30 +340,27 @@ viewCenterArea currentMusicInfo =
 viewCenterAreaRankDetail : MusicInfo -> Rank -> Html msg
 viewCenterAreaRankDetail currentMusicInfo rank =
     let
-        maxScore =
-            MusicInfo.toMaxScore currentMusicInfo
-
-        maxCombo =
-            MusicInfo.toMaxCombo currentMusicInfo
-
-        classStr =
+        clsRankNum =
             "rank-" ++ Rank.toString rank
     in
-    div [ class "homeCenterArea_rankText", class classStr ]
+    div [ class "homeCenterArea_rankText", class clsRankNum ]
         [ text <| Rank.toString rank
-        , div [ class "homeCenterArea_rankDetailText score" ]
-            [ text <| String.fromInt (Rank.boundaryScore maxScore rank) ]
-        , div [ class "homeCenterArea_rankDetailText combo" ]
-            [ text <| String.fromInt (Rank.boundaryCombo maxCombo rank) ]
-        , div [ class "homeCenterArea_rankLine", class classStr ] []
+        , div
+            [ class "homeCenterArea_rankDetailText score" ]
+            [ text <| String.fromInt (Rank.boundaryScore currentMusicInfo.maxScore rank) ]
+        , div
+            [ class "homeCenterArea_rankDetailText combo" ]
+            [ text <| String.fromInt (Rank.boundaryCombo currentMusicInfo.maxCombo rank) ]
+        , div
+            [ class "homeCenterArea_rankLine", class clsRankNum ]
+            []
         ]
 
 
 viewTopLeftArea : MusicInfo -> Html msg
 viewTopLeftArea currentMusicInfo =
     div [ class "home_topLeftArea", id "home_topLeftArea" ]
-        [ div [ class "homeTopLeft_modeText" ]
-            [ text <| Mode.toString (MusicInfo.toMode currentMusicInfo) ]
+        [ div [ class "homeTopLeft_modeText" ] [ text <| Mode.toString currentMusicInfo.mode ]
         ]
 
 
@@ -411,51 +386,42 @@ viewTopRightArea =
 
 viewBottomRightArea1 : MusicInfo -> Html msg
 viewBottomRightArea1 currentMusicInfo =
-    let
-        maxCombo =
-            MusicInfo.toMaxCombo currentMusicInfo
-    in
     div [ class "home_bottomLeftArea1", id "home_bottomLeftArea1" ]
         [ div [ class "homeBottomLeftArea1_label" ] [ text "COMBO" ]
 
         -- TODO: クリア実績を代入する
-        , div [ class "homeBottomLeftArea1_rankText" ]
-            [ text "SSS" ]
+        , div [ class "homeBottomLeftArea1_rankText" ] [ text "SSS" ]
 
         -- TODO: クリア実績を代入する
-        , div [ class "homeBottomLeftArea1_bestText" ]
-            [ text "9999" ]
-        , div [ class "homeBottomLeftArea1_maxText" ]
-            [ text <| "/ " ++ String.fromInt maxCombo ]
+        , div [ class "homeBottomLeftArea1_bestText" ] [ text "9999" ]
+        , div
+            [ class "homeBottomLeftArea1_maxText" ]
+            [ text <| "/ " ++ String.fromInt currentMusicInfo.maxCombo ]
         ]
 
 
 viewBottomRightArea2 : MusicInfo -> Html msg
 viewBottomRightArea2 currentMusicInfo =
-    let
-        maxScore =
-            MusicInfo.toMaxScore currentMusicInfo
-    in
     div [ class "home_bottomLeftArea2", id "home_bottomLeftArea2" ]
         [ div [ class "homeBottomLeftArea2_label" ] [ text "SCORE" ]
 
         -- TODO: クリア実績を代入する
-        , div [ class "homeBottomLeftArea2_rankText" ]
-            [ text "SSS" ]
+        , div [ class "homeBottomLeftArea2_rankText" ] [ text "SSS" ]
 
         -- TODO: クリア実績を代入する
-        , div [ class "homeBottomLeftArea2_bestText" ]
-            [ text "9999999" ]
-        , div [ class "homeBottomLeftArea2_maxText" ]
-            [ text <| "/ " ++ String.fromInt maxScore ]
+        , div [ class "homeBottomLeftArea2_bestText" ] [ text "9999999" ]
+        , div
+            [ class "homeBottomLeftArea2_maxText" ]
+            [ text <| "/ " ++ String.fromInt currentMusicInfo.maxScore ]
         ]
 
 
 viewBottomRightArea : MusicInfo -> Html msg
 viewBottomRightArea currentMusicInfo =
     div []
-        [ a [ Route.href <| Route.Play <| MusicInfo.toCsvFileName currentMusicInfo ]
-            [ div [ class "home_bottomRightArea", id "home_bottomRightArea" ]
+        [ a [ Route.href <| Route.Play currentMusicInfo.csvFileName ]
+            [ div
+                [ class "home_bottomRightArea", id "home_bottomRightArea" ]
                 [ div [ class "homeBottomRight_playText" ] [ text "Play" ]
                 ]
             ]

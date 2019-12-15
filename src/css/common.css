@@ -152,3 +152,150 @@
   0%, 39%, 100% { opacity: 0; }
   40% { opacity: 1; }
 }
+
+
+
+/* -------------------------------
+  ローディングアニメーション
+------------------------------- */
+.loading_container {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: rgba(20,20,40,0.7);
+}
+
+.loading_boxContainer {
+  height: 60px;
+  width: 60px;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+  transform: rotate(45deg);
+}
+
+.loading_box {
+  height: 60px;
+  width: 60px;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.loading_box.is-first {
+  border-bottom: solid 2px white;
+  margin-top: -1px;
+  animation: loadingAnimationX 0.4s ease-out 0s infinite normal both running;
+  transform-origin: right bottom;
+}
+
+.loading_box.is-second {
+  border-left: solid 2px white;
+  margin-right: -1px;
+  animation: loadingAnimationY 0.4s ease-out 0.1s infinite normal both running;
+  transform-origin: left bottom;
+}
+
+.loading_box.is-third {
+  border-top: solid 2px white;
+  margin-bottom: -1px;
+  animation: loadingAnimationX 0.4s ease-out 0.2s infinite normal both running;
+  transform-origin: left top;
+}
+
+.loading_box.is-fourth {
+  border-right: solid 2px white;
+  margin-left: -1px;
+  animation: loadingAnimationY 0.4s ease-out 0.3s infinite normal both running;
+  transform-origin: right top;
+}
+
+@keyframes loadingAnimationX {
+  0% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  25% {
+    transform: scaleX(1);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes loadingAnimationY {
+  0% {
+    transform: scaleY(0);
+    opacity: 1;
+  }
+  25% {
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.loading_container.is-loaded {
+  animation: loadedBackAnimation 0.7s ease-in 0s 1 normal both running;
+}
+
+.loading_box.is-loaded {
+  background-color: white;
+  box-shadow:0px 0px 10px 3px var(--color-elm-lightblue);
+  animation: loadedAnimation 0.7s linear 0s 1 normal both running;
+}
+
+@keyframes loadedAnimation {
+  0% {
+    opacity: 1;
+  }
+  10% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  26% {
+    opacity: 0;
+  }
+  32% {
+    opacity: 1;
+  }
+  36% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(15);
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@keyframes loadedBackAnimation {
+  0% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    pointer-events: none;
+  }
+}

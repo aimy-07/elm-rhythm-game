@@ -80,7 +80,7 @@ export function csvSetUpSubscriber (app) {
         app.ports.gotCurrentMusicInfo.send({musicInfoDto, noteDtos});
       })
       .catch(error => {
-        console.log(error);
+        console.error(error);
       });
     });
   })

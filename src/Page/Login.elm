@@ -16,8 +16,7 @@ type alias Model =
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( { session = session
-      }
+    ( { session = session }
     , Cmd.none
     )
 
@@ -44,8 +43,7 @@ update msg model =
 view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Login"
-    , content =
-        div [ class "mainWide" ] [ viewContents model ]
+    , content = div [ class "mainWide" ] [ viewContents model ]
     }
 
 
@@ -70,8 +68,7 @@ port signIn : () -> Cmd msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        []
+    Sub.none
 
 
 

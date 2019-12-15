@@ -26,7 +26,7 @@ import Page
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.KeyStr exposing (KeyStr)
-import Page.Play.Lane as Lane exposing (Lane)
+import Page.Play.Lane as Lane
 import Page.Play.Note.JustTime exposing (JustTime)
 import Page.Play.Speed exposing (Speed)
 

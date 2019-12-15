@@ -1,9 +1,16 @@
-module Page.Home.AllMusicInfoList exposing (AllMusicInfoList, create, filteredMusicInfoListByMode, init, isLoaded, toMusicInfoList)
+module Page.Home.AllMusicInfoList exposing
+    ( AllMusicInfoList
+    , create
+    , filteredMusicInfoListByMode
+    , init
+    , isLoaded
+    , toMusicInfoList
+    )
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import MusicInfo as MusicInfo exposing (MusicInfo)
+import MusicInfo exposing (MusicInfo)
 import MusicInfo.Mode exposing (Mode)
 
 
@@ -47,10 +54,7 @@ filteredMusicInfoListByMode mode allMusicInfoList =
     case allMusicInfoList of
         Loaded musicInfoList ->
             musicInfoList
-                |> List.filter
-                    (\musicInfo ->
-                        MusicInfo.toMode musicInfo == mode
-                    )
+                |> List.filter (.mode >> (==) mode)
 
         NotLoaded ->
             []

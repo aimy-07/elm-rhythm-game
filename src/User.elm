@@ -1,12 +1,15 @@
-module User exposing (User, UserDto, new, toPictureUrl, toUid, toUserName)
+module User exposing (Uid, User, UserDto, new)
 
 
-type User
-    = User
-        { uid : String
-        , userName : String
-        , pictureUrl : String
-        }
+type alias Uid =
+    String
+
+
+type alias User =
+    { uid : Uid
+    , userName : String
+    , pictureUrl : String
+    }
 
 
 type alias UserDto =
@@ -18,23 +21,7 @@ type alias UserDto =
 
 new : UserDto -> User
 new { uid, userName, pictureUrl } =
-    User
-        { uid = uid
-        , userName = userName
-        , pictureUrl = pictureUrl
-        }
-
-
-toUid : User -> String
-toUid (User { uid }) =
-    uid
-
-
-toUserName : User -> String
-toUserName (User { userName }) =
-    userName
-
-
-toPictureUrl : User -> String
-toPictureUrl (User { pictureUrl }) =
-    pictureUrl
+    { uid = uid
+    , userName = userName
+    , pictureUrl = pictureUrl
+    }
