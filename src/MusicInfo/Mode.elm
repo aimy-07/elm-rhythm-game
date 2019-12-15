@@ -1,4 +1,4 @@
-module MusicInfo.Mode exposing (Mode, hard, isInvalid, master, new, normal, toString, unwrap)
+module MusicInfo.Mode exposing (Mode, hard, master, new, normal, toString, unwrap)
 
 import String.Extra as ExString
 
@@ -61,8 +61,3 @@ hard =
 master : Mode
 master =
     Master
-
-
-isInvalid : Mode -> Bool
-isInvalid mode =
-    mode == Invalid

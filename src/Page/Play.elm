@@ -60,7 +60,7 @@ init : Session -> CsvFileName -> ( Model, Cmd Msg )
 init session csvFileName =
     let
         audioFileName =
-            CsvFileName.toAudioFileName csvFileName
+            CsvFileName.toMusicId csvFileName
 
         allMusicInfoList =
             Session.toAllMusicInfoList session

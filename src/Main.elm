@@ -112,9 +112,6 @@ changeRouteTo maybeRoute model =
     let
         session =
             toSession model
-
-        maybeUser =
-            Session.toUser session
     in
     case model of
         Init _ ->

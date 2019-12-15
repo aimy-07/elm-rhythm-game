@@ -109,6 +109,37 @@ animationSetUpSubscriber(app);
 
 
 /* ---------------------------------
+  選択中の楽曲の永続化
+---------------------------------- */
+app.ports.getCurrentCsvFileName.subscribe(uid => {
+  firebase.database().ref(`/users/${uid}/currentCsvFileName`).once('value').then(
+    (snapshot) => {
+      if (snapshot.val()) {
+        const currentCsvFileName = snapshot.val();
+        app.ports.gotCurrentCsvFileName.send(currentCsvFileName);
+      } else {
+        app.ports.gotCurrentCsvFileName.send("");
+      }
+    },
+    (err) => {
+      console.error(err);
+      // TODO: ネットワークエラー画面に飛ばす
+    }
+  )
+});
+
+app.ports.saveCurrentCsvFileName.subscribe(({uid, csvFileName}) => {
+  firebase.database().ref(`/users/${uid}/currentCsvFileName/`).set(
+    csvFileName,
+    (err) => {
+      if (err) throw new Error(err);
+    }
+  );
+});
+
+
+
+/* ---------------------------------
   プレイリザルトの保存
 ---------------------------------- */
 app.ports.saveRecord.subscribe(({uid, csvFileName, combo, score}) => {

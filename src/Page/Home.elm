@@ -5,7 +5,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import MusicInfo as MusicInfo exposing (MusicInfo, MusicInfoDto)
-import MusicInfo.CsvFileName as CsvFileName
+import MusicInfo.CsvFileName as CsvFileName exposing (CsvFileName)
 import MusicInfo.Level as Level
 import MusicInfo.Mode as Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
@@ -15,7 +15,6 @@ import PublicRecord
 import Rank exposing (Rank)
 import Route
 import Session exposing (Session)
-import User exposing (Uid)
 
 
 
@@ -40,16 +39,22 @@ init session =
             Session.toUser session
                 |> Maybe.map (\user -> getOwnBestRecords user.uid)
                 |> Maybe.withDefault Cmd.none
+
+        getCurrentCsvFileNameCmd =
+            Session.toUser session
+                |> Maybe.map (\user -> getCurrentCsvFileName user.uid)
+                |> Maybe.withDefault Cmd.none
     in
     ( { session = session
-      , maybeCurrentMusicId = Just "sample_sound"
-      , maybeCurrentMode = Just Mode.normal
+      , maybeCurrentMusicId = Nothing
+      , maybeCurrentMode = Nothing
       , maybeOwnRecords = Nothing
       }
     , Cmd.batch
         [ getAllMusicInfoList ()
             |> Page.cmdIf (not <| AllMusicInfoList.isLoaded allMusicInfoList)
         , getOwnBestRecordsCmd
+        , getCurrentCsvFileNameCmd
         , startHomeMusic ()
         ]
     )
@@ -62,6 +67,7 @@ init session =
 type Msg
     = GotAllMusicInfoList (List MusicInfoDto)
     | GotOwnBestRecords (List OwnRecordDto)
+    | GotCurrentCsvFileName CsvFileName
     | ChangeMode Mode
     | ChangeMusic MusicId
     | SignOut
@@ -84,21 +90,61 @@ update msg model =
             in
             ( { model | maybeOwnRecords = Just ownRecords }, Cmd.none )
 
-        ChangeMode mode ->
-            case model.maybeCurrentMode of
-                Just _ ->
-                    ( { model | maybeCurrentMode = Just mode }, playMusicSelectAnim () )
+        GotCurrentCsvFileName csvFileName ->
+            ( { model
+                | maybeCurrentMusicId = Just (CsvFileName.toMusicId csvFileName)
+                , maybeCurrentMode = Just (CsvFileName.toMode csvFileName)
+              }
+            , Cmd.none
+            )
 
-                Nothing ->
-                    ( model, Cmd.none )
+        ChangeMode mode ->
+            let
+                maybeUid =
+                    Session.toUser model.session
+                        |> Maybe.map .uid
+
+                saveCurrentCsvFileNameCmd =
+                    case ( model.maybeCurrentMusicId, maybeUid ) of
+                        ( Just currentMusicId, Just uid ) ->
+                            saveCurrentCsvFileName
+                                { uid = uid
+                                , csvFileName = CsvFileName.create currentMusicId mode
+                                }
+
+                        _ ->
+                            Cmd.none
+            in
+            ( { model | maybeCurrentMode = Just mode }
+            , Cmd.batch
+                [ saveCurrentCsvFileNameCmd
+                , playMusicSelectAnim ()
+                ]
+            )
 
         ChangeMusic musicId ->
-            case model.maybeCurrentMusicId of
-                Just _ ->
-                    ( { model | maybeCurrentMusicId = Just musicId }, playMusicSelectAnim () )
+            let
+                maybeUid =
+                    Session.toUser model.session
+                        |> Maybe.map .uid
 
-                Nothing ->
-                    ( model, Cmd.none )
+                saveCurrentCsvFileNameCmd =
+                    case ( model.maybeCurrentMode, maybeUid ) of
+                        ( Just currentMode, Just uid ) ->
+                            saveCurrentCsvFileName
+                                { uid = uid
+                                , csvFileName = CsvFileName.create musicId currentMode
+                                }
+
+                        _ ->
+                            Cmd.none
+            in
+            ( { model | maybeCurrentMusicId = Just musicId }
+            , Cmd.batch
+                [ saveCurrentCsvFileNameCmd
+                , playMusicSelectAnim ()
+                ]
+            )
 
         SignOut ->
             ( model, signOut () )
@@ -114,10 +160,19 @@ port getAllMusicInfoList : () -> Cmd msg
 port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg
 
 
-port getOwnBestRecords : Uid -> Cmd msg
+port getOwnBestRecords : String -> Cmd msg
 
 
 port gotOwnBestRecords : (List OwnRecordDto -> msg) -> Sub msg
+
+
+port getCurrentCsvFileName : String -> Cmd msg
+
+
+port gotCurrentCsvFileName : (String -> msg) -> Sub msg
+
+
+port saveCurrentCsvFileName : { uid : String, csvFileName : String } -> Cmd msg
 
 
 port playMusicSelectAnim : () -> Cmd msg
@@ -138,6 +193,7 @@ subscriptions model =
     Sub.batch
         [ gotAllMusicInfoList GotAllMusicInfoList
         , gotOwnBestRecords GotOwnBestRecords
+        , gotCurrentCsvFileName GotCurrentCsvFileName
         ]
 
 
