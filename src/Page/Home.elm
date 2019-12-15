@@ -11,6 +11,7 @@ import MusicInfo.Mode as Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
 import OwnRecord exposing (OwnRecord, OwnRecordDto)
 import Page
+import PublicRecord
 import Rank exposing (Rank)
 import Route
 import Session exposing (Session)
@@ -231,7 +232,7 @@ viewContents model =
                         [ class "home_rightContents" ]
                         [ viewCenterArea currentMusicInfo maybeCurrentOwnRecord
                         , viewTopLeftArea currentMusicInfo
-                        , viewTopRightArea
+                        , viewTopRightArea currentMusicInfo
                         , viewBottomLeftArea1 currentMusicInfo maybeCurrentOwnRecord
                         , viewBottomLeftArea2 currentMusicInfo maybeCurrentOwnRecord
                         , viewBottomRightArea currentMusicInfo
@@ -404,22 +405,33 @@ viewTopLeftArea currentMusicInfo =
         ]
 
 
-viewTopRightArea : Html msg
-viewTopRightArea =
-    -- TODO: ランキングデータを代入する
+viewTopRightArea : MusicInfo -> Html msg
+viewTopRightArea currentMusicInfo =
     div [ class "home_topRightArea", id "home_topRightArea" ]
         [ div [ class "homeTopRight_title" ] [ text "楽曲スコアランキング" ]
         , img [ class "homeTopRight_rankIcon first", src "./img/icon_rank_first.png" ] []
-        , div [ class "homeTopRight_userNameText first" ] [ text "ほげさん" ]
-        , div [ class "homeTopRight_scoreText first" ] [ text "9999999" ]
+        , div
+            [ class "homeTopRight_userNameText first" ]
+            [ text <| PublicRecord.toStringUserName (MusicInfo.toFirstRecord currentMusicInfo) ]
+        , div
+            [ class "homeTopRight_scoreText first" ]
+            [ text <| PublicRecord.toStringBestScore (MusicInfo.toFirstRecord currentMusicInfo) ]
         , div [ class "homeTopRight_line first" ] []
         , img [ class "homeTopRight_rankIcon second", src "./img/icon_rank_second.png" ] []
-        , div [ class "homeTopRight_userNameText second" ] [ text "ふーさん" ]
-        , div [ class "homeTopRight_scoreText second" ] [ text "9999999" ]
+        , div
+            [ class "homeTopRight_userNameText second" ]
+            [ text <| PublicRecord.toStringUserName (MusicInfo.toSecondRecord currentMusicInfo) ]
+        , div
+            [ class "homeTopRight_scoreText second" ]
+            [ text <| PublicRecord.toStringBestScore (MusicInfo.toSecondRecord currentMusicInfo) ]
         , div [ class "homeTopRight_line second" ] []
         , img [ class "homeTopRight_rankIcon third", src "./img/icon_rank_third.png" ] []
-        , div [ class "homeTopRight_userNameText third" ] [ text "ばーさん" ]
-        , div [ class "homeTopRight_scoreText third" ] [ text "9999999" ]
+        , div
+            [ class "homeTopRight_userNameText third" ]
+            [ text <| PublicRecord.toStringUserName (MusicInfo.toThirdRecord currentMusicInfo) ]
+        , div
+            [ class "homeTopRight_scoreText third" ]
+            [ text <| PublicRecord.toStringBestScore (MusicInfo.toThirdRecord currentMusicInfo) ]
         , div [ class "homeTopRight_line third" ] []
         ]
 

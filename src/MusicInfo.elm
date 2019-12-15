@@ -2,13 +2,17 @@ module MusicInfo exposing
     ( MusicInfo
     , MusicInfoDto
     , new
+    , toFirstRecord
+    , toSecondRecord
     , toStringTime
+    , toThirdRecord
     )
 
 import MusicInfo.CsvFileName exposing (CsvFileName)
 import MusicInfo.Level exposing (Level)
 import MusicInfo.Mode as Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
+import PublicRecord exposing (PublicRecord, PublicRecordDto)
 
 
 type alias MusicInfo =
@@ -24,17 +28,8 @@ type alias MusicInfo =
     , maxScore : Int
     , beatsCountPerMeasure : Int
     , offset : Float
-
-    -- , publicRecord : PublicRecord
+    , bestRecords : List PublicRecord
     }
-
-
-
--- type alias PublicRecord =
---     { first : { uid : Uid, score : Int }
---     , second : { uid : Uid, score : Int }
---     , third : { uid : Uid, score : Int }
---     }
 
 
 type alias MusicInfoDto =
@@ -50,12 +45,7 @@ type alias MusicInfoDto =
     , maxScore : Int
     , beatsCountPerMeasure : Int
     , offset : Float
-
-    -- , publicRecord
-    --     { first : {uid: Uid, score : Int}
-    --     , second : {uid: Uid, score : Int}
-    --     , third : {uid: Uid, score : Int}
-    --     }
+    , bestRecords : List PublicRecordDto
     }
 
 
@@ -73,8 +63,7 @@ new musicInfoDto =
     , maxScore = musicInfoDto.maxScore
     , beatsCountPerMeasure = musicInfoDto.beatsCountPerMeasure
     , offset = musicInfoDto.offset
-
-    -- , publicRecord = musicInfoDto.publicRecord
+    , bestRecords = musicInfoDto.bestRecords
     }
 
 
@@ -88,3 +77,29 @@ toStringTime time =
             Basics.round time // 60
     in
     String.fromInt min ++ "分" ++ String.fromInt sec ++ "秒"
+
+
+toFirstRecord : MusicInfo -> Maybe PublicRecord
+toFirstRecord musicInfo =
+    musicInfo.bestRecords
+        |> List.sortBy .bestScore
+        |> List.reverse
+        |> List.head
+
+
+toSecondRecord : MusicInfo -> Maybe PublicRecord
+toSecondRecord musicInfo =
+    musicInfo.bestRecords
+        |> List.sortBy .bestScore
+        |> List.reverse
+        |> List.drop 1
+        |> List.head
+
+
+toThirdRecord : MusicInfo -> Maybe PublicRecord
+toThirdRecord musicInfo =
+    musicInfo.bestRecords
+        |> List.sortBy .bestScore
+        |> List.reverse
+        |> List.drop 2
+        |> List.head

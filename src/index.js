@@ -10,6 +10,8 @@ import 'firebase/auth';
 import 'firebase/database';
 import {firebaseConfig} from './config';
 
+import {_} from 'underscore';
+const uuidv4 = require('uuid/v4');
 
 
 /* ---------------------------------
@@ -41,12 +43,58 @@ firebase.auth().onAuthStateChanged((user) => {
     app.ports.onAuthStateChanged.send(null);
   } else {
     // サインイン済み
-    app.ports.onAuthStateChanged.send({
-      uid: user.uid,
-      userName: user.displayName,
-      pictureUrl: user.photoURL,
-    });
+    const saveUser = firebase.database().ref(`/users/${user.uid}`).transaction(
+      (userData) => {
+        if (!userData) {
+          return {
+            userName: user.displayName,
+            pictureUrl: user.photoURL,
+          }
+        } else {
+          // 過去にログインしたことのあるユーザー
+          return;
+        }
+      },
+      (err) => {
+        if (err) throw new Error(err);
+      }
+    );
+    saveUser
+      .then(() => {
+        app.ports.onAuthStateChanged.send({
+          uid: user.uid,
+          userName: user.displayName,
+          pictureUrl: user.photoURL,
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        // TODO: ネットワークエラー画面に飛ばす
+      })
   }
+});
+
+
+
+/* ---------------------------------
+  サインイン/サインアウト
+---------------------------------- */
+app.ports.signIn.subscribe(() => {
+  firebase.auth().signInWithPopup(googleAuthProvider)
+    .then(() => {})
+    .catch((err) => {
+      console.error(err);
+      // TODO: ネットワークエラー画面に飛ばす
+    });
+});
+
+app.ports.signOut.subscribe(() => {
+  firebase.auth().signOut()
+    .then(() => {})
+    .catch((err) => {
+      console.error(err);
+      // TODO: ネットワークエラー画面に飛ばす
+    });
 });
 
 
@@ -54,60 +102,73 @@ firebase.auth().onAuthStateChanged((user) => {
 /* ---------------------------------
   Subscriber
 ---------------------------------- */
-app.ports.signIn.subscribe(_ => {
-  firebase.auth().signInWithPopup(googleAuthProvider)
-    .then((_) => {})
-    .catch((error) => {});
-});
-
-app.ports.signOut.subscribe(_ => {
-  firebase.auth().signOut()
-    .then((_) => {})
-    .catch((error) => {});
-});
-
 csvSetUpSubscriber(app);
 audioSetUpSubscriber(app);
 animationSetUpSubscriber(app);
 
 
+
 /* ---------------------------------
   プレイリザルトの保存
 ---------------------------------- */
-const uuidv4 = require('uuid/v4');
-
 app.ports.saveRecord.subscribe(({uid, csvFileName, combo, score}) => {
   const recordId = uuidv4();
   const createdAt = Date.now();
-  const saveRecord = firebase.database().ref(`/records/${csvFileName}/${uid}/${recordId}/`).set({
-      uid: uid,
-      csv_file_name: csvFileName,
-      combo: combo,
-      score: score,
-      created_at: createdAt
+  const saveRecord = firebase.database().ref(`/records/${csvFileName}/${uid}/${recordId}/`).set(
+    {uid, csvFileName, combo, score, createdAt},
+    (err) => {
+      if (err) throw new Error(err);
     }
   );
+
   let isHighScore;
-  const updateOwnPlayRecord = firebase.database().ref(`/users/${uid}/play_records/${csvFileName}`).transaction((playRecord) => {
-    if (playRecord) {
-      isHighScore = score > playRecord.best_score;
-      return {
-        csv_file_name: csvFileName,
-        best_combo: combo > playRecord.best_score ? combo : playRecord.best_score,
-        best_score: score > playRecord.best_score ? score : playRecord.best_score,
-        play_count: playRecord.play_count + 1
+  const updateOwnPlayRecord = firebase.database().ref(`/users/${uid}/playRecords/${csvFileName}`).transaction(
+    (playRecord) => {
+      if (playRecord) {
+        isHighScore = score > playRecord.bestScore;
+        return {
+          csvFileName,
+          bestCombo: combo > playRecord.bestCombo ? combo : playRecord.bestCombo,
+          bestScore: score > playRecord.bestScore ? score : playRecord.bestScore,
+          playCount: playRecord.playCount + 1
+        }
+      } else {
+        isHighScore = true;
+        return {
+          csvFileName,
+          bestCombo: combo,
+          bestScore: score,
+          playCount: 1
+        }
       }
-    } else {
-      isHighScore = true;
-      return {
-        csv_file_name: csvFileName,
-        best_combo: combo,
-        best_score: score,
-        play_count: 1
-      }
+    },
+    (err) => {
+      if (err) throw new Error(err);
     }
-  });
-  Promise.all( [saveRecord, updateOwnPlayRecord] )
+  );
+
+  const updatePublicPlayRecord = firebase.database().ref(`/musicInfos/${csvFileName}/bestRecords`).transaction(
+    (bestRecords) => {
+      if (score == 0) {
+        return bestRecords ? bestRecords : [];
+      }
+      if (bestRecords) {
+        const newBestRecords = _.sortBy(bestRecords.concat({uid, bestScore: score}), (record => record.bestScore)).reverse();
+        if (newBestRecords.length > 3) {
+          return newBestRecords.slice(0, 3);
+        } else {
+          return newBestRecords
+        }
+      } else {
+        return [{uid, bestScore: score}]
+      }
+    },
+    (err) => {
+      if (err) throw new Error(err);
+    }
+  );
+
+  Promise.all([saveRecord, updateOwnPlayRecord, updatePublicPlayRecord])
     .then(() => {
       app.ports.savedRecord.send(isHighScore);
     })
@@ -115,19 +176,6 @@ app.ports.saveRecord.subscribe(({uid, csvFileName, combo, score}) => {
       console.error(err);
       // TODO: ネットワークエラー画面に飛ばす
     })
-  // 全体のハイスコアを更新
-  // const updatePublicHighScore = firebase.database().ref(`/music_infos/${csvFileName}`).transaction((musicInfo) => {
-  //   if (musicInfo) {
-  //     const bestCombo = record.combo > playRecord.bestCombo ? record.combo : playRecord.bestCombo;
-  //     const bestScore = record.score > playRecord.bestScore ? record.score : playRecord.bestScore;
-  //     const playCount = record.playCount + 1;
-  //     return {
-  //       bestCombo,
-  //       bestScore,
-  //       playCount
-  //     }
-  //   }
-  // });
 });
 
 
@@ -136,18 +184,10 @@ app.ports.saveRecord.subscribe(({uid, csvFileName, combo, score}) => {
   過去の自分のプレイデータの取得
 ---------------------------------- */
 app.ports.getOwnBestRecords.subscribe(uid => {
-  firebase.database().ref(`/users/${uid}/play_records`).once('value').then(
+  firebase.database().ref(`/users/${uid}/playRecords`).once('value').then(
     (snapshot) => {
-      const datas = snapshot.val();
-      if (datas) {
-        const records = toArrFromObj(datas).map(record => {
-          return {
-            csvFileName: record.csv_file_name,
-            bestCombo: record.best_combo,
-            bestScore: record.best_score,
-            playCount: record.play_count
-          }
-        });
+      if (snapshot.val()) {
+        const records = toArrFromObj(snapshot.val());
         app.ports.gotOwnBestRecords.send(records);
       } else {
         app.ports.gotOwnBestRecords.send([]);
@@ -157,9 +197,12 @@ app.ports.getOwnBestRecords.subscribe(uid => {
       console.error(err);
       // TODO: ネットワークエラー画面に飛ばす
     }
-  );
-})
+  )
+});
 
+
+
+// 連想配列を配列に変換する関数
 export const toArrFromObj = obj => {
   const arr = [];
   Object.keys(obj).forEach((key) => {

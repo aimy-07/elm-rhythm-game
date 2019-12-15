@@ -10,27 +10,49 @@ import {toArrFromObj} from '../index';
 export function csvSetUpSubscriber (app) {
   // 全ての楽曲の情報をFirebaseから取得する
   app.ports.getAllMusicInfoList.subscribe(() => {
-    firebase.database().ref('/music_infos').once('value').then(
+    firebase.database().ref('/musicInfos').once('value').then(
       (snapshot) => {
         const musicInfos = toArrFromObj(snapshot.val());
-        const allMusicInfoList = musicInfos.map(musicInfo => {
-          return {
-            musicId: musicInfo.music_id,
-            csvFileName: musicInfo.csv_file_name,
-            musicName: musicInfo.music_name,
-            composer: musicInfo.composer,
-            mode: musicInfo.mode,
-            level: musicInfo.level,
-            fullTime: musicInfo.full_time,
-            bpm: musicInfo.bpm,
-            beatsCountPerMeasure: musicInfo.beats_count_per_measure,
-            offset: musicInfo.offset,
-            maxCombo: musicInfo.max_combo,
-            maxScore: musicInfo.max_score
-          }
-        })
-        console.log('allMusicInfoList', allMusicInfoList);
-        app.ports.gotAllMusicInfoList.send(allMusicInfoList);
+        const getAllMusicInfoList = musicInfos.map(musicInfo => {
+          const getBestRecords =
+            musicInfo.bestRecords
+              ? musicInfo.bestRecords.map(async record => {
+                const getUserName = await firebase.database().ref(`/users/${record.uid}/userName`).once('value');
+                return {userName: getUserName.val(), bestScore: record.bestScore}
+              })
+              : [];
+          return Promise.all(getBestRecords)
+            .then((bestRecords) => {
+              return {
+                musicId: musicInfo.musicId,
+                csvFileName: musicInfo.csvFileName,
+                musicName: musicInfo.musicName,
+                composer: musicInfo.composer,
+                mode: musicInfo.mode,
+                level: musicInfo.level,
+                fullTime: musicInfo.fullTime,
+                bpm: musicInfo.bpm,
+                beatsCountPerMeasure: musicInfo.beatsCountPerMeasure,
+                offset: musicInfo.offset,
+                maxCombo: musicInfo.maxCombo,
+                maxScore: musicInfo.maxScore,
+                bestRecords: bestRecords
+              }
+            })
+            .catch((err) => {
+              console.error(err);
+              // TODO: ネットワークエラー画面に飛ばす
+            })
+        });
+        Promise.all(getAllMusicInfoList)
+          .then((allMusicInfoList) => {
+            console.log('allMusicInfoList', allMusicInfoList);
+            app.ports.gotAllMusicInfoList.send(allMusicInfoList);
+          })
+          .catch((err) => {
+            console.error(err);
+            // TODO: ネットワークエラー画面に飛ばす
+          })
       },
       (err) => {
         console.error(err);
