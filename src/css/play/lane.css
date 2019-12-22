@@ -8,7 +8,6 @@
 }
 
 .playLane_lane.is-pressing {
-  /* background-color: rgba(255, 255, 255, 0.5); */
   background: -moz-linear-gradient(top, transparent 40%, var(--color-elm-darkblue));
   background: -webkit-linear-gradient(top, transparent 40%, var(--color-elm-darkblue));
   background: linear-gradient(to bottom, transparent 40%, var(--color-elm-darkblue));

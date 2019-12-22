@@ -11,6 +11,7 @@ module Session exposing
     , toNavKey
     , toUser
     , toUserSetting
+    , updateUser
     , updateUserSetting
     )
 
@@ -103,6 +104,16 @@ setUser key maybeUserDto =
 
         Nothing ->
             NotLogin key
+
+
+updateUser : data -> (data -> User -> User) -> Session -> Session
+updateUser data update session =
+    case session of
+        LoggedIn key user userSetting allMusicInfoList ->
+            LoggedIn key (update data user) userSetting allMusicInfoList
+
+        NotLogin _ ->
+            session
 
 
 setUserSetting : UserSettingDto -> Session -> Session

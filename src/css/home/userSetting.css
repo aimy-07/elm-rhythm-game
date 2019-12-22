@@ -20,7 +20,62 @@
   margin: 0 59px;
 }
 
-.homeUserSetting_userNameText {
+.homeUserSetting_userIconBtnLabel {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 18px;
+  width: 110px;
+  height: 110px;
+  border-radius: 55px;
+  margin: 0 59px;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.homeUserSetting_userIconBtnImage {
+  width: 30px;
+  height: 30px;
+  margin: 40px 40px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.homeUserSetting_userIconBtnLabel:hover,
+.homeUserSetting_userIconBtnLabel.is-uploading {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.homeUserSetting_userIconBtnLabel:hover .homeUserSetting_userIconBtnImage {
+  opacity: 1;
+}
+
+.homeUserSetting_userIconBtnLabel.is-uploading .homeUserSetting_userIconBtnImage {
+  opacity: 1;
+  animation: rotateAmimation 2s linear infinite;
+}
+
+@keyframes rotateAmimation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.homeUserSetting_userIconBtn {
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.homeUserSetting_userNameInput {
+  display: block;
   width: 228px;
   text-align: center;
   line-height: 28px;
@@ -30,7 +85,11 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  background-color: transparent;
+  outline: none;
+  border: none;
   border-bottom: solid 1px white;
+  box-sizing: border-box;
 }
 
 .homeUserSetting_logoutIcon {

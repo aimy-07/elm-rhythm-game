@@ -5,6 +5,7 @@ import Constants exposing (allMode, notesSpeedLevel)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Json.Decode as Decode
 import MusicInfo as MusicInfo exposing (MusicInfo, MusicInfoDto)
 import MusicInfo.CsvFileName as CsvFileName
 import MusicInfo.Level as Level
@@ -16,9 +17,10 @@ import PublicRecord exposing (PublicRecord, PublicRecordDto)
 import Rank exposing (Rank)
 import Route
 import Session exposing (Session)
+import User exposing (User)
 import UserSetting exposing (UserSettingData, UserSettingDto)
 import UserSetting.NotesSpeed exposing (NotesSpeed)
-import Utils exposing (cmdIf)
+import Utils exposing (cmdIf, viewIf)
 
 
 
@@ -29,7 +31,13 @@ type alias Model =
     { session : Session
     , maybeOwnRecords : Maybe (List OwnRecord)
     , maybePublicRecords : Maybe (List PublicRecord)
+    , pictureUploadS : PictureUploadS
     }
+
+
+type PictureUploadS
+    = NotUploading
+    | Uploading
 
 
 initModel : Session -> Model
@@ -37,6 +45,7 @@ initModel session =
     { session = session
     , maybeOwnRecords = Nothing
     , maybePublicRecords = Nothing
+    , pictureUploadS = NotUploading
     }
 
 
@@ -82,6 +91,9 @@ type Msg
     | ChangeMusicId MusicId
     | ChangeMode Mode
     | ChangeNotesSpeed NotesSpeed
+    | InputUserName String
+    | SelectdPicture Decode.Value
+    | SavedUserPicture String
     | SignOut
 
 
@@ -151,6 +163,27 @@ update msg model =
                     , saveNotesSpeed { uid = user.uid, notesSpeed = notesSpeed }
                     )
 
+                InputUserName nextUserName ->
+                    let
+                        updatedSession =
+                            Session.updateUser nextUserName User.updateUserName model.session
+                    in
+                    ( { model | session = updatedSession }
+                    , saveUserName { uid = user.uid, userName = nextUserName }
+                    )
+
+                SelectdPicture event ->
+                    ( { model | pictureUploadS = Uploading }
+                    , saveUserPicture { uid = user.uid, event = event }
+                    )
+
+                SavedUserPicture url ->
+                    let
+                        updatedSession =
+                            Session.updateUser url User.updatePictureUrl model.session
+                    in
+                    ( { model | pictureUploadS = NotUploading, session = updatedSession }, Cmd.none )
+
                 SignOut ->
                     ( model, signOut () )
 
@@ -177,13 +210,13 @@ port getUserSetting : String -> Cmd msg
 port gotUserSetting : (UserSettingDto -> msg) -> Sub msg
 
 
-port saveNotesSpeed : { uid : String, notesSpeed : Float } -> Cmd msg
-
-
 port saveCurrentMusicId : { uid : String, currentMusicId : String } -> Cmd msg
 
 
 port saveCurrentMode : { uid : String, currentMode : String } -> Cmd msg
+
+
+port saveNotesSpeed : { uid : String, notesSpeed : Float } -> Cmd msg
 
 
 port getOwnRecords : String -> Cmd msg
@@ -196,6 +229,15 @@ port getPublicRecords : () -> Cmd msg
 
 
 port gotPublicRecords : (List PublicRecordDto -> msg) -> Sub msg
+
+
+port saveUserName : { uid : String, userName : String } -> Cmd msg
+
+
+port saveUserPicture : { uid : String, event : Decode.Value } -> Cmd msg
+
+
+port savedUserPicture : (String -> msg) -> Sub msg
 
 
 port playMusicSelectAnim : () -> Cmd msg
@@ -218,6 +260,7 @@ subscriptions model =
         , gotUserSetting GotUserSetting
         , gotOwnRecords GotOwnRecords
         , gotPublicRecords GotPublicRecords
+        , savedUserPicture SavedUserPicture
         ]
 
 
@@ -272,17 +315,7 @@ viewContents model =
                                 [ class "home_leftContents" ]
                                 [ div
                                     [ class "homeUserSetting_container" ]
-                                    [ div
-                                        [ class "homeUserSetting_leftContents" ]
-                                        [ img [ class "homeUserSetting_userIcon", src user.pictureUrl ] []
-                                        , div [ class "homeUserSetting_userNameText" ] [ text user.userName ]
-                                        , img
-                                            [ class "homeUserSetting_logoutIcon"
-                                            , src "./img/icon_logout.png"
-                                            , onClick SignOut
-                                            ]
-                                            []
-                                        ]
+                                    [ viewUser user model.pictureUploadS
                                     , viewSetting userSetting
                                     ]
                                 , viewModeTab userSetting
@@ -311,6 +344,44 @@ viewContents model =
 
         _ ->
             div [ class "home_contentsContainer" ] [ Page.viewLoading ]
+
+
+viewUser : User -> PictureUploadS -> Html Msg
+viewUser user pictureUploadS =
+    let
+        clsIsUploading =
+            if pictureUploadS == Uploading then
+                "is-uploading"
+
+            else
+                ""
+
+        isUploading =
+            pictureUploadS == Uploading
+    in
+    div
+        [ class "homeUserSetting_leftContents" ]
+        [ img [ class "homeUserSetting_userIcon", src user.pictureUrl ] []
+        , label
+            [ class "homeUserSetting_userIconBtnLabel"
+            , class clsIsUploading
+            ]
+            [ input
+                [ class "homeUserSetting_userIconBtn"
+                , type_ "file"
+                , name "userPictureUrl"
+                , on "change" (Decode.map SelectdPicture Decode.value)
+                , disabled isUploading
+                ]
+                []
+            , img [ class "homeUserSetting_userIconBtnImage", src "./img/icon_photo.png" ] []
+                |> viewIf (not isUploading)
+            , img [ class "homeUserSetting_userIconBtnImage", class clsIsUploading, src "./img/icon_loading.png" ] []
+                |> viewIf isUploading
+            ]
+        , input [ class "homeUserSetting_userNameInput", value user.userName, onInput InputUserName ] []
+        , img [ class "homeUserSetting_logoutIcon", src "./img/icon_logout.png", onClick SignOut ] []
+        ]
 
 
 viewSetting : UserSettingData -> Html Msg

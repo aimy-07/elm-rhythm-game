@@ -215,6 +215,7 @@
   color: white;
   font-size: 20px;
   margin-top: 16px;
+  text-decoration: underline;
   cursor: pointer;
 }
 

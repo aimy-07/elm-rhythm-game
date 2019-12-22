@@ -53,3 +53,31 @@
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
 }
+
+/* -------------------------------
+  OverView
+------------------------------- */
+.home_overview {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: rgba(20,20,40,0.7);
+  cursor: default;
+  z-index: 100;
+}
+
+.homeOverview_container {
+  width: 1000px;
+  height: 700px;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+  box-sizing: border-box;
+  padding: 200px 300px;
+  cursor: default;
+}

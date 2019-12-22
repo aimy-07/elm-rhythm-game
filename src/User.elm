@@ -1,4 +1,4 @@
-module User exposing (Uid, User, UserDto, new)
+module User exposing (Uid, User, UserDto, new, updatePictureUrl, updateUserName)
 
 
 type alias Uid =
@@ -25,3 +25,13 @@ new { uid, userName, pictureUrl } =
     , userName = userName
     , pictureUrl = pictureUrl
     }
+
+
+updateUserName : String -> User -> User
+updateUserName userName user =
+    { user | userName = userName }
+
+
+updatePictureUrl : String -> User -> User
+updatePictureUrl pictureUrl user =
+    { user | pictureUrl = pictureUrl }
