@@ -638,25 +638,34 @@ viewDisplayCircle musicInfo model =
 viewNotStart : Html msg
 viewNotStart =
     div [ class "play_overview" ]
-        [ div [ class "playOverview_startText" ] [ text "READY" ]
-        , div [ class "playOverview_startSubText" ] [ text "- Press Space to Start -" ]
+        [ div
+            [ class "playOverview_container" ]
+            [ div [ class "playOverview_startText" ] [ text "READY" ]
+            , div [ class "playOverview_startSubText" ] [ text "- Press Space to Start -" ]
+            ]
         ]
 
 
 viewPause : Html msg
 viewPause =
     div [ class "play_overview" ]
-        [ div [ class "playOverview_pauseText" ] [ text "PAUSE" ]
-        , div [ class "playOverview_pauseSubText" ] [ text "- Press Space to UnPause -" ]
+        [ div
+            [ class "playOverview_container" ]
+            [ div [ class "playOverview_pauseText" ] [ text "PAUSE" ]
+            , div [ class "playOverview_pauseSubText" ] [ text "- Press Space to UnPause -" ]
+            ]
         ]
 
 
 viewCountdown : Html msg
 viewCountdown =
     div [ class "play_overview" ]
-        [ div [ class "playOverview_cowntdownText is-first" ] []
-        , div [ class "playOverview_cowntdownText is-second" ] []
-        , div [ class "playOverview_cowntdownText is-third" ] []
+        [ div
+            [ class "playOverview_container" ]
+            [ div [ class "playOverview_cowntdownText is-first" ] []
+            , div [ class "playOverview_cowntdownText is-second" ] []
+            , div [ class "playOverview_cowntdownText is-third" ] []
+            ]
         ]
 
 
@@ -674,59 +683,62 @@ viewResult musicInfo isHighScore model =
     in
     div [ class "play_overview" ]
         [ div
-            [ class "playOverview_contentsContainer" ]
-            [ div [ class "playOverview_back" ] []
-            , div [ class "playOverview_backInner" ] []
-            , div [ class "playOverview_titleText" ] [ text "RESULT" ]
-            , div [ class "playOverview_bigText" ] [ text musicInfo.musicName ]
-            , div [ class "playOverview_smallText" ] [ text musicInfo.composer ]
-            , div
-                [ class "playOverview_smallText" ]
-                [ span [] [ text <| Mode.toString musicInfo.mode ]
-                , span [] [ text "\u{3000}" ]
-                , span [] [ text <| Level.toString musicInfo.level ]
-                ]
-            , div
-                [ class "playOverviewResultItem_container" ]
-                [ div [ class "playOverviewResultItem_box" ] []
-                , div [ class "playOverviewResultItem_labelText" ] [ text "COMBO" ]
-                , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString comboRank ]
-                , div [ class "playOverviewResultItem_effectText" ] [ text "Full Combo!!" ]
-                    |> viewIf isFullCombo
+            [ class "playOverview_container" ]
+            [ div
+                [ class "playOverview_contentsContainer" ]
+                [ div [ class "playOverview_back" ] []
+                , div [ class "playOverview_backInner" ] []
+                , div [ class "playOverview_titleText" ] [ text "RESULT" ]
+                , div [ class "playOverview_bigText" ] [ text musicInfo.musicName ]
+                , div [ class "playOverview_smallText" ] [ text musicInfo.composer ]
                 , div
-                    [ class "playOverviewResultItem_textContainer" ]
-                    [ span
-                        [ class "playOverviewResultItem_resultText" ]
-                        [ text <| String.fromInt (Combo.toMaxCombo model.combo) ]
-                    , span
-                        [ class "playOverviewResultItem_maxText" ]
-                        [ text <| " / " ++ String.fromInt musicInfo.maxCombo ]
+                    [ class "playOverview_smallText" ]
+                    [ span [] [ text <| Mode.toString musicInfo.mode ]
+                    , span [] [ text "\u{3000}" ]
+                    , span [] [ text <| Level.toString musicInfo.level ]
                     ]
-                , div [ class "playOverviewResultItem_line" ] []
-                ]
-            , div
-                [ class "playOverviewResultItem_container" ]
-                [ div [ class "playOverviewResultItem_box" ] []
-                , div [ class "playOverviewResultItem_labelText" ] [ text "SCORE" ]
-                , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString scoreRank ]
-                , div [ class "playOverviewResultItem_effectText" ] [ text "High Score!!" ]
-                    |> viewIf isHighScore
                 , div
-                    [ class "playOverviewResultItem_textContainer" ]
-                    [ span
-                        [ class "playOverviewResultItem_resultText" ]
-                        [ text <| String.fromInt (Score.unwrap model.score) ]
-                    , span
-                        [ class "playOverviewResultItem_maxText" ]
-                        [ text <| " / " ++ String.fromInt musicInfo.maxScore ]
+                    [ class "playOverviewResultItem_container" ]
+                    [ div [ class "playOverviewResultItem_box" ] []
+                    , div [ class "playOverviewResultItem_labelText" ] [ text "COMBO" ]
+                    , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString comboRank ]
+                    , div [ class "playOverviewResultItem_effectText" ] [ text "Full Combo!!" ]
+                        |> viewIf isFullCombo
+                    , div
+                        [ class "playOverviewResultItem_textContainer" ]
+                        [ span
+                            [ class "playOverviewResultItem_resultText" ]
+                            [ text <| String.fromInt (Combo.toMaxCombo model.combo) ]
+                        , span
+                            [ class "playOverviewResultItem_maxText" ]
+                            [ text <| " / " ++ String.fromInt musicInfo.maxCombo ]
+                        ]
+                    , div [ class "playOverviewResultItem_line" ] []
                     ]
-                , div [ class "playOverviewResultItem_line" ] []
-                ]
+                , div
+                    [ class "playOverviewResultItem_container" ]
+                    [ div [ class "playOverviewResultItem_box" ] []
+                    , div [ class "playOverviewResultItem_labelText" ] [ text "SCORE" ]
+                    , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString scoreRank ]
+                    , div [ class "playOverviewResultItem_effectText" ] [ text "High Score!!" ]
+                        |> viewIf isHighScore
+                    , div
+                        [ class "playOverviewResultItem_textContainer" ]
+                        [ span
+                            [ class "playOverviewResultItem_resultText" ]
+                            [ text <| String.fromInt (Score.unwrap model.score) ]
+                        , span
+                            [ class "playOverviewResultItem_maxText" ]
+                            [ text <| " / " ++ String.fromInt musicInfo.maxScore ]
+                        ]
+                    , div [ class "playOverviewResultItem_line" ] []
+                    ]
 
-            -- 戻るボタンでプレイ画面に戻ることを許容する
-            , a
-                [ class "playOverviewResultItem_backBtn", Route.href Route.Home ]
-                [ text "- Back to Home -" ]
+                -- 戻るボタンでプレイ画面に戻ることを許容する
+                , a
+                    [ class "playOverviewResultItem_backBtn", Route.href Route.Home ]
+                    [ text "- Back to Home -" ]
+                ]
             ]
         ]
 

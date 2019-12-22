@@ -219,6 +219,10 @@
   cursor: pointer;
 }
 
+.error_btnText:hover {
+  color: var(--color-elm-lightblue);
+}
+
 .error_boxContainer {
   height: 60px;
   width: 60px;
