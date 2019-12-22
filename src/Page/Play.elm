@@ -1,7 +1,7 @@
 port module Page.Play exposing (Model, Msg, init, subscriptions, toSession, update, view)
 
 import AllMusicInfoList
-import Constants exposing (allKeyStr)
+import Constants exposing (allKeyStr, tweetText)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -680,6 +680,13 @@ viewResult musicInfo isHighScore model =
 
         scoreRank =
             Rank.newScoreRank (Score.unwrap model.score) musicInfo.maxScore
+
+        tweetTextContent =
+            tweetText
+                musicInfo.musicName
+                musicInfo.mode
+                (Score.unwrap model.score)
+                (Combo.unwrap model.combo)
     in
     div [ class "play_overview" ]
         [ div
@@ -733,6 +740,12 @@ viewResult musicInfo isHighScore model =
                         ]
                     , div [ class "playOverviewResultItem_line" ] []
                     ]
+                , a
+                    [ class "playOverviewResultItem_tweetBtn"
+                    , href <| "http://twitter.com/intent/tweet?text=" ++ tweetTextContent
+                    , target "_blank"
+                    ]
+                    [ text "- Tweet the Result -" ]
 
                 -- 戻るボタンでプレイ画面に戻ることを許容する
                 , a

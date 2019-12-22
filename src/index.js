@@ -10,7 +10,8 @@ import {animationSetUpSubscriber} from './js/animation';
 import firebase from 'firebase/app';
 import 'firebase/auth';
 import 'firebase/database';
-import {firebaseConfig} from './config';
+import {firebaseConfig, twitterConfig} from './config';
+import twitter from 'twitter'
 
 
 
@@ -56,6 +57,14 @@ firebase.auth().onAuthStateChanged((user) => {
       .catch(detectedError)
   }
 });
+
+
+
+/* ---------------------------------
+  twitter
+---------------------------------- */
+const twitterClient = new twitter(twitterConfig);
+// twitterClient.post('statuses/update', {status: 'ツイートしたい内容'}, detectedError);
 
 
 

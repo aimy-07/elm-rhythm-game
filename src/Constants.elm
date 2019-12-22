@@ -15,6 +15,7 @@ module Constants exposing
     , notesSpeedLevel
     , perfectRange
     , perfectScore
+    , tweetText
     )
 
 import MusicInfo.Mode as Mode exposing (Mode)
@@ -101,3 +102,27 @@ notesSpeedLevel =
 notesSpeedDefault : NotesSpeed
 notesSpeedDefault =
     0.4
+
+
+tweetText : String -> Mode -> Int -> Int -> String
+tweetText musicName mode score combo =
+    let
+        text1 =
+            "【Elmで開発中のリズムゲームをプレイ中！】"
+
+        text2 =
+            musicName ++ "の" ++ Mode.toString mode ++ "モードで"
+
+        text3 =
+            "スコア" ++ String.fromInt score ++ "、コンボ" ++ String.fromInt combo ++ "を記録しました！"
+
+        text4 =
+            "※ テストです"
+
+        url =
+            ""
+
+        hashtag =
+            ""
+    in
+    text1 ++ text2 ++ text3 ++ text4 ++ url ++ hashtag

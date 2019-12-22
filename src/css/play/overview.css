@@ -229,6 +229,29 @@
   background-color: white;
 }
 
+.playOverviewResultItem_tweetIcon {
+  position: absolute;
+  top: -5px;
+  left: 85px;
+  width: 20px;
+  height: 20px;
+}
+
+.playOverviewResultItem_tweetBtn {
+  position: absolute;
+  top: 320px;
+  width: 300px;
+  text-align: center;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.playOverviewResultItem_tweetBtn:hover {
+  color: var(--color-elm-lightblue);
+}
+
 .playOverviewResultItem_backBtn {
   position: absolute;
   top: 350px;
