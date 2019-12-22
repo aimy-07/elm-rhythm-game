@@ -70,16 +70,15 @@ export function databaseSetUpSubscriber (app) {
   })
 
   // 過去の自分のプレイデータの取得
-  // TODO: getOwnRecordに統一
-  app.ports.getOwnBestRecords.subscribe(uid => {
+  app.ports.getOwnRecords.subscribe(uid => {
     firebase.database().ref(`/users/${uid}/playRecords`).once('value')
       .then(
         (snapshot) => {
           if (snapshot.val()) {
             const records = toArrFromObj(snapshot.val());
-            app.ports.gotOwnBestRecords.send(records);
+            app.ports.gotOwnRecords.send(records);
           } else {
-            app.ports.gotOwnBestRecords.send([]);
+            app.ports.gotOwnRecords.send([]);
           }
         }
       )

@@ -57,7 +57,7 @@ init session =
                 [ getAllMusicInfoList ()
                     |> cmdIf (not <| AllMusicInfoList.isLoaded allMusicInfoList)
                 , getUserSetting user.uid
-                , getOwnBestRecords user.uid
+                , getOwnRecords user.uid
                 , getPublicRecords ()
                 , startHomeMusic ()
                 ]
@@ -77,7 +77,7 @@ init session =
 type Msg
     = GotAllMusicInfoList (List MusicInfoDto)
     | GotUserSetting UserSettingDto
-    | GotOwnBestRecords (List OwnRecordDto)
+    | GotOwnRecords (List OwnRecordDto)
     | GotPublicRecords (List PublicRecordDto)
     | ChangeMusicId MusicId
     | ChangeMode Mode
@@ -104,7 +104,7 @@ update msg model =
                     in
                     ( { model | session = session }, Cmd.none )
 
-                GotOwnBestRecords ownRecordDtos ->
+                GotOwnRecords ownRecordDtos ->
                     let
                         ownRecords =
                             List.map OwnRecord.new ownRecordDtos
@@ -186,10 +186,10 @@ port saveCurrentMusicId : { uid : String, currentMusicId : String } -> Cmd msg
 port saveCurrentMode : { uid : String, currentMode : String } -> Cmd msg
 
 
-port getOwnBestRecords : String -> Cmd msg
+port getOwnRecords : String -> Cmd msg
 
 
-port gotOwnBestRecords : (List OwnRecordDto -> msg) -> Sub msg
+port gotOwnRecords : (List OwnRecordDto -> msg) -> Sub msg
 
 
 port getPublicRecords : () -> Cmd msg
@@ -216,7 +216,7 @@ subscriptions model =
     Sub.batch
         [ gotAllMusicInfoList GotAllMusicInfoList
         , gotUserSetting GotUserSetting
-        , gotOwnBestRecords GotOwnBestRecords
+        , gotOwnRecords GotOwnRecords
         , gotPublicRecords GotPublicRecords
         ]
 
