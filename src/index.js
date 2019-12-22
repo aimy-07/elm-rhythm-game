@@ -31,8 +31,6 @@ registerServiceWorker();
 ---------------------------------- */
 firebase.initializeApp(firebaseConfig);
 
-const googleAuthProvider = new firebase.auth.GoogleAuthProvider();
-
 
 
 /* ---------------------------------
@@ -71,7 +69,7 @@ const twitterClient = new twitter(twitterConfig);
 /* ---------------------------------
   Subscriber
 ---------------------------------- */
-authSetUpSubscriber(app, googleAuthProvider);
+authSetUpSubscriber(app);
 databaseSetUpSubscriber(app);
 csvSetUpSubscriber(app);
 audioSetUpSubscriber(app);

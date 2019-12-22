@@ -6,13 +6,35 @@ import {detectedError} from '../index';
 const uuidv4 = require('uuid/v4');
 
 
+
+/* ---------------------------------
+	Provider
+---------------------------------- */
+const googleAuthProvider = new firebase.auth.GoogleAuthProvider();
+const twitterAuthProvider = new firebase.auth.TwitterAuthProvider();
+const githubAuthProvider = new firebase.auth.GithubAuthProvider();
+
+
+
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
-export function authSetUpSubscriber (app, googleAuthProvider) {
+export function authSetUpSubscriber (app) {
   // サインイン
-  app.ports.signIn.subscribe(() => {
+  app.ports.signInWithGoogle.subscribe(() => {
     firebase.auth().signInWithPopup(googleAuthProvider)
+      .then(() => {})
+      .catch(detectedError);
+  });
+
+  app.ports.signInWithTwitter.subscribe(() => {
+    firebase.auth().signInWithPopup(twitterAuthProvider)
+      .then(() => {})
+      .catch(detectedError);
+  });
+
+  app.ports.signInWithGithub.subscribe(() => {
+    firebase.auth().signInWithPopup(githubAuthProvider)
       .then(() => {})
       .catch(detectedError);
   });

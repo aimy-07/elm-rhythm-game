@@ -26,14 +26,22 @@ init session =
 
 
 type Msg
-    = ClickedLoginButton
+    = ClickedGoogleLoginBtn
+    | ClickedTwitterLoginBtn
+    | ClickedGithubLoginBtn
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ClickedLoginButton ->
-            ( model, signIn () )
+        ClickedGoogleLoginBtn ->
+            ( model, signInWithGoogle () )
+
+        ClickedTwitterLoginBtn ->
+            ( model, signInWithTwitter () )
+
+        ClickedGithubLoginBtn ->
+            ( model, signInWithGithub () )
 
 
 
@@ -51,7 +59,9 @@ viewContents : Model -> Html Msg
 viewContents model =
     div []
         [ h1 [] [ text "ログインページ" ]
-        , button [ onClick ClickedLoginButton ] [ text "Googleアカウントでログイン" ]
+        , button [ onClick ClickedGoogleLoginBtn ] [ text "Googleアカウントでログイン" ]
+        , button [ onClick ClickedTwitterLoginBtn ] [ text "Twitterアカウントでログイン" ]
+        , button [ onClick ClickedGithubLoginBtn ] [ text "Githubアカウントでログイン" ]
         ]
 
 
@@ -59,7 +69,13 @@ viewContents model =
 -- PORT
 
 
-port signIn : () -> Cmd msg
+port signInWithGoogle : () -> Cmd msg
+
+
+port signInWithTwitter : () -> Cmd msg
+
+
+port signInWithGithub : () -> Cmd msg
 
 
 
