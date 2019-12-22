@@ -15,15 +15,6 @@ import {firebaseConfig} from './config';
 
 
 /* ---------------------------------
-  Firebase init
----------------------------------- */
-firebase.initializeApp(firebaseConfig);
-
-const googleAuthProvider = new firebase.auth.GoogleAuthProvider();
-
-
-
-/* ---------------------------------
   Elm init
 ---------------------------------- */
 const app = Elm.Main.init({
@@ -31,6 +22,15 @@ const app = Elm.Main.init({
 });
 
 registerServiceWorker();
+
+
+
+/* ---------------------------------
+  Firebase init
+---------------------------------- */
+firebase.initializeApp(firebaseConfig);
+
+const googleAuthProvider = new firebase.auth.GoogleAuthProvider();
 
 
 
@@ -43,28 +43,15 @@ firebase.auth().onAuthStateChanged((user) => {
     app.ports.onAuthStateChanged.send(null);
   } else {
     // サインイン済み
-    // TODO: userDataの持ち方を変える
-    const saveUser = firebase.database().ref(`/users/${user.uid}`).transaction(
-      (userData) => {
-        if (!userData) {
-          return {
-            userName: user.displayName,
-            pictureUrl: user.photoURL,
-          }
-        } else {
-          // 過去にログインしたことのあるユーザー
-          return;
-        }
-      },
-      detectedError
-    );
+    const userInfo = {
+      uid: user.uid,
+      userName: user.displayName,
+      pictureUrl: user.photoURL
+    }
+    const saveUser = firebase.database().ref(`/users/${user.uid}`).set(userInfo, detectedError);
     saveUser
       .then(() => {
-        app.ports.onAuthStateChanged.send({
-          uid: user.uid,
-          userName: user.displayName,
-          pictureUrl: user.photoURL,
-        });
+        app.ports.onAuthStateChanged.send(userInfo);
       })
       .catch(detectedError)
   }

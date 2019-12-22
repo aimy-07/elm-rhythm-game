@@ -12,9 +12,13 @@ const uuidv4 = require('uuid/v4');
 export function databaseSetUpSubscriber (app) {
   // ユーザー設定の取得
   app.ports.getUserSetting.subscribe(uid => {
-    firebase.database().ref(`/users/${uid}`).once('value')
+    firebase.database().ref(`/userDatas/${uid}`).once('value')
       .then(
         (snapshot) => {
+          if (!snapshot.val()) {
+            app.ports.gotUserSetting.send({currentMusicId: null, currentMode: null, notesSpeed: null});
+            return;
+          }
           const data = snapshot.val();
           const currentMusicId = data.currentMusicId ? data.currentMusicId : null;
           const currentMode = data.currentMode ? data.currentMode : null;
@@ -27,17 +31,17 @@ export function databaseSetUpSubscriber (app) {
 
   // 最後に選択した曲のMusicIdを保存
   app.ports.saveCurrentMusicId.subscribe(({uid, currentMusicId}) => {
-    firebase.database().ref(`/users/${uid}/currentMusicId/`).set(currentMusicId, detectedError);
+    firebase.database().ref(`/userDatas/${uid}/currentMusicId/`).set(currentMusicId, detectedError);
   });
 
   // 最後に選択した曲のModeを保存
   app.ports.saveCurrentMode.subscribe(({uid, currentMode}) => {
-    firebase.database().ref(`/users/${uid}/currentMode/`).set(currentMode, detectedError);
+    firebase.database().ref(`/userDatas/${uid}/currentMode/`).set(currentMode, detectedError);
   });
 
   // ノーツの速度を保存
   app.ports.saveNotesSpeed.subscribe(({uid, notesSpeed}) => {
-    firebase.database().ref(`/users/${uid}/notesSpeed/`).set(notesSpeed, detectedError);
+    firebase.database().ref(`/userDatas/${uid}/notesSpeed/`).set(notesSpeed, detectedError);
   });
 
   // 全ての楽曲の情報を取得する
@@ -45,6 +49,7 @@ export function databaseSetUpSubscriber (app) {
     firebase.database().ref('/musicInfos').once('value')
       .then(
         (snapshot) => {
+          // musicInfosが存在しないことはありえないので、!snapshot.val()でも問題ない
           const musicInfos = toArrFromObj(snapshot.val());
           const allMusicInfoList = musicInfos.map(musicInfo => {
             return {
@@ -71,26 +76,29 @@ export function databaseSetUpSubscriber (app) {
 
   // 過去の自分のプレイデータの取得
   app.ports.getOwnRecords.subscribe(uid => {
-    firebase.database().ref(`/users/${uid}/playRecords`).once('value')
+    firebase.database().ref(`/userDatas/${uid}/playRecords`).once('value')
       .then(
         (snapshot) => {
-          if (snapshot.val()) {
-            const records = toArrFromObj(snapshot.val());
-            app.ports.gotOwnRecords.send(records);
-          } else {
+          if (!snapshot.val()) {
             app.ports.gotOwnRecords.send([]);
+            return;
           }
+          const records = toArrFromObj(snapshot.val());
+          app.ports.gotOwnRecords.send(records);
         }
       )
       .catch(detectedError)
   });
 
   // ランキングデータの取得
-  // TODO: firebaseルールでuserNameへのアクセスを許可
   app.ports.getPublicRecords.subscribe(() => {
     firebase.database().ref(`/publicRecords`).once('value')
       .then(
         (snapshot) => {
+          if (!snapshot.val()) {
+            app.ports.gotPublicRecords.send([]);
+            return;
+          }
           const publicRecords = toArrFromObj(snapshot.val());
           const getPublicRecords = publicRecords.map(publicRecord => {
             const getBestScores =
@@ -130,7 +138,7 @@ export function databaseSetUpSubscriber (app) {
     );
 
     let isHighScore;
-    const updateOwnPlayRecord = firebase.database().ref(`/users/${uid}/playRecords/${csvFileName}`).transaction(
+    const updateOwnPlayRecord = firebase.database().ref(`/userDatas/${uid}/playRecords/${csvFileName}`).transaction(
       (playRecord) => {
         if (playRecord) {
           isHighScore = score > playRecord.bestScore;
@@ -153,20 +161,20 @@ export function databaseSetUpSubscriber (app) {
       detectedError
     );
 
-    const updatePublicPlayRecord = firebase.database().ref(`/publicRecords/${csvFileName}/bestScores`).transaction(
-      (bestScores) => {
+    const updatePublicPlayRecord = firebase.database().ref(`/publicRecords/${csvFileName}/`).transaction(
+      (publicRecord) => {
+        if (!publicRecord) {
+          return {csvFileName, bestScores: [{uid, score}]}
+        }
+        const bestScores = publicRecord.bestScores;
         if (score == 0) {
           return bestScores ? bestScores : [];
         }
-        if (bestScores) {
-          const newBestScores = _.sortBy(bestScores.concat({uid, score}), (record => record.score)).reverse();
-          if (newBestScores.length > 3) {
-            return newBestScores.slice(0, 3);
-          } else {
-            return newBestScores
-          }
+        const newBestScores = _.sortBy(bestScores.concat({uid, score}), (record => record.score)).reverse();
+        if (newBestScores.length > 3) {
+          return {csvFileName, bestScores: newBestScores.slice(0, 3)}
         } else {
-          return [{uid, score}]
+          return {csvFileName, bestScores: newBestScores}
         }
       },
       detectedError
@@ -185,7 +193,7 @@ export function databaseSetUpSubscriber (app) {
 /* ---------------------------------
 	連想配列を配列に変換する関数
 ---------------------------------- */
-export const toArrFromObj = obj => {
+const toArrFromObj = obj => {
   const arr = [];
   Object.keys(obj).forEach((key) => {
     arr.push(obj[key]);
