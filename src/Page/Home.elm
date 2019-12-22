@@ -65,7 +65,7 @@ init session =
 
         Nothing ->
             -- Homeで user == Nothing にはまずならないが、念のためログイン画面に戻す処理を入れておく
-            ( initModel session
+            ( initModel <| Session.init (Session.toNavKey session)
             , Route.replaceUrl (Session.toNavKey session) Route.Login
             )
 
@@ -569,6 +569,7 @@ viewBottomLeftArea2 currentMusicInfo maybeOwnRecord =
 viewBottomRightArea : MusicInfo -> Html msg
 viewBottomRightArea currentMusicInfo =
     div []
+        -- 戻るボタンでHomeに戻ることを許容する
         [ a [ Route.href <| Route.Play currentMusicInfo.csvFileName ]
             [ div
                 [ class "home_bottomRightArea", id "home_bottomRightArea" ]

@@ -722,6 +722,8 @@ viewResult musicInfo isHighScore model =
                     ]
                 , div [ class "playOverviewResultItem_line" ] []
                 ]
+
+            -- 戻るボタンでプレイ画面に戻ることを許容する
             , a
                 [ class "playOverviewResultItem_backBtn", Route.href Route.Home ]
                 [ text "- Back to Home -" ]
