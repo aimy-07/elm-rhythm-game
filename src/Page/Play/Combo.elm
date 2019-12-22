@@ -8,8 +8,8 @@ port module Page.Play.Combo exposing
     , updateKeyDown
     )
 
-import Page
 import Page.Play.Judge exposing (Judge(..))
+import Utils exposing (cmdIf)
 
 
 type Combo
@@ -85,7 +85,7 @@ updateMaxCombo combo maxCombo =
 comboEffectCmd : Combo -> Combo -> Cmd msg
 comboEffectCmd prevCombo nextCombo =
     playComboEffectAnim ()
-        |> Page.cmdIf (unwrap nextCombo > unwrap prevCombo)
+        |> cmdIf (unwrap nextCombo > unwrap prevCombo)
 
 
 port playComboEffectAnim : () -> Cmd msg

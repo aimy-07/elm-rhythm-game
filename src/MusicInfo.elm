@@ -3,17 +3,13 @@ module MusicInfo exposing
     , MusicInfoDto
     , empty
     , new
-    , toFirstRecord
-    , toSecondRecord
     , toStringTime
-    , toThirdRecord
     )
 
 import MusicInfo.CsvFileName exposing (CsvFileName)
 import MusicInfo.Level exposing (Level)
 import MusicInfo.Mode as Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
-import PublicRecord exposing (PublicRecord, PublicRecordDto)
 
 
 type alias MusicInfo =
@@ -29,7 +25,6 @@ type alias MusicInfo =
     , maxScore : Int
     , beatsCountPerMeasure : Int
     , offset : Float
-    , bestRecords : List PublicRecord
     }
 
 
@@ -46,7 +41,6 @@ type alias MusicInfoDto =
     , maxScore : Int
     , beatsCountPerMeasure : Int
     , offset : Float
-    , bestRecords : List PublicRecordDto
     }
 
 
@@ -64,7 +58,6 @@ new musicInfoDto =
     , maxScore = musicInfoDto.maxScore
     , beatsCountPerMeasure = musicInfoDto.beatsCountPerMeasure
     , offset = musicInfoDto.offset
-    , bestRecords = musicInfoDto.bestRecords
     }
 
 
@@ -82,7 +75,6 @@ empty =
     , maxScore = 0
     , beatsCountPerMeasure = 0
     , offset = 0
-    , bestRecords = []
     }
 
 
@@ -96,29 +88,3 @@ toStringTime time =
             Basics.round time // 60
     in
     String.fromInt min ++ "分" ++ String.fromInt sec ++ "秒"
-
-
-toFirstRecord : MusicInfo -> Maybe PublicRecord
-toFirstRecord musicInfo =
-    musicInfo.bestRecords
-        |> List.sortBy .bestScore
-        |> List.reverse
-        |> List.head
-
-
-toSecondRecord : MusicInfo -> Maybe PublicRecord
-toSecondRecord musicInfo =
-    musicInfo.bestRecords
-        |> List.sortBy .bestScore
-        |> List.reverse
-        |> List.drop 1
-        |> List.head
-
-
-toThirdRecord : MusicInfo -> Maybe PublicRecord
-toThirdRecord musicInfo =
-    musicInfo.bestRecords
-        |> List.sortBy .bestScore
-        |> List.reverse
-        |> List.drop 2
-        |> List.head

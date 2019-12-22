@@ -1,6 +1,8 @@
 module Constants exposing
     ( allKeyStr
     , allMode
+    , currentModeDefault
+    , currentMusicIdDefault
     , goodRange
     , goodScore
     , greatRange
@@ -16,6 +18,7 @@ module Constants exposing
     )
 
 import MusicInfo.Mode as Mode exposing (Mode)
+import MusicInfo.MusicId exposing (MusicId)
 import Page.Play.KeyStr exposing (KeyStr)
 import UserSetting.NotesSpeed exposing (NotesSpeed)
 
@@ -73,6 +76,16 @@ goodScore =
 longScore : Int
 longScore =
     100
+
+
+currentMusicIdDefault : MusicId
+currentMusicIdDefault =
+    "sample_sound"
+
+
+currentModeDefault : Mode
+currentModeDefault =
+    Mode.normal
 
 
 allMode : List Mode

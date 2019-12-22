@@ -27,6 +27,7 @@ import Task
 import Time
 import UserSetting
 import UserSetting.NotesSpeed exposing (NotesSpeed)
+import Utils exposing (cmdIf, viewIf)
 
 
 
@@ -76,7 +77,7 @@ init : Session -> CsvFileName -> ( Model, Cmd Msg )
 init session csvFileName =
     let
         audioFileName =
-            CsvFileName.toMusicId csvFileName
+            CsvFileName.toAudioFileName csvFileName
 
         allMusicInfoList =
             Session.toAllMusicInfoList session
@@ -104,7 +105,7 @@ init session csvFileName =
             )
 
         _ ->
-            -- 存在しないcsvFileNameを指定した or UserSetting == Nothing だった場合、Homeに戻す
+            -- 存在しないcsvFileNameを指定した or maybeNotesSpeed == Nothing だった場合、Homeに戻す
             ( initModel session MusicInfo.empty 0
             , Route.replaceUrl (Session.toNavKey session) Route.Home
             )
@@ -404,7 +405,7 @@ update msg model =
                 , longEffectCmds
                 , comboEffectCmd
                 , saveRecordCmd
-                    |> Page.cmdIf (nextPlayStatus == PreFinish)
+                    |> cmdIf (nextPlayStatus == PreFinish)
                 ]
             )
 
@@ -691,7 +692,7 @@ viewResult musicInfo isHighScore model =
                 , div [ class "playOverviewResultItem_labelText" ] [ text "COMBO" ]
                 , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString comboRank ]
                 , div [ class "playOverviewResultItem_effectText" ] [ text "Full Combo!!" ]
-                    |> Page.viewIf isFullCombo
+                    |> viewIf isFullCombo
                 , div
                     [ class "playOverviewResultItem_textContainer" ]
                     [ span
@@ -709,7 +710,7 @@ viewResult musicInfo isHighScore model =
                 , div [ class "playOverviewResultItem_labelText" ] [ text "SCORE" ]
                 , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString scoreRank ]
                 , div [ class "playOverviewResultItem_effectText" ] [ text "High Score!!" ]
-                    |> Page.viewIf isHighScore
+                    |> viewIf isHighScore
                 , div
                     [ class "playOverviewResultItem_textContainer" ]
                     [ span

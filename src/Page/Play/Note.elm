@@ -22,13 +22,13 @@ module Page.Play.Note exposing
 import Constants exposing (longTimeDuration, longTimeOffset)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Page
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.KeyStr exposing (KeyStr)
 import Page.Play.Lane as Lane
 import Page.Play.Note.JustTime exposing (JustTime)
 import UserSetting.NotesSpeed exposing (NotesSpeed)
+import Utils exposing (viewIf)
 
 
 type Note
@@ -347,7 +347,7 @@ view currentMusicTime notesSpeed note =
                     , style "bottom" (String.fromFloat (bottom - 20) ++ "px")
                     ]
                     []
-                    |> Page.viewIf (not <| isLongJudging note)
+                    |> viewIf (not <| isLongJudging note)
                 , div
                     [ class "playNote_longLine"
                     , style "bottom" (String.fromFloat bottom ++ "px")

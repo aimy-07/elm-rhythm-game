@@ -1,4 +1,4 @@
-module Page exposing (Page(..), cmdIf, view, viewIf, viewLoaded, viewLoading)
+module Page exposing (Page(..), view, viewLoaded, viewLoading)
 
 import Browser exposing (Document)
 import Html exposing (..)
@@ -17,32 +17,6 @@ view page { title, content } =
     { title = title
     , body = [ content ]
     }
-
-
-
--- TODO: Utilに移動する
-
-
-viewIf : Bool -> Html msg -> Html msg
-viewIf show element =
-    if show then
-        element
-
-    else
-        text ""
-
-
-
--- TODO: Utilに移動する
-
-
-cmdIf : Bool -> Cmd msg -> Cmd msg
-cmdIf execute cmd =
-    if execute then
-        cmd
-
-    else
-        Cmd.none
 
 
 viewLoading : Html msg

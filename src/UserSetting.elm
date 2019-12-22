@@ -1,6 +1,19 @@
-module UserSetting exposing (UserSetting, UserSettingData, UserSettingDto, init, isLoaded, new, toMaybe, updateNotesSpeed)
+module UserSetting exposing
+    ( UserSetting
+    , UserSettingData
+    , UserSettingDto
+    , init
+    , isLoaded
+    , new
+    , toMaybe
+    , updateCurrentMode
+    , updateCurrentMusicId
+    , updateNotesSpeed
+    )
 
-import Constants exposing (notesSpeedDefault)
+import Constants exposing (currentModeDefault, currentMusicIdDefault, notesSpeedDefault)
+import MusicInfo.Mode as Mode exposing (Mode)
+import MusicInfo.MusicId exposing (MusicId)
 import UserSetting.NotesSpeed exposing (NotesSpeed)
 
 
@@ -10,12 +23,16 @@ type UserSetting
 
 
 type alias UserSettingData =
-    { notesSpeed : NotesSpeed
+    { currentMusicId : MusicId
+    , currentMode : Mode
+    , notesSpeed : NotesSpeed
     }
 
 
 type alias UserSettingDto =
-    { notesSpeed : Maybe NotesSpeed
+    { currentMusicId : Maybe String
+    , currentMode : Maybe String
+    , notesSpeed : Maybe NotesSpeed
     }
 
 
@@ -25,9 +42,17 @@ init =
 
 
 new : UserSettingDto -> UserSetting
-new { notesSpeed } =
+new { currentMusicId, currentMode, notesSpeed } =
     Loaded
-        { notesSpeed =
+        { currentMusicId =
+            currentMusicId
+                |> Maybe.map identity
+                |> Maybe.withDefault currentMusicIdDefault
+        , currentMode =
+            currentMode
+                |> Maybe.map Mode.new
+                |> Maybe.withDefault currentModeDefault
+        , notesSpeed =
             notesSpeed
                 |> Maybe.map identity
                 |> Maybe.withDefault notesSpeedDefault
@@ -52,6 +77,28 @@ toMaybe userSetting =
 
         NotLoaded ->
             Nothing
+
+
+updateCurrentMusicId : MusicId -> UserSetting -> UserSetting
+updateCurrentMusicId currentMusicId userSetting =
+    case userSetting of
+        Loaded setting ->
+            Loaded
+                { setting | currentMusicId = currentMusicId }
+
+        NotLoaded ->
+            userSetting
+
+
+updateCurrentMode : Mode -> UserSetting -> UserSetting
+updateCurrentMode currentMode userSetting =
+    case userSetting of
+        Loaded setting ->
+            Loaded
+                { setting | currentMode = currentMode }
+
+        NotLoaded ->
+            userSetting
 
 
 updateNotesSpeed : NotesSpeed -> UserSetting -> UserSetting

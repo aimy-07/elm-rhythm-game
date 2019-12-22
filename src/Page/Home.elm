@@ -6,18 +6,19 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import MusicInfo as MusicInfo exposing (MusicInfo, MusicInfoDto)
-import MusicInfo.CsvFileName as CsvFileName exposing (CsvFileName)
+import MusicInfo.CsvFileName as CsvFileName
 import MusicInfo.Level as Level
 import MusicInfo.Mode as Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
 import OwnRecord exposing (OwnRecord, OwnRecordDto)
 import Page
-import PublicRecord
+import PublicRecord exposing (PublicRecord, PublicRecordDto)
 import Rank exposing (Rank)
 import Route
 import Session exposing (Session)
 import UserSetting exposing (UserSettingData, UserSettingDto)
 import UserSetting.NotesSpeed exposing (NotesSpeed)
+import Utils exposing (cmdIf)
 
 
 
@@ -26,18 +27,16 @@ import UserSetting.NotesSpeed exposing (NotesSpeed)
 
 type alias Model =
     { session : Session
-    , maybeCurrentMusicId : Maybe MusicId
-    , maybeCurrentMode : Maybe Mode
     , maybeOwnRecords : Maybe (List OwnRecord)
+    , maybePublicRecords : Maybe (List PublicRecord)
     }
 
 
 initModel : Session -> Model
 initModel session =
     { session = session
-    , maybeCurrentMusicId = Nothing
-    , maybeCurrentMode = Nothing
     , maybeOwnRecords = Nothing
+    , maybePublicRecords = Nothing
     }
 
 
@@ -56,10 +55,10 @@ init session =
             ( initModel updatedSession
             , Cmd.batch
                 [ getAllMusicInfoList ()
-                    |> Page.cmdIf (not <| AllMusicInfoList.isLoaded allMusicInfoList)
+                    |> cmdIf (not <| AllMusicInfoList.isLoaded allMusicInfoList)
                 , getUserSetting user.uid
                 , getOwnBestRecords user.uid
-                , getCurrentCsvFileName user.uid
+                , getPublicRecords ()
                 , startHomeMusic ()
                 ]
             )
@@ -79,110 +78,87 @@ type Msg
     = GotAllMusicInfoList (List MusicInfoDto)
     | GotUserSetting UserSettingDto
     | GotOwnBestRecords (List OwnRecordDto)
-    | GotCurrentCsvFileName CsvFileName
+    | GotPublicRecords (List PublicRecordDto)
+    | ChangeMusicId MusicId
     | ChangeMode Mode
-    | ChangeMusic MusicId
     | ChangeNotesSpeed NotesSpeed
     | SignOut
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        GotAllMusicInfoList musicInfoDtos ->
-            let
-                session =
-                    Session.setAllMusicInfoList musicInfoDtos model.session
-            in
-            ( { model | session = session }, Cmd.none )
+    case Session.toUser model.session of
+        Just user ->
+            case msg of
+                GotAllMusicInfoList musicInfoDtos ->
+                    let
+                        session =
+                            Session.setAllMusicInfoList musicInfoDtos model.session
+                    in
+                    ( { model | session = session }, Cmd.none )
 
-        GotUserSetting userSettingDto ->
-            let
-                session =
-                    Session.setUserSetting userSettingDto model.session
-            in
-            ( { model | session = session }, Cmd.none )
+                GotUserSetting userSettingDto ->
+                    let
+                        session =
+                            Session.setUserSetting userSettingDto model.session
+                    in
+                    ( { model | session = session }, Cmd.none )
 
-        GotOwnBestRecords ownRecordDto ->
-            let
-                ownRecords =
-                    List.map OwnRecord.new ownRecordDto
-            in
-            ( { model | maybeOwnRecords = Just ownRecords }, Cmd.none )
+                GotOwnBestRecords ownRecordDtos ->
+                    let
+                        ownRecords =
+                            List.map OwnRecord.new ownRecordDtos
+                    in
+                    ( { model | maybeOwnRecords = Just ownRecords }, Cmd.none )
 
-        GotCurrentCsvFileName csvFileName ->
-            -- TODO: UserSettingに移す
-            ( { model
-                | maybeCurrentMusicId = Just (CsvFileName.toMusicId csvFileName)
-                , maybeCurrentMode = Just (CsvFileName.toMode csvFileName)
-              }
-            , Cmd.none
+                GotPublicRecords publicRecordDtos ->
+                    let
+                        publicRecords =
+                            List.map PublicRecord.new publicRecordDtos
+                    in
+                    ( { model | maybePublicRecords = Just publicRecords }, Cmd.none )
+
+                ChangeMusicId musicId ->
+                    let
+                        updatedSession =
+                            Session.updateUserSetting musicId UserSetting.updateCurrentMusicId model.session
+                    in
+                    ( { model | session = updatedSession }
+                    , Cmd.batch
+                        [ saveCurrentMusicId { uid = user.uid, currentMusicId = musicId }
+                        , playMusicSelectAnim ()
+                        ]
+                    )
+
+                ChangeMode mode ->
+                    let
+                        updatedSession =
+                            Session.updateUserSetting mode UserSetting.updateCurrentMode model.session
+                    in
+                    ( { model | session = updatedSession }
+                    , Cmd.batch
+                        [ saveCurrentMode { uid = user.uid, currentMode = Mode.unwrap mode }
+                        , playMusicSelectAnim ()
+                        ]
+                    )
+
+                ChangeNotesSpeed notesSpeed ->
+                    let
+                        updatedSession =
+                            Session.updateUserSetting notesSpeed UserSetting.updateNotesSpeed model.session
+                    in
+                    ( { model | session = updatedSession }
+                    , saveNotesSpeed { uid = user.uid, notesSpeed = notesSpeed }
+                    )
+
+                SignOut ->
+                    ( model, signOut () )
+
+        Nothing ->
+            -- Homeで user == Nothing にはまずならないが、念のためログイン画面に戻す処理を入れておく
+            ( { model | session = Session.init (Session.toNavKey model.session) }
+            , Route.replaceUrl (Session.toNavKey model.session) Route.Login
             )
-
-        ChangeMode mode ->
-            let
-                maybeUid =
-                    Session.toUser model.session
-                        |> Maybe.map .uid
-
-                saveCurrentCsvFileNameCmd =
-                    case ( model.maybeCurrentMusicId, maybeUid ) of
-                        ( Just currentMusicId, Just uid ) ->
-                            saveCurrentCsvFileName
-                                { uid = uid
-                                , csvFileName = CsvFileName.new currentMusicId mode
-                                }
-
-                        _ ->
-                            Cmd.none
-            in
-            ( { model | maybeCurrentMode = Just mode }
-            , Cmd.batch
-                [ saveCurrentCsvFileNameCmd
-                , playMusicSelectAnim ()
-                ]
-            )
-
-        ChangeMusic musicId ->
-            let
-                maybeUid =
-                    Session.toUser model.session
-                        |> Maybe.map .uid
-
-                saveCurrentCsvFileNameCmd =
-                    case ( model.maybeCurrentMode, maybeUid ) of
-                        ( Just currentMode, Just uid ) ->
-                            saveCurrentCsvFileName
-                                { uid = uid
-                                , csvFileName = CsvFileName.new musicId currentMode
-                                }
-
-                        _ ->
-                            Cmd.none
-            in
-            ( { model | maybeCurrentMusicId = Just musicId }
-            , Cmd.batch
-                [ saveCurrentCsvFileNameCmd
-                , playMusicSelectAnim ()
-                ]
-            )
-
-        ChangeNotesSpeed notesSpeed ->
-            let
-                session =
-                    Session.updateUserSetting notesSpeed UserSetting.updateNotesSpeed model.session
-
-                saveNotesSpeedCmd =
-                    model.session
-                        |> Session.toUser
-                        |> Maybe.map .uid
-                        |> Maybe.map (\uid -> saveNotesSpeed { uid = uid, notesSpeed = notesSpeed })
-                        |> Maybe.withDefault Cmd.none
-            in
-            ( { model | session = session }, saveNotesSpeedCmd )
-
-        SignOut ->
-            ( model, signOut () )
 
 
 
@@ -204,19 +180,22 @@ port gotUserSetting : (UserSettingDto -> msg) -> Sub msg
 port saveNotesSpeed : { uid : String, notesSpeed : Float } -> Cmd msg
 
 
+port saveCurrentMusicId : { uid : String, currentMusicId : String } -> Cmd msg
+
+
+port saveCurrentMode : { uid : String, currentMode : String } -> Cmd msg
+
+
 port getOwnBestRecords : String -> Cmd msg
 
 
 port gotOwnBestRecords : (List OwnRecordDto -> msg) -> Sub msg
 
 
-port getCurrentCsvFileName : String -> Cmd msg
+port getPublicRecords : () -> Cmd msg
 
 
-port gotCurrentCsvFileName : (String -> msg) -> Sub msg
-
-
-port saveCurrentCsvFileName : { uid : String, csvFileName : String } -> Cmd msg
+port gotPublicRecords : (List PublicRecordDto -> msg) -> Sub msg
 
 
 port playMusicSelectAnim : () -> Cmd msg
@@ -238,7 +217,7 @@ subscriptions model =
         [ gotAllMusicInfoList GotAllMusicInfoList
         , gotUserSetting GotUserSetting
         , gotOwnBestRecords GotOwnBestRecords
-        , gotCurrentCsvFileName GotCurrentCsvFileName
+        , gotPublicRecords GotPublicRecords
         ]
 
 
@@ -256,42 +235,34 @@ view model =
 viewContents : Model -> Html Msg
 viewContents model =
     let
+        maybeUser =
+            Session.toUser model.session
+
         maybeUserSetting =
-            model.session
-                |> Session.toUserSetting
+            Session.toUserSetting model.session
                 |> UserSetting.toMaybe
 
         allMusicInfoList =
             Session.toAllMusicInfoList model.session
 
-        csvFileName =
-            case ( model.maybeCurrentMusicId, model.maybeCurrentMode ) of
-                ( Just currentMusicId, Just currentMode ) ->
-                    CsvFileName.new currentMusicId currentMode
-
-                _ ->
-                    ""
+        currentCsvFileName =
+            maybeUserSetting
+                |> Maybe.map (\setting -> CsvFileName.new setting.currentMusicId setting.currentMode)
+                |> Maybe.withDefault ""
 
         maybeCurrentMusicInfo =
-            AllMusicInfoList.findByCsvFileName csvFileName allMusicInfoList
+            AllMusicInfoList.findByCsvFileName currentCsvFileName allMusicInfoList
     in
-    case maybeUserSetting of
-        Just userSetting ->
-            case ( maybeCurrentMusicInfo, model.maybeCurrentMode, model.maybeOwnRecords ) of
-                ( Just currentMusicInfo, Just currentMode, Just ownRecords ) ->
+    case ( maybeUser, maybeUserSetting ) of
+        ( Just user, Just userSetting ) ->
+            case ( maybeCurrentMusicInfo, model.maybeOwnRecords, model.maybePublicRecords ) of
+                ( Just currentMusicInfo, Just ownRecords, Just publicRecords ) ->
                     let
-                        userName =
-                            Session.toUser model.session
-                                |> Maybe.map .userName
-                                |> Maybe.withDefault ""
-
-                        pictureUrl =
-                            Session.toUser model.session
-                                |> Maybe.map .pictureUrl
-                                |> Maybe.withDefault ""
-
                         maybeCurrentOwnRecord =
                             OwnRecord.findByCsvFileName currentMusicInfo.csvFileName ownRecords
+
+                        maybeCurrentPublicRecord =
+                            PublicRecord.findByCsvFileName currentMusicInfo.csvFileName publicRecords
                     in
                     div [ class "home_contentsContainer" ]
                         -- 左側
@@ -303,8 +274,8 @@ viewContents model =
                                     [ class "homeUserSetting_container" ]
                                     [ div
                                         [ class "homeUserSetting_leftContents" ]
-                                        [ img [ class "homeUserSetting_userIcon", src pictureUrl ] []
-                                        , div [ class "homeUserSetting_userNameText" ] [ text userName ]
+                                        [ img [ class "homeUserSetting_userIcon", src user.pictureUrl ] []
+                                        , div [ class "homeUserSetting_userNameText" ] [ text user.userName ]
                                         , img
                                             [ class "homeUserSetting_logoutIcon"
                                             , src "./img/icon_logout.png"
@@ -314,8 +285,8 @@ viewContents model =
                                         ]
                                     , viewSetting userSetting
                                     ]
-                                , viewModeTab currentMode
-                                , viewMusicList currentMode currentMusicInfo allMusicInfoList ownRecords
+                                , viewModeTab userSetting
+                                , viewMusicList userSetting.currentMode currentMusicInfo allMusicInfoList ownRecords
                                 ]
                             ]
 
@@ -326,7 +297,7 @@ viewContents model =
                                 [ class "home_rightContents" ]
                                 [ viewCenterArea currentMusicInfo maybeCurrentOwnRecord
                                 , viewTopLeftArea currentMusicInfo
-                                , viewTopRightArea currentMusicInfo
+                                , viewTopRightArea maybeCurrentPublicRecord
                                 , viewBottomLeftArea1 currentMusicInfo maybeCurrentOwnRecord
                                 , viewBottomLeftArea2 currentMusicInfo maybeCurrentOwnRecord
                                 , viewBottomRightArea currentMusicInfo
@@ -338,7 +309,7 @@ viewContents model =
                 _ ->
                     div [ class "home_contentsContainer" ] [ Page.viewLoading ]
 
-        Nothing ->
+        _ ->
             div [ class "home_contentsContainer" ] [ Page.viewLoading ]
 
 
@@ -384,13 +355,13 @@ viewSettingItem labelText =
         ]
 
 
-viewModeTab : Mode -> Html Msg
-viewModeTab currentMode =
+viewModeTab : UserSettingData -> Html Msg
+viewModeTab userSetting =
     let
         viewModeTabBtn mode =
             let
                 clsIsSelecting =
-                    if mode == currentMode then
+                    if mode == userSetting.currentMode then
                         "is-selecting"
 
                     else
@@ -430,7 +401,7 @@ viewMusicListItem : MusicInfo -> MusicInfo -> Maybe OwnRecord -> Html Msg
 viewMusicListItem currentMusicInfo musicInfo maybeOwnRecord =
     let
         clsIsSelecting =
-            if musicInfo.musicName == currentMusicInfo.musicName then
+            if musicInfo.musicId == currentMusicInfo.musicId then
                 "is-selecting"
 
             else
@@ -438,7 +409,7 @@ viewMusicListItem currentMusicInfo musicInfo maybeOwnRecord =
     in
     div
         [ class "homeMusicListItem_container"
-        , onClick <| ChangeMusic musicInfo.musicId
+        , onClick <| ChangeMusicId musicInfo.musicId
         ]
         [ div
             []
@@ -532,33 +503,33 @@ viewTopLeftArea currentMusicInfo =
         ]
 
 
-viewTopRightArea : MusicInfo -> Html msg
-viewTopRightArea currentMusicInfo =
+viewTopRightArea : Maybe PublicRecord -> Html msg
+viewTopRightArea maybeCurrentPublicRecord =
     div [ class "home_topRightArea", id "home_topRightArea" ]
         [ div [ class "homeTopRight_title" ] [ text "楽曲スコアランキング" ]
         , img [ class "homeTopRight_rankIcon first", src "./img/icon_rank_first.png" ] []
         , div
             [ class "homeTopRight_userNameText first" ]
-            [ text <| PublicRecord.toStringUserName (MusicInfo.toFirstRecord currentMusicInfo) ]
+            [ text <| PublicRecord.toStringUserName (PublicRecord.toFirstScoreRecord maybeCurrentPublicRecord) ]
         , div
             [ class "homeTopRight_scoreText first" ]
-            [ text <| PublicRecord.toStringBestScore (MusicInfo.toFirstRecord currentMusicInfo) ]
+            [ text <| PublicRecord.toStringScore (PublicRecord.toFirstScoreRecord maybeCurrentPublicRecord) ]
         , div [ class "homeTopRight_line first" ] []
         , img [ class "homeTopRight_rankIcon second", src "./img/icon_rank_second.png" ] []
         , div
             [ class "homeTopRight_userNameText second" ]
-            [ text <| PublicRecord.toStringUserName (MusicInfo.toSecondRecord currentMusicInfo) ]
+            [ text <| PublicRecord.toStringUserName (PublicRecord.toSecondScoreRecord maybeCurrentPublicRecord) ]
         , div
             [ class "homeTopRight_scoreText second" ]
-            [ text <| PublicRecord.toStringBestScore (MusicInfo.toSecondRecord currentMusicInfo) ]
+            [ text <| PublicRecord.toStringScore (PublicRecord.toSecondScoreRecord maybeCurrentPublicRecord) ]
         , div [ class "homeTopRight_line second" ] []
         , img [ class "homeTopRight_rankIcon third", src "./img/icon_rank_third.png" ] []
         , div
             [ class "homeTopRight_userNameText third" ]
-            [ text <| PublicRecord.toStringUserName (MusicInfo.toThirdRecord currentMusicInfo) ]
+            [ text <| PublicRecord.toStringUserName (PublicRecord.toThirdScoreRecord maybeCurrentPublicRecord) ]
         , div
             [ class "homeTopRight_scoreText third" ]
-            [ text <| PublicRecord.toStringBestScore (MusicInfo.toThirdRecord currentMusicInfo) ]
+            [ text <| PublicRecord.toStringScore (PublicRecord.toThirdScoreRecord maybeCurrentPublicRecord) ]
         , div [ class "homeTopRight_line third" ] []
         ]
 

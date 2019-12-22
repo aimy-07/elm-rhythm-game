@@ -10,10 +10,10 @@ port module Page.Play.Judge exposing
     )
 
 import Constants exposing (goodRange, greatRange, missRange, perfectRange)
-import Page
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.KeyStr exposing (KeyStr)
 import Page.Play.Note.JustTime exposing (JustTime)
+import Utils exposing (cmdIf)
 
 
 type Judge
@@ -83,7 +83,7 @@ keyDownEffectCmd keyStr judge isLongNote =
             , judgeText = toStringJudge judge
             }
         ]
-        |> Page.cmdIf (judge /= Invalid)
+        |> cmdIf (judge /= Invalid)
 
 
 missEffectCmd : KeyStr -> Cmd msg

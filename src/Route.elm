@@ -47,8 +47,6 @@ fromUrl url =
 
 
 
--- { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
---     |> Parser.parse parser
 -- INTERNAL
 
 

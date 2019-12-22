@@ -1,40 +1,90 @@
 module PublicRecord exposing
-    ( PublicRecord
+    ( BestScoreRecord
+    , PublicRecord
     , PublicRecordDto
+    , findByCsvFileName
     , new
-    , toStringBestScore
+    , toFirstScoreRecord
+    , toSecondScoreRecord
+    , toStringScore
     , toStringUserName
+    , toThirdScoreRecord
     )
+
+import MusicInfo.CsvFileName exposing (CsvFileName)
 
 
 type alias PublicRecord =
+    { csvFileName : CsvFileName
+    , bestScores : List BestScoreRecord
+    }
+
+
+type alias BestScoreRecord =
     { userName : String
-    , bestScore : Int
+    , score : Int
     }
 
 
 type alias PublicRecordDto =
+    { csvFileName : String
+    , bestScores : List BestScoreRecordDto
+    }
+
+
+type alias BestScoreRecordDto =
     { userName : String
-    , bestScore : Int
+    , score : Int
     }
 
 
 new : PublicRecordDto -> PublicRecord
-new { userName, bestScore } =
-    { userName = userName
-    , bestScore = bestScore
+new { csvFileName, bestScores } =
+    { csvFileName = csvFileName
+    , bestScores = bestScores
     }
 
 
-toStringUserName : Maybe PublicRecord -> String
+findByCsvFileName : CsvFileName -> List PublicRecord -> Maybe PublicRecord
+findByCsvFileName csvFileName publicRecords =
+    publicRecords
+        |> List.filter (.csvFileName >> (==) csvFileName)
+        |> List.head
+
+
+toFirstScoreRecord : Maybe PublicRecord -> Maybe BestScoreRecord
+toFirstScoreRecord maybePublicRecord =
+    maybePublicRecord
+        |> Maybe.map (.bestScores >> List.sortBy .score >> List.reverse)
+        |> Maybe.withDefault []
+        |> List.head
+
+
+toSecondScoreRecord : Maybe PublicRecord -> Maybe BestScoreRecord
+toSecondScoreRecord maybePublicRecord =
+    maybePublicRecord
+        |> Maybe.map (.bestScores >> List.sortBy .score >> List.reverse >> List.drop 1)
+        |> Maybe.withDefault []
+        |> List.head
+
+
+toThirdScoreRecord : Maybe PublicRecord -> Maybe BestScoreRecord
+toThirdScoreRecord maybePublicRecord =
+    maybePublicRecord
+        |> Maybe.map (.bestScores >> List.sortBy .score >> List.reverse >> List.drop 2)
+        |> Maybe.withDefault []
+        |> List.head
+
+
+toStringUserName : Maybe BestScoreRecord -> String
 toStringUserName maybeRecord =
     maybeRecord
         |> Maybe.map .userName
         |> Maybe.withDefault "---"
 
 
-toStringBestScore : Maybe PublicRecord -> String
-toStringBestScore maybeRecord =
+toStringScore : Maybe BestScoreRecord -> String
+toStringScore maybeRecord =
     maybeRecord
-        |> Maybe.map (.bestScore >> String.fromInt)
+        |> Maybe.map (.score >> String.fromInt)
         |> Maybe.withDefault "---"

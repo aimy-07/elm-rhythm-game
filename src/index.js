@@ -43,6 +43,7 @@ firebase.auth().onAuthStateChanged((user) => {
     app.ports.onAuthStateChanged.send(null);
   } else {
     // サインイン済み
+    // TODO: userDataの持ち方を変える
     const saveUser = firebase.database().ref(`/users/${user.uid}`).transaction(
       (userData) => {
         if (!userData) {
@@ -111,58 +112,50 @@ animationSetUpSubscriber(app);
 
 
 /* ---------------------------------
-  選択中の楽曲の永続化
----------------------------------- */
-app.ports.getCurrentCsvFileName.subscribe(uid => {
-  firebase.database().ref(`/users/${uid}/currentCsvFileName`).once('value').then(
-    (snapshot) => {
-      if (snapshot.val()) {
-        const currentCsvFileName = snapshot.val();
-        app.ports.gotCurrentCsvFileName.send(currentCsvFileName);
-      } else {
-        app.ports.gotCurrentCsvFileName.send("");
-      }
-    },
-    (err) => {
-      console.error(err);
-      // TODO: ネットワークエラー画面に飛ばす
-    }
-  )
-});
-
-app.ports.saveCurrentCsvFileName.subscribe(({uid, csvFileName}) => {
-  firebase.database().ref(`/users/${uid}/currentCsvFileName/`).set(
-    csvFileName,
-    (err) => {
-      if (err) throw new Error(err);
-    }
-  );
-});
-
-
-
-/* ---------------------------------
   UserSetting
 ---------------------------------- */
 app.ports.getUserSetting.subscribe(uid => {
   firebase.database().ref(`/users/${uid}`).once('value').then(
     (snapshot) => {
       const data = snapshot.val();
+      const currentMusicId = data.currentMusicId ? data.currentMusicId : null;
+      const currentMode = data.currentMode ? data.currentMode : null;
       const notesSpeed = data.notesSpeed ? data.notesSpeed : null;
-      app.ports.gotUserSetting.send({notesSpeed});
+      app.ports.gotUserSetting.send({currentMusicId, currentMode, notesSpeed});
     },
     (err) => {
-      console.error(err);
+      if (err)  console.error(err);
       // TODO: ネットワークエラー画面に飛ばす
     }
   )
+});
+
+app.ports.saveCurrentMusicId.subscribe(({uid, currentMusicId}) => {
+  firebase.database().ref(`/users/${uid}/currentMusicId/`).set(
+    currentMusicId,
+    (err) => {
+      if (err)  console.error(err);
+      // TODO: ネットワークエラー画面に飛ばす
+    }
+  );
+});
+
+app.ports.saveCurrentMode.subscribe(({uid, currentMode}) => {
+  firebase.database().ref(`/users/${uid}/currentMode/`).set(
+    currentMode,
+    (err) => {
+      if (err)  console.error(err);
+      // TODO: ネットワークエラー画面に飛ばす
+    }
+  );
 });
 
 app.ports.saveNotesSpeed.subscribe(({uid, notesSpeed}) => {
   firebase.database().ref(`/users/${uid}/notesSpeed/`).set(
     notesSpeed,
     (err) => {
-      if (err) throw new Error(err);
+      if (err)  console.error(err);
+      // TODO: ネットワークエラー画面に飛ばす
     }
   );
 });
@@ -208,20 +201,20 @@ app.ports.saveRecord.subscribe(({uid, csvFileName, combo, score}) => {
     }
   );
 
-  const updatePublicPlayRecord = firebase.database().ref(`/musicInfos/${csvFileName}/bestRecords`).transaction(
-    (bestRecords) => {
+  const updatePublicPlayRecord = firebase.database().ref(`/publicRecords/${csvFileName}/bestScores`).transaction(
+    (bestScores) => {
       if (score == 0) {
-        return bestRecords ? bestRecords : [];
+        return bestScores ? bestScores : [];
       }
-      if (bestRecords) {
-        const newBestRecords = _.sortBy(bestRecords.concat({uid, bestScore: score}), (record => record.bestScore)).reverse();
-        if (newBestRecords.length > 3) {
-          return newBestRecords.slice(0, 3);
+      if (bestScores) {
+        const newBestScores = _.sortBy(bestScores.concat({uid, score}), (record => record.score)).reverse();
+        if (newBestScores.length > 3) {
+          return newBestScores.slice(0, 3);
         } else {
-          return newBestRecords
+          return newBestScores
         }
       } else {
-        return [{uid, bestScore: score}]
+        return [{uid, score}]
       }
     },
     (err) => {
@@ -234,7 +227,7 @@ app.ports.saveRecord.subscribe(({uid, csvFileName, combo, score}) => {
       app.ports.savedRecord.send(isHighScore);
     })
     .catch((err) => {
-      console.error(err);
+      if (err)  console.error(err);
       // TODO: ネットワークエラー画面に飛ばす
     })
 });
@@ -255,7 +248,54 @@ app.ports.getOwnBestRecords.subscribe(uid => {
       }
     },
     (err) => {
-      console.error(err);
+      if (err)  console.error(err);
+      // TODO: ネットワークエラー画面に飛ばす
+    }
+  )
+});
+
+
+
+/* ---------------------------------
+  ランキングデータの取得
+---------------------------------- */
+// TODO: firebaseルールでuserNameへのアクセスを許可
+app.ports.getPublicRecords.subscribe(() => {
+  firebase.database().ref(`/publicRecords`).once('value').then(
+    (snapshot) => {
+      const publicRecords = toArrFromObj(snapshot.val());
+      const getPublicRecords = publicRecords.map(publicRecord => {
+        const getBestScores =
+          publicRecord.bestScores
+            ? publicRecord.bestScores.map(async record => {
+              const getUserName = await firebase.database().ref(`/users/${record.uid}/userName`).once('value');
+              return {userName: getUserName.val(), score: record.score}
+            })
+            : [];
+        return Promise.all(getBestScores)
+          .then((bestScores) => {
+            return {
+              csvFileName: publicRecord.csvFileName,
+              bestScores: bestScores
+            }
+          })
+          .catch((err) => {
+            if (err)  console.error(err);
+            // TODO: ネットワークエラー画面に飛ばす
+          })
+      });
+      Promise.all(getPublicRecords)
+        .then((publicRecords) => {
+          console.log('publicRecords', publicRecords);
+          app.ports.gotPublicRecords.send(publicRecords);
+        })
+        .catch((err) => {
+          if (err)  console.error(err);
+          // TODO: ネットワークエラー画面に飛ばす
+        })
+    },
+    (err) => {
+      if (err)  console.error(err);
       // TODO: ネットワークエラー画面に飛ばす
     }
   )
