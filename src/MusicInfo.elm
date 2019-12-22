@@ -1,6 +1,7 @@
 module MusicInfo exposing
     ( MusicInfo
     , MusicInfoDto
+    , empty
     , new
     , toFirstRecord
     , toSecondRecord
@@ -64,6 +65,24 @@ new musicInfoDto =
     , beatsCountPerMeasure = musicInfoDto.beatsCountPerMeasure
     , offset = musicInfoDto.offset
     , bestRecords = musicInfoDto.bestRecords
+    }
+
+
+empty : MusicInfo
+empty =
+    { musicId = ""
+    , csvFileName = ""
+    , musicName = ""
+    , composer = ""
+    , mode = Mode.invalid
+    , level = 0
+    , fullTime = 0
+    , bpm = 0
+    , maxCombo = 0
+    , maxScore = 0
+    , beatsCountPerMeasure = 0
+    , offset = 0
+    , bestRecords = []
     }
 
 

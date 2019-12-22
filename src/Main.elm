@@ -174,14 +174,14 @@ update msg model =
                     toSession model
 
                 updatedSession =
-                    Session.fromUser (Session.toNavKey session) maybeUserDto
+                    Session.setUser (Session.toNavKey session) maybeUserDto
 
                 replaceUrlCmd =
-                    maybeUserDto
-                        |> Maybe.map
-                            (\_ -> Route.replaceUrl (Session.toNavKey session) Route.Home)
-                        |> Maybe.withDefault
-                            (Route.replaceUrl (Session.toNavKey session) Route.Login)
+                    if Session.isLoggedIn updatedSession then
+                        Route.replaceUrl (Session.toNavKey session) Route.Home
+
+                    else
+                        Route.replaceUrl (Session.toNavKey session) Route.Login
             in
             ( Redirect updatedSession
             , replaceUrlCmd

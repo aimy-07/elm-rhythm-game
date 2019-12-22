@@ -1,10 +1,10 @@
 module AllMusicInfoList exposing
     ( AllMusicInfoList
-    , create
     , filterByMode
     , findByCsvFileName
     , init
     , isLoaded
+    , new
     , toMusicInfoList
     )
 
@@ -14,8 +14,8 @@ import MusicInfo.Mode exposing (Mode)
 
 
 type AllMusicInfoList
-    = NotLoaded
-    | Loaded (List MusicInfo)
+    = Loaded (List MusicInfo)
+    | NotLoaded
 
 
 init : AllMusicInfoList
@@ -23,8 +23,8 @@ init =
     NotLoaded
 
 
-create : List MusicInfo -> AllMusicInfoList
-create musicInfos =
+new : List MusicInfo -> AllMusicInfoList
+new musicInfos =
     Loaded musicInfos
 
 

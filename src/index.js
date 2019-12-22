@@ -81,7 +81,9 @@ firebase.auth().onAuthStateChanged((user) => {
 ---------------------------------- */
 app.ports.signIn.subscribe(() => {
   firebase.auth().signInWithPopup(googleAuthProvider)
-    .then(() => {})
+    .then(() => {
+      // TODO: ここで ports.onAuthStateChanged を実行すれば、onAuthStateChangedは要らない？
+    })
     .catch((err) => {
       console.error(err);
       // TODO: ネットワークエラー画面に飛ばす
@@ -131,6 +133,34 @@ app.ports.getCurrentCsvFileName.subscribe(uid => {
 app.ports.saveCurrentCsvFileName.subscribe(({uid, csvFileName}) => {
   firebase.database().ref(`/users/${uid}/currentCsvFileName/`).set(
     csvFileName,
+    (err) => {
+      if (err) throw new Error(err);
+    }
+  );
+});
+
+
+
+/* ---------------------------------
+  UserSetting
+---------------------------------- */
+app.ports.getUserSetting.subscribe(uid => {
+  firebase.database().ref(`/users/${uid}`).once('value').then(
+    (snapshot) => {
+      const data = snapshot.val();
+      const notesSpeed = data.notesSpeed ? data.notesSpeed : null;
+      app.ports.gotUserSetting.send({notesSpeed});
+    },
+    (err) => {
+      console.error(err);
+      // TODO: ネットワークエラー画面に飛ばす
+    }
+  )
+});
+
+app.ports.saveNotesSpeed.subscribe(({uid, notesSpeed}) => {
+  firebase.database().ref(`/users/${uid}/notesSpeed/`).set(
+    notesSpeed,
     (err) => {
       if (err) throw new Error(err);
     }

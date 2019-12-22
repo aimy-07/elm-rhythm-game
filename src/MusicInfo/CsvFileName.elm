@@ -1,4 +1,4 @@
-module MusicInfo.CsvFileName exposing (CsvFileName, create, toMode, toMusicId)
+module MusicInfo.CsvFileName exposing (CsvFileName, new, toMode, toMusicId)
 
 import MusicInfo.Mode as Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
@@ -8,8 +8,8 @@ type alias CsvFileName =
     String
 
 
-create : MusicId -> Mode -> CsvFileName
-create musicId mode =
+new : MusicId -> Mode -> CsvFileName
+new musicId mode =
     musicId ++ "-" ++ Mode.unwrap mode
 
 

@@ -19,6 +19,10 @@ view page { title, content } =
     }
 
 
+
+-- TODO: Utilに移動する
+
+
 viewIf : Bool -> Html msg -> Html msg
 viewIf show element =
     if show then
@@ -26,6 +30,10 @@ viewIf show element =
 
     else
         text ""
+
+
+
+-- TODO: Utilに移動する
 
 
 cmdIf : Bool -> Cmd msg -> Cmd msg

@@ -1,5 +1,6 @@
 module Constants exposing
     ( allKeyStr
+    , allMode
     , goodRange
     , goodScore
     , greatRange
@@ -8,11 +9,15 @@ module Constants exposing
     , longTimeDuration
     , longTimeOffset
     , missRange
+    , notesSpeedDefault
+    , notesSpeedLevel
     , perfectRange
     , perfectScore
     )
 
+import MusicInfo.Mode as Mode exposing (Mode)
 import Page.Play.KeyStr exposing (KeyStr)
+import UserSetting.NotesSpeed exposing (NotesSpeed)
 
 
 allKeyStr : List KeyStr
@@ -68,3 +73,18 @@ goodScore =
 longScore : Int
 longScore =
     100
+
+
+allMode : List Mode
+allMode =
+    [ Mode.normal, Mode.hard, Mode.master ]
+
+
+notesSpeedLevel : List NotesSpeed
+notesSpeedLevel =
+    [ 0.2, 0.3, 0.4, 0.5, 0.6 ]
+
+
+notesSpeedDefault : NotesSpeed
+notesSpeedDefault =
+    0.4

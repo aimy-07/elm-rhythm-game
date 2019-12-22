@@ -28,7 +28,7 @@ import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.KeyStr exposing (KeyStr)
 import Page.Play.Lane as Lane
 import Page.Play.Note.JustTime exposing (JustTime)
-import Page.Play.Speed exposing (Speed)
+import UserSetting.NotesSpeed exposing (NotesSpeed)
 
 
 type Note
@@ -304,8 +304,8 @@ updateOnKeyUp note =
             note
 
 
-view : CurrentMusicTime -> Speed -> Note -> Html msg
-view currentMusicTime speed note =
+view : CurrentMusicTime -> NotesSpeed -> Note -> Html msg
+view currentMusicTime notesSpeed note =
     let
         left =
             Lane.leftFromKeyStr <| toKeyStr note
@@ -315,14 +315,14 @@ view currentMusicTime speed note =
                 0
 
             else
-                (toJustTime note - currentMusicTime) * speed
+                (toJustTime note - currentMusicTime) * notesSpeed
 
         height =
             if isLongJudging note then
-                (toJustTime note + toLongTime note - currentMusicTime) * speed
+                (toJustTime note + toLongTime note - currentMusicTime) * notesSpeed
 
             else
-                toLongTime note * speed
+                toLongTime note * notesSpeed
     in
     case note of
         SingleNote _ ->

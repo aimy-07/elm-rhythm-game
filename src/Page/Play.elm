@@ -17,7 +17,6 @@ import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note as Note exposing (Note, NoteDto)
 import Page.Play.Score as Score exposing (Score)
-import Page.Play.Speed exposing (Speed)
 import Process
 import Rank
 import Record exposing (RecordDto)
@@ -26,6 +25,8 @@ import Session exposing (Session)
 import Set
 import Task
 import Time
+import UserSetting
+import UserSetting.NotesSpeed exposing (NotesSpeed)
 
 
 
@@ -35,12 +36,12 @@ import Time
 type alias Model =
     { session : Session
     , playStatus : PlayStatus
-    , currentMusicInfo : Maybe MusicInfo
+    , currentMusicInfo : MusicInfo
     , allNotes : List Note
     , isLoadedNotes : Bool
     , lanes : List Lane
     , currentMusicTime : CurrentMusicTime
-    , speed : Speed
+    , notesSpeed : NotesSpeed
     , score : Score
     , combo : Combo
     }
@@ -56,6 +57,21 @@ type PlayStatus
     | PauseCountdown
 
 
+initModel : Session -> MusicInfo -> NotesSpeed -> Model
+initModel session currentMusicInfo notesSpeed =
+    { session = session
+    , playStatus = NotStart
+    , currentMusicInfo = currentMusicInfo
+    , allNotes = []
+    , isLoadedNotes = False
+    , lanes = List.map Lane.new allKeyStr
+    , currentMusicTime = 0
+    , notesSpeed = notesSpeed
+    , score = Score.init
+    , combo = Combo.init
+    }
+
+
 init : Session -> CsvFileName -> ( Model, Cmd Msg )
 init session csvFileName =
     let
@@ -65,38 +81,33 @@ init session csvFileName =
         allMusicInfoList =
             Session.toAllMusicInfoList session
 
-        currentMusicInfo =
+        maybeCurrentMusicInfo =
             AllMusicInfoList.findByCsvFileName csvFileName allMusicInfoList
 
-        cmds =
-            case currentMusicInfo of
-                Just musicInfo ->
-                    Cmd.batch
-                        [ getAllNotes
-                            { csvFileName = csvFileName
-                            , bpm = musicInfo.bpm
-                            , beatsCountPerMeasure = musicInfo.beatsCountPerMeasure
-                            , offset = musicInfo.offset
-                            }
-                        , setMusic audioFileName
-                        ]
-
-                Nothing ->
-                    Route.replaceUrl (Session.toNavKey session) Route.Home
+        maybeNotesSpeed =
+            Session.toUserSetting session
+                |> UserSetting.toMaybe
+                |> Maybe.map .notesSpeed
     in
-    ( { session = session
-      , playStatus = NotStart
-      , currentMusicInfo = currentMusicInfo
-      , allNotes = []
-      , isLoadedNotes = False
-      , lanes = List.map Lane.new allKeyStr
-      , currentMusicTime = 0
-      , speed = 0.4
-      , score = Score.init
-      , combo = Combo.init
-      }
-    , cmds
-    )
+    case ( maybeCurrentMusicInfo, maybeNotesSpeed ) of
+        ( Just currentMusicInfo, Just notesSpeed ) ->
+            ( initModel session currentMusicInfo notesSpeed
+            , Cmd.batch
+                [ getAllNotes
+                    { csvFileName = csvFileName
+                    , bpm = currentMusicInfo.bpm
+                    , beatsCountPerMeasure = currentMusicInfo.beatsCountPerMeasure
+                    , offset = currentMusicInfo.offset
+                    }
+                , setMusic audioFileName
+                ]
+            )
+
+        _ ->
+            -- 存在しないcsvFileNameを指定した or UserSetting == Nothing だった場合、Homeに戻す
+            ( initModel session MusicInfo.empty 0
+            , Route.replaceUrl (Session.toNavKey session) Route.Home
+            )
 
 
 
@@ -161,15 +172,10 @@ update msg model =
                 Just Keyboard.Spacebar ->
                     case model.playStatus of
                         NotStart ->
-                            model.currentMusicInfo
-                                |> Maybe.map
-                                    (\_ ->
-                                        ( { model | playStatus = StartCountdown }
-                                        , Process.sleep 1500
-                                            |> Task.perform (\_ -> FinishedCountdown ())
-                                        )
-                                    )
-                                |> Maybe.withDefault ( model, Cmd.none )
+                            ( { model | playStatus = StartCountdown }
+                            , Process.sleep 1500
+                                |> Task.perform (\_ -> FinishedCountdown ())
+                            )
 
                         Playing ->
                             ( { model | playStatus = Pause }, pauseMusic () )
@@ -358,13 +364,8 @@ update msg model =
                 comboEffectCmd =
                     Combo.comboEffectCmd model.combo nextCombo
 
-                fullTime =
-                    model.currentMusicInfo
-                        |> Maybe.map .fullTime
-                        |> Maybe.withDefault 0
-
                 nextPlayStatus =
-                    if fullTime * 1000 <= model.currentMusicTime then
+                    if model.currentMusicInfo.fullTime * 1000 <= model.currentMusicTime then
                         PreFinish
 
                     else
@@ -378,17 +379,17 @@ update msg model =
                         model.lanes
 
                 saveRecordCmd =
-                    case ( model.currentMusicInfo, Session.toUser model.session ) of
-                        ( Just musicInfo, Just user ) ->
-                            saveRecord
-                                { uid = user.uid
-                                , csvFileName = musicInfo.csvFileName
-                                , combo = Combo.toMaxCombo model.combo
-                                , score = Score.unwrap model.score
-                                }
-
-                        _ ->
-                            Cmd.none
+                    Session.toUser model.session
+                        |> Maybe.map
+                            (\user ->
+                                saveRecord
+                                    { uid = user.uid
+                                    , csvFileName = model.currentMusicInfo.csvFileName
+                                    , combo = Combo.toMaxCombo model.combo
+                                    , score = Score.unwrap model.score
+                                    }
+                            )
+                        |> Maybe.withDefault Cmd.none
             in
             ( { model
                 | currentMusicTime = updatedTime
@@ -509,25 +510,20 @@ view model =
 viewContents : Model -> Html Msg
 viewContents model =
     if model.isLoadedNotes then
-        case model.currentMusicInfo of
-            Just musicInfo ->
-                div [ class "mainWide" ]
-                    [ div
-                        [ class "play_contentsContainer" ]
-                        [ div
-                            [ class "play_contents" ]
-                            [ viewLanes model
-                            , viewNotes model
-                            , viewMusicInfo musicInfo
-                            , viewDisplayCircle musicInfo model
-                            ]
-                        , viewOverView musicInfo model
-                        , div [] [ Page.viewLoaded ]
-                        ]
+        div [ class "mainWide" ]
+            [ div
+                [ class "play_contentsContainer" ]
+                [ div
+                    [ class "play_contents" ]
+                    [ viewLanes model
+                    , viewNotes model model.notesSpeed
+                    , viewMusicInfo model.currentMusicInfo
+                    , viewDisplayCircle model.currentMusicInfo model
                     ]
-
-            Nothing ->
-                text ""
+                , viewOverView model.currentMusicInfo model
+                , div [] [ Page.viewLoaded ]
+                ]
+            ]
 
     else
         div [ class "play_contentsContainer" ] [ Page.viewLoading ]
@@ -571,10 +567,10 @@ viewLanes model =
         ]
 
 
-viewNotes : Model -> Html msg
-viewNotes model =
+viewNotes : Model -> NotesSpeed -> Html msg
+viewNotes model notesSpeed =
     div [ class "playCenterLine_judgeLine", id "judge_area" ]
-        (List.map (Note.view model.currentMusicTime model.speed) model.allNotes)
+        (List.map (Note.view model.currentMusicTime notesSpeed) model.allNotes)
 
 
 viewMusicInfo : MusicInfo -> Html msg
