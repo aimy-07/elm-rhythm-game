@@ -330,7 +330,7 @@ viewContents model =
                                 [ class "home_rightContents" ]
                                 [ viewCenterArea currentMusicInfo maybeCurrentOwnRecord
                                 , viewTopLeftArea currentMusicInfo
-                                , viewTopRightArea maybeCurrentPublicRecord
+                                , viewTopRightArea maybeCurrentPublicRecord user
                                 , viewBottomLeftArea1 currentMusicInfo maybeCurrentOwnRecord
                                 , viewBottomLeftArea2 currentMusicInfo maybeCurrentOwnRecord
                                 , viewBottomRightArea currentMusicInfo
@@ -574,35 +574,51 @@ viewTopLeftArea currentMusicInfo =
         ]
 
 
-viewTopRightArea : Maybe PublicRecord -> Html msg
-viewTopRightArea maybeCurrentPublicRecord =
-    div [ class "home_topRightArea", id "home_topRightArea" ]
-        [ div [ class "homeTopRight_title" ] [ text "楽曲スコアランキング" ]
-        , img [ class "homeTopRight_rankIcon first", src "./img/icon_rank_first.png" ] []
-        , div
-            [ class "homeTopRight_userNameText first" ]
-            [ text <| PublicRecord.toStringUserName (PublicRecord.toFirstScoreRecord maybeCurrentPublicRecord) ]
-        , div
-            [ class "homeTopRight_scoreText first" ]
-            [ text <| PublicRecord.toStringScore (PublicRecord.toFirstScoreRecord maybeCurrentPublicRecord) ]
-        , div [ class "homeTopRight_line first" ] []
-        , img [ class "homeTopRight_rankIcon second", src "./img/icon_rank_second.png" ] []
-        , div
-            [ class "homeTopRight_userNameText second" ]
-            [ text <| PublicRecord.toStringUserName (PublicRecord.toSecondScoreRecord maybeCurrentPublicRecord) ]
-        , div
-            [ class "homeTopRight_scoreText second" ]
-            [ text <| PublicRecord.toStringScore (PublicRecord.toSecondScoreRecord maybeCurrentPublicRecord) ]
-        , div [ class "homeTopRight_line second" ] []
-        , img [ class "homeTopRight_rankIcon third", src "./img/icon_rank_third.png" ] []
-        , div
-            [ class "homeTopRight_userNameText third" ]
-            [ text <| PublicRecord.toStringUserName (PublicRecord.toThirdScoreRecord maybeCurrentPublicRecord) ]
-        , div
-            [ class "homeTopRight_scoreText third" ]
-            [ text <| PublicRecord.toStringScore (PublicRecord.toThirdScoreRecord maybeCurrentPublicRecord) ]
-        , div [ class "homeTopRight_line third" ] []
+viewTopRightArea : Maybe PublicRecord -> User -> Html msg
+viewTopRightArea maybeCurrentPublicRecord user =
+    let
+        firstRecord =
+            PublicRecord.toFirstScoreRecord maybeCurrentPublicRecord
+
+        secondRecord =
+            PublicRecord.toSecondScoreRecord maybeCurrentPublicRecord
+
+        thirdRecord =
+            PublicRecord.toThirdScoreRecord maybeCurrentPublicRecord
+
+        viewRankingItem clsRank record =
+            let
+                clsIsMe =
+                    if PublicRecord.isOwnRecord record user.uid then
+                        "is-Me"
+
+                    else
+                        ""
+            in
+            [ img
+                [ class "homeTopRight_rankIcon"
+                , class clsRank
+                , src <| "./img/icon_rank_" ++ clsRank ++ ".png"
+                ]
+                []
+            , div
+                [ class "homeTopRight_userNameText", class clsRank, class clsIsMe ]
+                [ text <| PublicRecord.toStringUserName record ]
+            , div
+                [ class "homeTopRight_scoreText", class clsRank ]
+                [ text <| PublicRecord.toStringScore record ]
+            , div [ class "homeTopRight_line", class clsRank ] []
+            ]
+    in
+    div
+        [ class "home_topRightArea"
+        , id "home_topRightArea"
         ]
+        (div [ class "homeTopRight_title" ] [ text "楽曲スコアランキング" ]
+            :: viewRankingItem "first" firstRecord
+            ++ viewRankingItem "second" secondRecord
+            ++ viewRankingItem "third" thirdRecord
+        )
 
 
 viewBottomLeftArea1 : MusicInfo -> Maybe OwnRecord -> Html msg

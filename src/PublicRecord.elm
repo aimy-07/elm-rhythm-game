@@ -3,6 +3,7 @@ module PublicRecord exposing
     , PublicRecord
     , PublicRecordDto
     , findByCsvFileName
+    , isOwnRecord
     , new
     , toFirstScoreRecord
     , toSecondScoreRecord
@@ -12,6 +13,7 @@ module PublicRecord exposing
     )
 
 import MusicInfo.CsvFileName exposing (CsvFileName)
+import User exposing (Uid)
 
 
 type alias PublicRecord =
@@ -21,7 +23,8 @@ type alias PublicRecord =
 
 
 type alias BestScoreRecord =
-    { userName : String
+    { uid : Uid
+    , userName : String
     , score : Int
     }
 
@@ -33,7 +36,8 @@ type alias PublicRecordDto =
 
 
 type alias BestScoreRecordDto =
-    { userName : String
+    { uid : String
+    , userName : String
     , score : Int
     }
 
@@ -74,6 +78,13 @@ toThirdScoreRecord maybePublicRecord =
         |> Maybe.map (.bestScores >> List.sortBy .score >> List.reverse >> List.drop 2)
         |> Maybe.withDefault []
         |> List.head
+
+
+isOwnRecord : Maybe BestScoreRecord -> Uid -> Bool
+isOwnRecord maybeRecord uid =
+    maybeRecord
+        |> Maybe.map (.uid >> (==) uid)
+        |> Maybe.withDefault False
 
 
 toStringUserName : Maybe BestScoreRecord -> String

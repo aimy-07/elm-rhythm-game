@@ -40,6 +40,10 @@
   font-family: "droidSansMono";
 }
 
+.homeTopRight_userNameText.is-Me {
+  color: var(--color-elm-darkblue);
+}
+
 .homeTopRight_line {
   position: absolute;
   height: 1px;

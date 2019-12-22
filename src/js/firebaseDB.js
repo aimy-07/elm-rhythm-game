@@ -105,7 +105,7 @@ export function databaseSetUpSubscriber (app) {
               publicRecord.bestScores
                 ? publicRecord.bestScores.map(async record => {
                   const getUserName = await firebase.database().ref(`/users/${record.uid}/userName`).once('value');
-                  return {userName: getUserName.val(), score: record.score}
+                  return {uid: record.uid, userName: getUserName.val(), score: record.score}
                 })
                 : [];
             return Promise.all(getBestScores)
