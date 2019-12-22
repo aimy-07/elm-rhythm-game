@@ -1,5 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/storage';
+import {detectedError} from '../index';
 
 let musicAudio = new Audio();
 
@@ -21,7 +22,7 @@ export function audioSetUpSubscriber (app) {
       musicAudio.currentTime = 0;
       app.ports.gotCurrentMusicTime.send(0);
     } else {
-      console.error('musicAudio is undefined');
+      detectedError('musicAudio is undefined');
     }
   })
 
@@ -34,7 +35,7 @@ export function audioSetUpSubscriber (app) {
   app.ports.unPauseMusic.subscribe(() => {
     musicAudio.play();
     const currentMusicTime = musicAudio.currentTime * 1000;
-    app.ports.gotCurrentMusicTime.send(currentMusicTime); 
+    app.ports.gotCurrentMusicTime.send(currentMusicTime);
   })
 
   // 曲の現在の再生時間を取得する
@@ -58,13 +59,15 @@ export function audioSetUpSubscriber (app) {
   })
 }
 
-// 曲を取得する
+
+
+/* ---------------------------------
+	曲を取得する
+---------------------------------- */
 const getAudio = (audioFileName) => {
-  const audioFileRef = firebase.storage().ref('audio/' + audioFileName + '.wav');
-  audioFileRef.getDownloadURL().then(url => {
-    musicAudio.src = url;
-  })
-  .catch(error => {
-    console.error(error);
-  });
+  firebase.storage().ref(`audio/${audioFileName}.wav`).getDownloadURL()
+    .then(url => {
+      musicAudio.src = url;
+    })
+    .catch(detectedError)
 }

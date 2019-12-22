@@ -45,6 +45,11 @@ export function animationSetUpSubscriber (app) {
   })
 }
 
+
+
+/* ---------------------------------
+	アニメーションを再生する
+---------------------------------- */
 const replayAnim = (element) => {
   element.classList.remove("playAnim");
   requestAnimationFrame(() => {

@@ -10,6 +10,7 @@ type Page
     | Home
     | Login
     | Play
+    | Error
 
 
 view : Page -> { title : String, content : Html msg } -> Document msg

@@ -16,6 +16,7 @@ type Route
     = Home
     | Login
     | Play CsvFileName
+    | Error
 
 
 parser : Parser (Route -> a) a
@@ -24,6 +25,7 @@ parser =
         [ Parser.map Home Parser.top
         , Parser.map Login (s "login")
         , Parser.map Play (s "play" </> string)
+        , Parser.map Error (s "error")
         ]
 
 
@@ -63,5 +65,8 @@ routeToString page =
 
                 Play csvFileName ->
                     [ "play", csvFileName ]
+
+                Error ->
+                    [ "error" ]
     in
     "/" ++ String.join "/" pieces

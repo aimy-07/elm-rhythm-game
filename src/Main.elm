@@ -6,6 +6,7 @@ import Html
 import MusicInfo.CsvFileName exposing (CsvFileName)
 import Page
 import Page.Blank as Blank
+import Page.Error as Error
 import Page.Home as Home
 import Page.Login as Login
 import Page.NotFound as NotFound
@@ -27,6 +28,7 @@ type Model
     | Login Login.Model
     | Home Home.Model
     | Play CsvFileName Play.Model
+    | Error Error.Model
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -70,6 +72,9 @@ view model =
         Play _ play ->
             viewPage Page.Play GotPlayMsg (Play.view play)
 
+        Error error ->
+            viewPage Page.Error GotErrorMsg (Error.view error)
+
 
 
 -- UPDATE
@@ -82,7 +87,9 @@ type Msg
     | GotHomeMsg Home.Msg
     | GotLoginMsg Login.Msg
     | GotPlayMsg Play.Msg
+    | GotErrorMsg Error.Msg
     | ChangedAuth (Maybe UserDto)
+    | DetectedError ()
 
 
 toSession : Model -> Session
@@ -105,6 +112,9 @@ toSession model =
 
         Play _ play ->
             Play.toSession play
+
+        Error error ->
+            Error.toSession error
 
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
@@ -133,6 +143,10 @@ changeRouteTo maybeRoute model =
                 Just (Route.Play csvFileName) ->
                     Play.init session csvFileName
                         |> updateWith (Play csvFileName) GotPlayMsg model
+
+                Just Route.Error ->
+                    Error.init session
+                        |> updateWith Error GotErrorMsg model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -168,6 +182,10 @@ update msg model =
             Play.update subMsg subModel
                 |> updateWith (Play csvFileName) GotPlayMsg model
 
+        ( GotErrorMsg subMsg, Error subModel ) ->
+            Error.update subMsg subModel
+                |> updateWith Error GotErrorMsg model
+
         ( ChangedAuth maybeUserDto, _ ) ->
             let
                 session =
@@ -187,6 +205,9 @@ update msg model =
             , replaceUrlCmd
             )
 
+        ( DetectedError (), _ ) ->
+            ( model, Route.replaceUrl (Session.toNavKey <| toSession model) Route.Error )
+
         ( _, _ ) ->
             ( model, Cmd.none )
 
@@ -203,6 +224,9 @@ updateWith toModel toMsg model ( subModel, subCmd ) =
 
 
 port onAuthStateChanged : (Maybe UserDto -> msg) -> Sub msg
+
+
+port detectedError : (() -> msg) -> Sub msg
 
 
 
@@ -231,10 +255,14 @@ subscriptions model =
 
                 Play _ play ->
                     Sub.map GotPlayMsg (Play.subscriptions play)
+
+                Error error ->
+                    Sub.map GotErrorMsg (Error.subscriptions error)
     in
     Sub.batch
         [ subSubscriptions
         , onAuthStateChanged ChangedAuth
+        , detectedError DetectedError
         ]
 
 

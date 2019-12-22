@@ -1,64 +1,31 @@
 import axios from 'axios'
 import firebase from 'firebase/app';
 import 'firebase/storage';
-import {toArrFromObj} from '../index';
+import {detectedError} from '../index';
 
 
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
 export function csvSetUpSubscriber (app) {
-  // 全ての楽曲の情報をFirebaseから取得する
-  app.ports.getAllMusicInfoList.subscribe(() => {
-    firebase.database().ref('/musicInfos').once('value').then(
-      (snapshot) => {
-        const musicInfos = toArrFromObj(snapshot.val());
-        const allMusicInfoList = musicInfos.map(musicInfo => {
-          return {
-            musicId: musicInfo.musicId,
-            csvFileName: musicInfo.csvFileName,
-            musicName: musicInfo.musicName,
-            composer: musicInfo.composer,
-            mode: musicInfo.mode,
-            level: musicInfo.level,
-            fullTime: musicInfo.fullTime,
-            bpm: musicInfo.bpm,
-            beatsCountPerMeasure: musicInfo.beatsCountPerMeasure,
-            offset: musicInfo.offset,
-            maxCombo: musicInfo.maxCombo,
-            maxScore: musicInfo.maxScore
-          }
-        });
-        console.log("allMusicInfoList", allMusicInfoList)
-        app.ports.gotAllMusicInfoList.send(allMusicInfoList);
-      },
-      (err) => {
-        if (err)  console.error(err);
-        // TODO: ネットワークエラー画面に飛ばす
-      }
-    );
-  })
-
   // プレイ楽曲の楽曲情報をCSVから取得する
   app.ports.getAllNotes.subscribe(({csvFileName, bpm, beatsCountPerMeasure, offset}) => {
-    const csvFileRef = firebase.storage().ref(`csv/${csvFileName}.csv`);
-    csvFileRef.getDownloadURL().then(url => {
-      return axios.get(url);
-    })
-    .then(response => {
-      const csvArray = createArray(response.data);
-      const noteDtos = getNoteDtos(bpm, beatsCountPerMeasure, offset, csvArray);
-      app.ports.gotAllNotes.send(noteDtos);
-    })
-    .catch(error => {
-      console.error(error);
-    });
+    firebase.storage().ref(`csv/${csvFileName}.csv`).getDownloadURL()
+      .then(url => axios.get(url))
+      .then(response => {
+        const csvArray = createArray(response.data);
+        const noteDtos = getNoteDtos(bpm, beatsCountPerMeasure, offset, csvArray);
+        app.ports.gotAllNotes.send(noteDtos);
+      })
+      .catch(detectedError)
   })
 }
 
 
 
-// 楽曲の譜面情報をCSVから取得する
+/* ---------------------------------
+	楽曲の譜面情報をCSVから取得する
+---------------------------------- */
 const getNoteDtos = (bpm, beatsCountPerMeasure, offset, csvArray) => {
   const timePerBeat = 60 * 1000 / bpm;
   const noteDtos = [];
@@ -81,7 +48,11 @@ const getNoteDtos = (bpm, beatsCountPerMeasure, offset, csvArray) => {
   return noteDtos;
 }
 
-// csvデータを配列に変換する
+
+
+/* ---------------------------------
+	csvデータを配列に変換する
+---------------------------------- */
 const createArray = (csvData) => {
   const tempArray = csvData.split("\n");
   const csvArray = new Array();
@@ -91,7 +62,11 @@ const createArray = (csvData) => {
   return csvArray
 }
 
-// csvの列番号をキーに変換する
+
+
+/* ---------------------------------
+	csvの列番号をキーに変換する
+---------------------------------- */
 const createKeyStr = (csvNum) => {
   switch(csvNum) {
     case 0:
