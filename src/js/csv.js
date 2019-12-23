@@ -38,8 +38,8 @@ const getNoteDtos = (bpm, beatsCountPerMeasure, offset, csvArray) => {
     csvRow.forEach((note, index) => {
       const keyStr = createKeyStr(index);
       let longTime = -1;
-      if (note && !isNaN(parseInt(note, 10)) && keyStr != "") {
-        longTime = (parseInt(note, 10) === 0) ? 0 : parseFloat(note) * timePerBeat;
+      if (note && !isNaN(parseFloat(note)) && keyStr != "") {
+        longTime = (parseFloat(note) === 0) ? 0 : parseFloat(note) * timePerBeat;
       }
       noteDtos.push({keyStr, justTime, longTime})
     })

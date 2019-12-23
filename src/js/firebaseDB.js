@@ -132,13 +132,13 @@ export function databaseSetUpSubscriber (app) {
   app.ports.saveRecord.subscribe(({uid, csvFileName, combo, score}) => {
     const recordId = uuidv4();
     const createdAt = Date.now();
-    const saveRecord = firebase.database().ref(`/records/${csvFileName}/${uid}/${recordId}/`).set(
+    const saveRecord = () => firebase.database().ref(`/records/${csvFileName}/${uid}/${recordId}/`).set(
       {uid, csvFileName, combo, score, createdAt},
       detectedError
     );
 
     let isHighScore;
-    const updateOwnPlayRecord = firebase.database().ref(`/userDatas/${uid}/playRecords/${csvFileName}`).transaction(
+    const updateOwnPlayRecord = () => firebase.database().ref(`/userDatas/${uid}/playRecords/${csvFileName}`).transaction(
       (playRecord) => {
         if (playRecord) {
           isHighScore = score > playRecord.bestScore;
@@ -161,7 +161,7 @@ export function databaseSetUpSubscriber (app) {
       detectedError
     );
 
-    const updatePublicPlayRecord = firebase.database().ref(`/publicRecords/${csvFileName}/`).transaction(
+    const updatePublicPlayRecord = () => firebase.database().ref(`/publicRecords/${csvFileName}/`).transaction(
       (publicRecord) => {
         if (!publicRecord) {
           return {csvFileName, bestScores: [{uid, score}]}
@@ -180,7 +180,9 @@ export function databaseSetUpSubscriber (app) {
       detectedError
     );
 
-    Promise.all([saveRecord, updateOwnPlayRecord, updatePublicPlayRecord])
+    saveRecord()
+      .then(updateOwnPlayRecord)
+      .then(updatePublicPlayRecord)
       .then(() => {
         app.ports.savedRecord.send(isHighScore);
       })

@@ -65,7 +65,7 @@ export function audioSetUpSubscriber (app) {
 	曲を取得する
 ---------------------------------- */
 const getAudio = (audioFileName) => {
-  firebase.storage().ref(`audio/${audioFileName}.wav`).getDownloadURL()
+  firebase.storage().ref(`audio/${audioFileName}.mp3`).getDownloadURL()
     .then(url => {
       musicAudio.src = url;
     })

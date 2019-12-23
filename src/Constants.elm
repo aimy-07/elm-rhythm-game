@@ -41,12 +41,12 @@ longTimeDuration =
 
 perfectRange : Float
 perfectRange =
-    50
+    70
 
 
 greatRange : Float
 greatRange =
-    90
+    100
 
 
 goodRange : Float

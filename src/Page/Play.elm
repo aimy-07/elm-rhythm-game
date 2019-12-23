@@ -466,7 +466,7 @@ subscriptions model =
 
         Playing ->
             Sub.batch
-                [ Time.every 10 Tick
+                [ Time.every 30 Tick -- ほぼ30fps
                 , gotCurrentMusicTime GotCurrentMusicTime
                 , Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
