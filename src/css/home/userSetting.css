@@ -1,33 +1,96 @@
 .homeUserSetting_container {
-  width: 396px;
+  width: 398px;
   height: 180px;
   padding: 20px 0 20px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
-.homeUserSetting_leftContents {
+.homeUserSetting_userInfoContents {
   display: inline-block;
   vertical-align: top;
+  width: 362px;
   padding: 0 18px;
+  text-align: center;
   position: relative;
 }
 
+.homeUserSetting_userInfoContents.is-open {
+  animation: userSettingPanelOpen 0.2s ease-out 0s 1 normal forwards running;
+}
+
+.homeUserSetting_userInfoContents.is-close {
+  animation: userSettingPanelClose 0.2s ease-out 0s 1 normal forwards running;
+}
+
+@keyframes userSettingPanelOpen {
+  0% {
+    width: 362px;
+  }
+
+  100% {
+    width: 228px;
+  }
+}
+
+@keyframes userSettingPanelClose {
+  0% {
+    width: 228px;
+  }
+
+  100% {
+    width: 362px;
+  }
+}
+
+.homeUserSetting_settingIcon {
+  position: absolute;
+  top: 20px;
+  right: 88px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.homeUserSetting_infoIcon {
+  position: absolute;
+  top: 20px;
+  right: 54px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.homeUserSetting_logoutIcon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+}
+
+
+
+/* -------------------------------
+  アイコンと名前
+------------------------------- */
 .homeUserSetting_userIcon {
   width: 110px;
   height: 110px;
   border-radius: 55px;
-  margin: 0 59px;
 }
 
 .homeUserSetting_userIconBtnLabel {
   display: block;
   position: absolute;
   top: 0;
-  left: 18px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   width: 110px;
   height: 110px;
   border-radius: 55px;
-  margin: 0 59px;
   background-color: transparent;
   border: none;
   outline: none;
@@ -75,7 +138,7 @@
 
 .homeUserSetting_userNameInput {
   display: block;
-  width: 228px;
+  width: 100%;
   text-align: center;
   line-height: 28px;
   font-size: 18px;
@@ -91,28 +154,55 @@
   box-sizing: border-box;
 }
 
-.homeUserSetting_logoutIcon {
-  position: absolute;
-  top: 4px;
-  left: 20px;
-  width: 30px;
-  height: 30px;
-  cursor: pointer;
-}
 
-.homeUserSetting_rightContents {
+
+/* -------------------------------
+  UserSettingPanel
+------------------------------- */
+.homeUserSetting_userSettingPanelContents {
   display: inline-block;
   vertical-align: top;
+  position: relative;
 }
 
-.homeUserSetting_settingContainer {
+.homeUserSettingPanel_outer {
   width: 134px;
   height: 140px;
+  position: absolute;
+  top: 0;
+  left: 0;
   background-color: var(--color-elm-darkblue);
   border-top-left-radius: 10px;
   border-bottom-left-radius: 10px;
+  box-sizing: border-box;
+  z-index: 10;
+}
+
+.homeUserSettingPanel {
+  width: 134px;
+  height: 140px;
+  position: absolute;
+  top: 0;
+  left: 0;
   padding: 10px;
   box-sizing: border-box;
+}
+
+.homeUserSettingPanel_title {
+  line-height: 14px;
+  margin-bottom: 12px;
+  color: white;
+  text-align: start;
+}
+
+.homeUserSettingPanel_close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 10px;
+  height: 10px;
+  cursor: pointer;
+  z-index: 11;
 }
 
 .homeUserSetting_settingItem {
@@ -134,4 +224,11 @@
   color: white;
   margin-left: 5px;
   cursor: pointer;
+}
+
+.homeUserSetting_infoText {
+  line-height: 12px;
+  font-size: 10px;
+  color: white;
+  text-align: start;
 }

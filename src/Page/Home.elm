@@ -13,6 +13,7 @@ import MusicInfo.Mode as Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
 import OwnRecord exposing (OwnRecord, OwnRecordDto)
 import Page
+import Page.Home.UserSettingPanelS as UserSettingPanelS exposing (UserSettingPanelS(..))
 import PublicRecord exposing (PublicRecord, PublicRecordDto)
 import Rank exposing (Rank)
 import Route
@@ -32,6 +33,7 @@ type alias Model =
     , maybeOwnRecords : Maybe (List OwnRecord)
     , maybePublicRecords : Maybe (List PublicRecord)
     , pictureUploadS : PictureUploadS
+    , userSettingPanelS : UserSettingPanelS
     }
 
 
@@ -46,6 +48,7 @@ initModel session =
     , maybeOwnRecords = Nothing
     , maybePublicRecords = Nothing
     , pictureUploadS = NotUploading
+    , userSettingPanelS = UserSettingPanelS.init
     }
 
 
@@ -90,10 +93,13 @@ type Msg
     | GotPublicRecords (List PublicRecordDto)
     | ChangeMusicId MusicId
     | ChangeMode Mode
-    | ChangeNotesSpeed NotesSpeed
     | InputUserName String
     | SelectdPicture Decode.Value
     | SavedUserPicture String
+    | ChangeNotesSpeed NotesSpeed
+    | ClickedSettingPanelShowBtn
+    | ClickedInfoPanelShowBtn
+    | ClickedPanelCloseBtn
     | SignOut
 
 
@@ -154,15 +160,6 @@ update msg model =
                         ]
                     )
 
-                ChangeNotesSpeed notesSpeed ->
-                    let
-                        updatedSession =
-                            Session.updateUserSetting notesSpeed UserSetting.updateNotesSpeed model.session
-                    in
-                    ( { model | session = updatedSession }
-                    , saveNotesSpeed { uid = user.uid, notesSpeed = notesSpeed }
-                    )
-
                 InputUserName nextUserName ->
                     let
                         updatedSession =
@@ -183,6 +180,24 @@ update msg model =
                             Session.updateUser url User.updatePictureUrl model.session
                     in
                     ( { model | pictureUploadS = NotUploading, session = updatedSession }, Cmd.none )
+
+                ChangeNotesSpeed notesSpeed ->
+                    let
+                        updatedSession =
+                            Session.updateUserSetting notesSpeed UserSetting.updateNotesSpeed model.session
+                    in
+                    ( { model | session = updatedSession }
+                    , saveNotesSpeed { uid = user.uid, notesSpeed = notesSpeed }
+                    )
+
+                ClickedSettingPanelShowBtn ->
+                    ( { model | userSettingPanelS = SettingShow }, Cmd.none )
+
+                ClickedInfoPanelShowBtn ->
+                    ( { model | userSettingPanelS = InfoShow }, Cmd.none )
+
+                ClickedPanelCloseBtn ->
+                    ( { model | userSettingPanelS = UserSettingPanelS.close model.userSettingPanelS }, Cmd.none )
 
                 SignOut ->
                     ( model, signOut () )
@@ -316,9 +331,12 @@ viewContents model =
                                 [ class "home_leftContents" ]
                                 [ div
                                     [ class "homeUserSetting_container" ]
-                                    [ viewUser user model.pictureUploadS
-                                    , viewSetting userSetting
+                                    [ viewUser user model.pictureUploadS model.userSettingPanelS
+                                    , viewUserSettingPanel userSetting model.userSettingPanelS
                                     ]
+                                , viewSettingIcon
+                                , viewInfoIcon
+                                , viewLogoutIcon
                                 , viewModeTab userSetting
                                 , viewMusicList userSetting.currentMode currentMusicInfo allMusicInfoList ownRecords
                                 ]
@@ -344,8 +362,23 @@ viewContents model =
             div [ class "home_contentsContainer" ] [ Page.viewLoading ]
 
 
-viewUser : User -> PictureUploadS -> Html Msg
-viewUser user pictureUploadS =
+viewSettingIcon : Html Msg
+viewSettingIcon =
+    img [ class "homeUserSetting_settingIcon", src "./img/icon_setting.png", onClick ClickedSettingPanelShowBtn ] []
+
+
+viewInfoIcon : Html Msg
+viewInfoIcon =
+    img [ class "homeUserSetting_infoIcon", src "./img/icon_info.png", onClick ClickedInfoPanelShowBtn ] []
+
+
+viewLogoutIcon : Html Msg
+viewLogoutIcon =
+    img [ class "homeUserSetting_logoutIcon", src "./img/icon_logout.png", onClick SignOut ] []
+
+
+viewUser : User -> PictureUploadS -> UserSettingPanelS -> Html Msg
+viewUser user pictureUploadS userSettingPanelS =
     let
         clsIsUploading =
             if pictureUploadS == Uploading then
@@ -358,7 +391,9 @@ viewUser user pictureUploadS =
             pictureUploadS == Uploading
     in
     div
-        [ class "homeUserSetting_leftContents" ]
+        [ class "homeUserSetting_userInfoContents"
+        , class <| UserSettingPanelS.clsStr userSettingPanelS
+        ]
         [ img [ class "homeUserSetting_userIcon", src user.pictureUrl ] []
         , label
             [ class "homeUserSetting_userIconBtnLabel"
@@ -378,7 +413,26 @@ viewUser user pictureUploadS =
                 |> viewIf isUploading
             ]
         , input [ class "homeUserSetting_userNameInput", value user.userName, onInput InputUserName ] []
-        , img [ class "homeUserSetting_logoutIcon", src "./img/icon_logout.png", onClick SignOut ] []
+        ]
+
+
+viewUserSettingPanel : UserSettingData -> UserSettingPanelS -> Html Msg
+viewUserSettingPanel userSetting userSettingPanelS =
+    div
+        [ class "homeUserSetting_userSettingPanelContents" ]
+        [ div
+            [ class "homeUserSettingPanel_outer" ]
+            [ img
+                [ class "homeUserSettingPanel_close"
+                , src "./img/icon_close.png"
+                , onClick ClickedPanelCloseBtn
+                ]
+                []
+            , viewSetting userSetting
+                |> viewIf (UserSettingPanelS.isSetting userSettingPanelS)
+            , viewInfo
+                |> viewIf (UserSettingPanelS.isInfo userSettingPanelS)
+            ]
         ]
 
 
@@ -391,35 +445,43 @@ viewSetting userSetting =
 
             else
                 span [ class "homeUserSetting_settingBtn", onClick <| ChangeNotesSpeed notesSpeed ] [ text "◇" ]
-    in
-    div
-        [ class "homeUserSetting_rightContents" ]
-        [ div
-            [ class "homeUserSetting_settingContainer" ]
-            [ div
-                [ class "homeUserSetting_settingItem" ]
-                [ text "ノーツ速度"
-                , div [ class "homeUserSetting_settingBtnContainer" ] (List.map viewNotesSpeed notesSpeedLevel)
+
+        viewSettingItem labelText =
+            -- TODO: 将来的には不要になる
+            div [ class "homeUserSetting_settingItem" ]
+                [ text labelText
+                , div
+                    [ class "homeUserSetting_settingBtnContainer" ]
+                    [ span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
+                    , span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
+                    , span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
+                    , span [ class "homeUserSetting_settingBtn" ] [ text "◇" ]
+                    , span [ class "homeUserSetting_settingBtn" ] [ text "◇" ]
+                    ]
                 ]
-            , viewSettingItem "BGM Volume"
-            , viewSettingItem "システム音 Volume"
+    in
+    div [ class "homeUserSettingPanel" ]
+        [ div [ class "homeUserSettingPanel_title" ] [ text "Setting" ]
+        , div
+            [ class "homeUserSetting_settingItem" ]
+            [ text "ノーツ速度"
+            , div [ class "homeUserSetting_settingBtnContainer" ] (List.map viewNotesSpeed notesSpeedLevel)
             ]
+        , viewSettingItem "BGM Volume"
+        , viewSettingItem "システム音 Volume"
         ]
 
 
-viewSettingItem : String -> Html Msg
-viewSettingItem labelText =
-    -- TODO: 将来的には不要になる
-    div [ class "homeUserSetting_settingItem" ]
-        [ text labelText
+viewInfo : Html msg
+viewInfo =
+    div [ class "homeUserSettingPanel" ]
+        [ div [ class "homeUserSettingPanel_title" ] [ text "Info" ]
         , div
-            [ class "homeUserSetting_settingBtnContainer" ]
-            [ span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
-            , span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
-            , span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
-            , span [ class "homeUserSetting_settingBtn" ] [ text "◇" ]
-            , span [ class "homeUserSetting_settingBtn" ] [ text "◇" ]
-            ]
+            [ class "homeUserSetting_infoText" ]
+            [ a [ href "https://twitter.com/yun_ar_1107", target "_blank" ] [ text "開発者：Yuna Tanaka" ] ]
+        , div
+            [ class "homeUserSetting_infoText" ]
+            [ a [ href "https://github.com/aimy-07/elm-rhythm-game/issues", target "_blank" ] [ text "バグ報告はこちら" ] ]
         ]
 
 
