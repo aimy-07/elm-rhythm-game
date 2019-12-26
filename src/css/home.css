@@ -10,48 +10,42 @@
   position: relative;
 }
 
+.home_contents {
+  width: 1000px;
+  height: 700px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translateX(-50%) translateY(-50%);
+  transform: translateX(-50%) translateY(-50%);
+  /* overflow: hidden; */
+}
+
 /* -------------------------------
   左側
 ------------------------------- */
-.home_leftContentsContainer {
+.home_leftContents {
   display: inline-block;
   width: 400px;
-  height: 100%;
+  height: 564px;
   position: relative;
   background-color: rgba(255, 255, 255, 0.5);
-  border-right: solid 4px white;
-  box-sizing: border-box;
+  border: solid 1px white;
   box-shadow: 0 0 20px 5px #fff;
-}
-
-.home_leftContents {
-  height: 600px;
-  position: absolute;
-  top: 50%;
-  left: 0;
-  transform: translateY(-50%);
-  padding: 18px 0;
   box-sizing: border-box;
+  margin-top: 68px;
 }
 
 /* -------------------------------
   右側
 ------------------------------- */
-.home_rightContentsContainer {
-  display: inline-block;
-  width: calc(100vw - 400px);
-  min-width: 600px;
-  height: 100%;
-  position: relative;
-}
-
 .home_rightContents {
+  display: inline-block;
   width: 600px;
   height: 600px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translateX(-50%) translateY(-50%);
+  position: relative;
+  margin-top: 50px;
+  vertical-align: top;
 }
 
 /* -------------------------------

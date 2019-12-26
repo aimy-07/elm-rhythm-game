@@ -1,5 +1,6 @@
 .homeModeSelectTab_container {
   height: 20px;
+  border-bottom: solid 1px white;
 }
 
 .homeModeSelectTab_item {
@@ -9,16 +10,18 @@
   height: 20px;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.5);
   line-height: 20px;
   text-align: center;
   color: black;
   font-size: 14px;
   cursor: pointer;
+  transition: 0.1s;
 }
 
 .homeModeSelectTab_item.is-selecting {
   background-color: var(--color-elm-orange);
   color: white;
   font-weight: 600;
+  width: 134px;
 }

@@ -307,10 +307,11 @@ viewContents model =
                         maybeCurrentPublicRecord =
                             PublicRecord.findByCsvFileName currentMusicInfo.csvFileName publicRecords
                     in
-                    div [ class "home_contentsContainer" ]
-                        -- 左側
+                    div
+                        [ class "home_contentsContainer" ]
                         [ div
-                            [ class "home_leftContentsContainer" ]
+                            [ class "home_contents" ]
+                            -- 左側
                             [ div
                                 [ class "home_leftContents" ]
                                 [ div
@@ -321,12 +322,9 @@ viewContents model =
                                 , viewModeTab userSetting
                                 , viewMusicList userSetting.currentMode currentMusicInfo allMusicInfoList ownRecords
                                 ]
-                            ]
 
-                        -- 右側
-                        , div
-                            [ class "home_rightContentsContainer" ]
-                            [ div
+                            -- 右側
+                            , div
                                 [ class "home_rightContents" ]
                                 [ viewCenterArea currentMusicInfo maybeCurrentOwnRecord
                                 , viewTopLeftArea currentMusicInfo
@@ -335,8 +333,8 @@ viewContents model =
                                 , viewBottomLeftArea2 currentMusicInfo maybeCurrentOwnRecord
                                 , viewBottomRightArea currentMusicInfo
                                 ]
+                            , div [] [ Page.viewLoaded ]
                             ]
-                        , div [] [ Page.viewLoaded ]
                         ]
 
                 _ ->
@@ -404,7 +402,6 @@ viewSetting userSetting =
                 , div [ class "homeUserSetting_settingBtnContainer" ] (List.map viewNotesSpeed notesSpeedLevel)
                 ]
             , viewSettingItem "BGM Volume"
-            , viewSettingItem "タップ音 Volume"
             , viewSettingItem "システム音 Volume"
             ]
         ]

@@ -1,9 +1,7 @@
 .homeMusicList_container {
-  height: calc(600px - (18px * 2) - 180px - 20px);
+  height: calc(600px - (19px * 2) - 180px - 20px);
   overflow: scroll;
   box-sizing: border-box;
-  border-top: solid 1px white;
-  border-bottom: solid 1px white;
 }
 
 .homeMusicListItem_container {

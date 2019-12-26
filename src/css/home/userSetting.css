@@ -1,8 +1,7 @@
 .homeUserSetting_container {
   width: 396px;
   height: 180px;
-  padding: 19px 0 20px;
-  border-top: solid 1px white;
+  padding: 20px 0 20px;
   box-sizing: border-box;
 }
 
@@ -107,7 +106,7 @@
 }
 
 .homeUserSetting_settingContainer {
-  width: 132px;
+  width: 134px;
   height: 140px;
   background-color: var(--color-elm-darkblue);
   border-top-left-radius: 10px;
