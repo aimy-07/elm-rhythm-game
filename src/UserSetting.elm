@@ -6,15 +6,25 @@ module UserSetting exposing
     , isLoaded
     , new
     , toMaybe
+    , updateBgmVolume
     , updateCurrentMode
     , updateCurrentMusicId
     , updateNotesSpeed
+    , updateSeVolume
     )
 
-import Constants exposing (currentModeDefault, currentMusicIdDefault, notesSpeedDefault)
+import Constants
+    exposing
+        ( bgmVolumeDefault
+        , currentModeDefault
+        , currentMusicIdDefault
+        , notesSpeedDefault
+        , seVolumeDefault
+        )
 import MusicInfo.Mode as Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
 import UserSetting.NotesSpeed exposing (NotesSpeed)
+import UserSetting.Volume exposing (Volume)
 
 
 type UserSetting
@@ -26,13 +36,17 @@ type alias UserSettingData =
     { currentMusicId : MusicId
     , currentMode : Mode
     , notesSpeed : NotesSpeed
+    , bgmVolume : Volume
+    , seVolume : Volume
     }
 
 
 type alias UserSettingDto =
     { currentMusicId : Maybe String
     , currentMode : Maybe String
-    , notesSpeed : Maybe NotesSpeed
+    , notesSpeed : Maybe Float
+    , bgmVolume : Maybe Float
+    , seVolume : Maybe Float
     }
 
 
@@ -42,7 +56,7 @@ init =
 
 
 new : UserSettingDto -> UserSetting
-new { currentMusicId, currentMode, notesSpeed } =
+new { currentMusicId, currentMode, notesSpeed, bgmVolume, seVolume } =
     Loaded
         { currentMusicId =
             currentMusicId
@@ -56,6 +70,14 @@ new { currentMusicId, currentMode, notesSpeed } =
             notesSpeed
                 |> Maybe.map identity
                 |> Maybe.withDefault notesSpeedDefault
+        , bgmVolume =
+            bgmVolume
+                |> Maybe.map identity
+                |> Maybe.withDefault bgmVolumeDefault
+        , seVolume =
+            seVolume
+                |> Maybe.map identity
+                |> Maybe.withDefault seVolumeDefault
         }
 
 
@@ -107,6 +129,28 @@ updateNotesSpeed notesSpeed userSetting =
         Loaded setting ->
             Loaded
                 { setting | notesSpeed = notesSpeed }
+
+        NotLoaded ->
+            userSetting
+
+
+updateBgmVolume : Volume -> UserSetting -> UserSetting
+updateBgmVolume bgmVolume userSetting =
+    case userSetting of
+        Loaded setting ->
+            Loaded
+                { setting | bgmVolume = bgmVolume }
+
+        NotLoaded ->
+            userSetting
+
+
+updateSeVolume : Volume -> UserSetting -> UserSetting
+updateSeVolume seVolume userSetting =
+    case userSetting of
+        Loaded setting ->
+            Loaded
+                { setting | seVolume = seVolume }
 
         NotLoaded ->
             userSetting

@@ -1,6 +1,7 @@
 module Constants exposing
     ( allKeyStr
     , allMode
+    , bgmVolumeDefault
     , currentModeDefault
     , currentMusicIdDefault
     , goodRange
@@ -12,9 +13,9 @@ module Constants exposing
     , longTimeOffset
     , missRange
     , notesSpeedDefault
-    , notesSpeedLevel
     , perfectRange
     , perfectScore
+    , seVolumeDefault
     , tweetText
     )
 
@@ -22,6 +23,7 @@ import MusicInfo.Mode as Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
 import Page.Play.KeyStr exposing (KeyStr)
 import UserSetting.NotesSpeed exposing (NotesSpeed)
+import UserSetting.Volume exposing (Volume)
 
 
 allKeyStr : List KeyStr
@@ -94,14 +96,19 @@ allMode =
     [ Mode.normal, Mode.hard, Mode.master ]
 
 
-notesSpeedLevel : List NotesSpeed
-notesSpeedLevel =
-    [ 0.2, 0.3, 0.4, 0.5, 0.6 ]
-
-
 notesSpeedDefault : NotesSpeed
 notesSpeedDefault =
     0.4
+
+
+bgmVolumeDefault : Volume
+bgmVolumeDefault =
+    0.7
+
+
+seVolumeDefault : Volume
+seVolumeDefault =
+    0.7
 
 
 tweetText : String -> Mode -> Int -> Int -> String

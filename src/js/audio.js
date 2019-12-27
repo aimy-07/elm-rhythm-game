@@ -2,7 +2,7 @@ import firebase from 'firebase/app';
 import 'firebase/storage';
 import {detectedError} from '../index';
 
-let musicAudio = new Audio();
+let bgmAudio = new Audio();
 
 
 
@@ -17,45 +17,42 @@ export function audioSetUpSubscriber (app) {
 
   // 曲を再生する
   app.ports.startMusic.subscribe(() => {
-    if (musicAudio.src) {
-      musicAudio.play();
-      musicAudio.currentTime = 0;
+    if (bgmAudio.src) {
+      bgmAudio.play();
+      bgmAudio.currentTime = 0;
       app.ports.gotCurrentMusicTime.send(0);
     } else {
-      detectedError('musicAudio is undefined');
+      detectedError('bgmAudio is undefined');
     }
   })
 
   // 曲を一時停止する
   app.ports.pauseMusic.subscribe(() => {
-    musicAudio.pause();
+    bgmAudio.pause();
   })
 
   // 曲を一時停止から再生する
   app.ports.unPauseMusic.subscribe(() => {
-    musicAudio.play();
-    const currentMusicTime = musicAudio.currentTime * 1000;
+    bgmAudio.play();
+    const currentMusicTime = bgmAudio.currentTime * 1000;
     app.ports.gotCurrentMusicTime.send(currentMusicTime);
   })
 
   // 曲の現在の再生時間を取得する
   app.ports.getCurrentMusicTime.subscribe(() => {
-    const currentMusicTime = musicAudio.currentTime * 1000;
+    const currentMusicTime = bgmAudio.currentTime * 1000;
     app.ports.gotCurrentMusicTime.send(currentMusicTime);
   })
 
-  // タップ音を鳴らす
-  app.ports.playTapSound.subscribe(() => {
-    // TODO: 重くならないように工夫する
-    // 音発火が重い
-    // const tapAudio = new Audio();
-    // tapAudio.src = "./audios/tapSound2.wav";
-    // tapAudio.play();
+  // Home画面に戻っても音楽がなり続けるのを止める
+  app.ports.startHomeMusic.subscribe(() => {
+    bgmAudio.pause();
+    bgmAudio.currentTime = 0
   })
 
-  app.ports.startHomeMusic.subscribe(() => {
-    musicAudio.pause();
-    musicAudio.currentTime = 0
+  // Bgm音量を変更する
+  app.ports.changeBgmVolume.subscribe((bgmVolume) => {
+    bgmAudio.volume = bgmVolume;
   })
 }
 
@@ -67,7 +64,7 @@ export function audioSetUpSubscriber (app) {
 const getAudio = (audioFileName) => {
   firebase.storage().ref(`audio/${audioFileName}.mp3`).getDownloadURL()
     .then(url => {
-      musicAudio.src = url;
+      bgmAudio.src = url;
     })
     .catch(detectedError)
 }

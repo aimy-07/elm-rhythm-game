@@ -16,14 +16,22 @@ export function databaseSetUpSubscriber (app) {
       .then(
         (snapshot) => {
           if (!snapshot.val()) {
-            app.ports.gotUserSetting.send({currentMusicId: null, currentMode: null, notesSpeed: null});
+            app.ports.gotUserSetting.send({
+              currentMusicId: null,
+              currentMode: null,
+              notesSpeed: null,
+              bgmVolume: null,
+              seVolume: null
+            });
             return;
           }
           const data = snapshot.val();
           const currentMusicId = data.currentMusicId ? data.currentMusicId : null;
           const currentMode = data.currentMode ? data.currentMode : null;
           const notesSpeed = data.notesSpeed ? data.notesSpeed : null;
-          app.ports.gotUserSetting.send({currentMusicId, currentMode, notesSpeed});
+          const bgmVolume = data.notesSpeed ? data.bgmVolume : null;
+          const seVolume = data.notesSpeed ? data.seVolume : null;
+          app.ports.gotUserSetting.send({currentMusicId, currentMode, notesSpeed, bgmVolume, seVolume});
         }
       )
       .catch(detectedError)
@@ -42,6 +50,16 @@ export function databaseSetUpSubscriber (app) {
   // ノーツの速度を保存
   app.ports.saveNotesSpeed.subscribe(({uid, notesSpeed}) => {
     firebase.database().ref(`/userDatas/${uid}/notesSpeed/`).set(notesSpeed, detectedError);
+  });
+
+  // BGGM音量を保存
+  app.ports.saveBgmVolume.subscribe(({uid, bgmVolume}) => {
+    firebase.database().ref(`/userDatas/${uid}/bgmVolume/`).set(bgmVolume, detectedError);
+  });
+
+  // SE音量を保存
+  app.ports.saveSeVolume.subscribe(({uid, seVolume}) => {
+    firebase.database().ref(`/userDatas/${uid}/seVolume/`).set(seVolume, detectedError);
   });
 
   // 全ての楽曲の情報を取得する

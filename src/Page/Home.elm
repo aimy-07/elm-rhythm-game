@@ -1,7 +1,7 @@
 port module Page.Home exposing (Model, Msg, init, subscriptions, toSession, update, view)
 
 import AllMusicInfoList exposing (AllMusicInfoList)
-import Constants exposing (allMode, notesSpeedLevel)
+import Constants exposing (allMode)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -20,7 +20,8 @@ import Route
 import Session exposing (Session)
 import User exposing (User)
 import UserSetting exposing (UserSettingData, UserSettingDto)
-import UserSetting.NotesSpeed exposing (NotesSpeed)
+import UserSetting.NotesSpeed as NotesSpeed
+import UserSetting.Volume as Volume
 import Utils exposing (cmdIf, viewIf)
 
 
@@ -96,7 +97,9 @@ type Msg
     | InputUserName String
     | SelectdPicture Decode.Value
     | SavedUserPicture String
-    | ChangeNotesSpeed NotesSpeed
+    | ChangeNotesSpeed String
+    | ChangeBgmVolume String
+    | ChangeSeVolume String
     | ClickedSettingPanelShowBtn
     | ClickedInfoPanelShowBtn
     | ClickedPanelCloseBtn
@@ -119,8 +122,27 @@ update msg model =
                     let
                         session =
                             Session.setUserSetting userSettingDto model.session
+
+                        bgmVolume =
+                            session
+                                |> Session.toUserSetting
+                                |> UserSetting.toMaybe
+                                |> Maybe.map .bgmVolume
+                                |> Maybe.withDefault 0
+
+                        seVolume =
+                            session
+                                |> Session.toUserSetting
+                                |> UserSetting.toMaybe
+                                |> Maybe.map .seVolume
+                                |> Maybe.withDefault 0
                     in
-                    ( { model | session = session }, Cmd.none )
+                    ( { model | session = session }
+                    , Cmd.batch
+                        [ changeBgmVolume bgmVolume
+                        , changeSeVolume seVolume
+                        ]
+                    )
 
                 GotOwnRecords ownRecordDtos ->
                     let
@@ -181,13 +203,46 @@ update msg model =
                     in
                     ( { model | pictureUploadS = NotUploading, session = updatedSession }, Cmd.none )
 
-                ChangeNotesSpeed notesSpeed ->
+                ChangeNotesSpeed speedValue ->
                     let
+                        notesSpeed =
+                            NotesSpeed.fromString speedValue
+
                         updatedSession =
                             Session.updateUserSetting notesSpeed UserSetting.updateNotesSpeed model.session
                     in
                     ( { model | session = updatedSession }
                     , saveNotesSpeed { uid = user.uid, notesSpeed = notesSpeed }
+                    )
+
+                ChangeBgmVolume volumeValue ->
+                    let
+                        bgmVolume =
+                            Volume.fromString volumeValue
+
+                        updatedSession =
+                            Session.updateUserSetting bgmVolume UserSetting.updateBgmVolume model.session
+                    in
+                    ( { model | session = updatedSession }
+                    , Cmd.batch
+                        [ saveBgmVolume { uid = user.uid, bgmVolume = bgmVolume }
+                        , changeBgmVolume bgmVolume
+                        ]
+                    )
+
+                ChangeSeVolume volumeValue ->
+                    let
+                        seVolume =
+                            Volume.fromString volumeValue
+
+                        updatedSession =
+                            Session.updateUserSetting seVolume UserSetting.updateSeVolume model.session
+                    in
+                    ( { model | session = updatedSession }
+                    , Cmd.batch
+                        [ saveSeVolume { uid = user.uid, seVolume = seVolume }
+                        , changeSeVolume seVolume
+                        ]
                     )
 
                 ClickedSettingPanelShowBtn ->
@@ -219,21 +274,6 @@ port getAllMusicInfoList : () -> Cmd msg
 port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg
 
 
-port getUserSetting : String -> Cmd msg
-
-
-port gotUserSetting : (UserSettingDto -> msg) -> Sub msg
-
-
-port saveCurrentMusicId : { uid : String, currentMusicId : String } -> Cmd msg
-
-
-port saveCurrentMode : { uid : String, currentMode : String } -> Cmd msg
-
-
-port saveNotesSpeed : { uid : String, notesSpeed : Float } -> Cmd msg
-
-
 port getOwnRecords : String -> Cmd msg
 
 
@@ -246,6 +286,12 @@ port getPublicRecords : () -> Cmd msg
 port gotPublicRecords : (List PublicRecordDto -> msg) -> Sub msg
 
 
+port getUserSetting : String -> Cmd msg
+
+
+port gotUserSetting : (UserSettingDto -> msg) -> Sub msg
+
+
 port saveUserName : { uid : String, userName : String } -> Cmd msg
 
 
@@ -253,6 +299,27 @@ port saveUserPicture : { uid : String, event : Decode.Value } -> Cmd msg
 
 
 port savedUserPicture : (String -> msg) -> Sub msg
+
+
+port saveCurrentMusicId : { uid : String, currentMusicId : String } -> Cmd msg
+
+
+port saveCurrentMode : { uid : String, currentMode : String } -> Cmd msg
+
+
+port saveNotesSpeed : { uid : String, notesSpeed : Float } -> Cmd msg
+
+
+port saveBgmVolume : { uid : String, bgmVolume : Float } -> Cmd msg
+
+
+port changeBgmVolume : Float -> Cmd msg
+
+
+port saveSeVolume : { uid : String, seVolume : Float } -> Cmd msg
+
+
+port changeSeVolume : Float -> Cmd msg
 
 
 port playMusicSelectAnim : () -> Cmd msg
@@ -380,15 +447,15 @@ viewLogoutIcon =
 viewUser : User -> PictureUploadS -> UserSettingPanelS -> Html Msg
 viewUser user pictureUploadS userSettingPanelS =
     let
+        isUploading =
+            pictureUploadS == Uploading
+
         clsIsUploading =
-            if pictureUploadS == Uploading then
+            if isUploading then
                 "is-uploading"
 
             else
                 ""
-
-        isUploading =
-            pictureUploadS == Uploading
     in
     div
         [ class "homeUserSetting_userInfoContents"
@@ -438,38 +505,41 @@ viewUserSettingPanel userSetting userSettingPanelS =
 
 viewSetting : UserSettingData -> Html Msg
 viewSetting userSetting =
-    let
-        viewNotesSpeed notesSpeed =
-            if notesSpeed <= userSetting.notesSpeed then
-                span [ class "homeUserSetting_settingBtn", onClick <| ChangeNotesSpeed notesSpeed ] [ text "◆" ]
-
-            else
-                span [ class "homeUserSetting_settingBtn", onClick <| ChangeNotesSpeed notesSpeed ] [ text "◇" ]
-
-        viewSettingItem labelText =
-            -- TODO: 将来的には不要になる
-            div [ class "homeUserSetting_settingItem" ]
-                [ text labelText
-                , div
-                    [ class "homeUserSetting_settingBtnContainer" ]
-                    [ span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
-                    , span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
-                    , span [ class "homeUserSetting_settingBtn" ] [ text "◆" ]
-                    , span [ class "homeUserSetting_settingBtn" ] [ text "◇" ]
-                    , span [ class "homeUserSetting_settingBtn" ] [ text "◇" ]
-                    ]
-                ]
-    in
     div [ class "homeUserSettingPanel" ]
         [ div [ class "homeUserSettingPanel_title" ] [ text "Setting" ]
-        , div
-            [ class "homeUserSetting_settingItem" ]
-            [ text "ノーツ速度"
-            , div [ class "homeUserSetting_settingBtnContainer" ] (List.map viewNotesSpeed notesSpeedLevel)
-            ]
-        , viewSettingItem "BGM Volume"
-        , viewSettingItem "システム音 Volume"
+        , viewRangeSlider "ノーツ速度" userSetting.notesSpeed ChangeNotesSpeed
+        , viewRangeSlider "BGM音量" userSetting.bgmVolume ChangeBgmVolume
+        , viewRangeSlider "システム音量" userSetting.seVolume ChangeSeVolume
         ]
+
+
+viewRangeSlider : String -> Float -> (String -> Msg) -> Html Msg
+viewRangeSlider label value_ msg =
+    div []
+        [ div [ class "homeUserSetting_rangeSliderLabel" ] [ text label ]
+        , input
+            [ class "homeUserSetting_rangeSlider"
+            , type_ "range"
+            , Html.Attributes.min "0"
+            , Html.Attributes.max "1"
+            , step "0.1"
+            , value <| String.fromFloat value_
+            , sliderStyle value_
+            , onInput msg
+            ]
+            []
+        ]
+
+
+sliderStyle : Float -> Html.Attribute msg
+sliderStyle value =
+    let
+        percentStr =
+            String.fromFloat (value * 100) ++ "%"
+    in
+    Html.Attributes.style
+        "background-image"
+        ("-webkit-gradient(linear, left top, right top, color-stop(" ++ percentStr ++ ", white), color-stop(" ++ percentStr ++ ", #8f95a3))")
 
 
 viewInfo : Html msg

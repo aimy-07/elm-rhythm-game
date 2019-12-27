@@ -248,7 +248,6 @@ update msg model =
                                 , Cmd.batch
                                     [ Judge.keyDownEffectCmd keyStr judge (Note.isLongNote headNote)
                                     , comboEffectCmd
-                                    , playTapSound ()
                                     ]
                                 )
 
@@ -439,9 +438,6 @@ port pauseMusic : () -> Cmd msg
 
 
 port unPauseMusic : () -> Cmd msg
-
-
-port playTapSound : () -> Cmd msg
 
 
 port saveRecord : RecordDto -> Cmd msg
