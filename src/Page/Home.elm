@@ -1,4 +1,13 @@
-port module Page.Home exposing (Model, Msg, init, subscriptions, toSession, update, view)
+port module Page.Home exposing
+    ( Model
+    , Msg
+    , init
+    , subscriptions
+    , toAllMusicInfoList
+    , toSession
+    , update
+    , view
+    )
 
 import AllMusicInfoList exposing (AllMusicInfoList)
 import Constants exposing (allMode)
@@ -31,6 +40,7 @@ import Utils exposing (cmdIf, viewIf)
 
 type alias Model =
     { session : Session
+    , allMusicInfoList : AllMusicInfoList
     , maybeOwnRecords : Maybe (List OwnRecord)
     , maybePublicRecords : Maybe (List PublicRecord)
     , pictureUploadS : PictureUploadS
@@ -43,44 +53,44 @@ type PictureUploadS
     | Uploading
 
 
-initModel : Session -> Model
-initModel session =
-    { session = session
-    , maybeOwnRecords = Nothing
-    , maybePublicRecords = Nothing
-    , pictureUploadS = NotUploading
-    , userSettingPanelS = UserSettingPanelS.init
-    }
-
-
-init : Session -> ( Model, Cmd Msg )
-init session =
-    let
-        allMusicInfoList =
-            Session.toAllMusicInfoList session
-    in
+init : Session -> AllMusicInfoList -> ( Model, Cmd Msg )
+init session allMusicInfoList =
     case Session.toUser session of
         Just user ->
             let
                 updatedSession =
                     Session.resetUserSetting session
             in
-            ( initModel updatedSession
+            ( initModel updatedSession allMusicInfoList
             , Cmd.batch
                 [ getAllMusicInfoList ()
                     |> cmdIf (not <| AllMusicInfoList.isLoaded allMusicInfoList)
                 , getUserSetting user.uid
                 , getOwnRecords user.uid
                 , getPublicRecords ()
-                , startHomeMusic ()
                 ]
             )
 
         Nothing ->
             -- Homeで user == Nothing にはまずならないが、念のためログイン画面に戻す処理を入れておく
-            ( initModel <| Session.init (Session.toNavKey session)
-            , Route.replaceUrl (Session.toNavKey session) Route.Login
+            let
+                navKey =
+                    Session.toNavKey session
+            in
+            ( initModel (Session.init navKey) allMusicInfoList
+            , Route.replaceUrl navKey Route.Login
             )
+
+
+initModel : Session -> AllMusicInfoList -> Model
+initModel session allMusicInfoList =
+    { session = session
+    , allMusicInfoList = allMusicInfoList
+    , maybeOwnRecords = Nothing
+    , maybePublicRecords = Nothing
+    , pictureUploadS = NotUploading
+    , userSettingPanelS = UserSettingPanelS.init
+    }
 
 
 
@@ -89,6 +99,7 @@ init session =
 
 type Msg
     = GotAllMusicInfoList (List MusicInfoDto)
+    | GotAllSampleAudio ()
     | GotUserSetting UserSettingDto
     | GotOwnRecords (List OwnRecordDto)
     | GotPublicRecords (List PublicRecordDto)
@@ -113,10 +124,32 @@ update msg model =
             case msg of
                 GotAllMusicInfoList musicInfoDtos ->
                     let
-                        session =
-                            Session.setAllMusicInfoList musicInfoDtos model.session
+                        allMusicInfoList =
+                            AllMusicInfoList.new musicInfoDtos
+
+                        audioFileNameList =
+                            musicInfoDtos
+                                |> List.map (.csvFileName >> CsvFileName.toAudioFileName)
                     in
-                    ( { model | session = session }, Cmd.none )
+                    ( { model | allMusicInfoList = allMusicInfoList }
+                    , getAllSampleAudio audioFileNameList
+                    )
+
+                GotAllSampleAudio _ ->
+                    let
+                        allMusicInfoList =
+                            AllMusicInfoList.ready model.allMusicInfoList
+
+                        playHomeBgmCmd =
+                            model.session
+                                |> Session.toUserSetting
+                                |> UserSetting.toMaybe
+                                |> Maybe.map (playHomeBgm << .currentMusicId)
+                                |> Maybe.withDefault Cmd.none
+                    in
+                    ( { model | allMusicInfoList = allMusicInfoList }
+                    , playHomeBgmCmd
+                    )
 
                 GotUserSetting userSettingDto ->
                     let
@@ -136,11 +169,20 @@ update msg model =
                                 |> UserSetting.toMaybe
                                 |> Maybe.map .seVolume
                                 |> Maybe.withDefault 0
+
+                        playHomeBgmCmd =
+                            session
+                                |> Session.toUserSetting
+                                |> UserSetting.toMaybe
+                                |> Maybe.map (playHomeBgm << .currentMusicId)
+                                |> Maybe.withDefault Cmd.none
                     in
                     ( { model | session = session }
                     , Cmd.batch
                         [ changeBgmVolume bgmVolume
                         , changeSeVolume seVolume
+                        , playHomeBgmCmd
+                            |> cmdIf (AllMusicInfoList.isLoaded model.allMusicInfoList)
                         ]
                     )
 
@@ -162,11 +204,19 @@ update msg model =
                     let
                         updatedSession =
                             Session.updateUserSetting musicId UserSetting.updateCurrentMusicId model.session
+
+                        playHomeBgmCmd =
+                            updatedSession
+                                |> Session.toUserSetting
+                                |> UserSetting.toMaybe
+                                |> Maybe.map (playHomeBgm << .currentMusicId)
+                                |> Maybe.withDefault Cmd.none
                     in
                     ( { model | session = updatedSession }
                     , Cmd.batch
                         [ saveCurrentMusicId { uid = user.uid, currentMusicId = musicId }
                         , playMusicSelectAnim ()
+                        , playHomeBgmCmd
                         ]
                     )
 
@@ -174,11 +224,19 @@ update msg model =
                     let
                         updatedSession =
                             Session.updateUserSetting mode UserSetting.updateCurrentMode model.session
+
+                        playHomeBgmCmd =
+                            updatedSession
+                                |> Session.toUserSetting
+                                |> UserSetting.toMaybe
+                                |> Maybe.map (playHomeBgm << .currentMusicId)
+                                |> Maybe.withDefault Cmd.none
                     in
                     ( { model | session = updatedSession }
                     , Cmd.batch
                         [ saveCurrentMode { uid = user.uid, currentMode = Mode.unwrap mode }
                         , playMusicSelectAnim ()
+                        , playHomeBgmCmd
                         ]
                     )
 
@@ -274,6 +332,12 @@ port getAllMusicInfoList : () -> Cmd msg
 port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg
 
 
+port getAllSampleAudio : List String -> Cmd msg
+
+
+port gotAllSampleAudio : (() -> msg) -> Sub msg
+
+
 port getOwnRecords : String -> Cmd msg
 
 
@@ -325,7 +389,7 @@ port changeSeVolume : Float -> Cmd msg
 port playMusicSelectAnim : () -> Cmd msg
 
 
-port startHomeMusic : () -> Cmd msg
+port playHomeBgm : String -> Cmd msg
 
 
 port signOut : () -> Cmd msg
@@ -336,9 +400,10 @@ port signOut : () -> Cmd msg
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.batch
         [ gotAllMusicInfoList GotAllMusicInfoList
+        , gotAllSampleAudio GotAllSampleAudio
         , gotUserSetting GotUserSetting
         , gotOwnRecords GotOwnRecords
         , gotPublicRecords GotPublicRecords
@@ -367,16 +432,13 @@ viewContents model =
             Session.toUserSetting model.session
                 |> UserSetting.toMaybe
 
-        allMusicInfoList =
-            Session.toAllMusicInfoList model.session
-
         currentCsvFileName =
             maybeUserSetting
                 |> Maybe.map (\setting -> CsvFileName.new setting.currentMusicId setting.currentMode)
                 |> Maybe.withDefault ""
 
         maybeCurrentMusicInfo =
-            AllMusicInfoList.findByCsvFileName currentCsvFileName allMusicInfoList
+            AllMusicInfoList.findByCsvFileName currentCsvFileName model.allMusicInfoList
     in
     case ( maybeUser, maybeUserSetting ) of
         ( Just user, Just userSetting ) ->
@@ -405,7 +467,7 @@ viewContents model =
                                 , viewInfoIcon
                                 , viewLogoutIcon
                                 , viewModeTab userSetting
-                                , viewMusicList userSetting.currentMode currentMusicInfo allMusicInfoList ownRecords
+                                , viewMusicList userSetting.currentMode currentMusicInfo model.allMusicInfoList ownRecords
                                 ]
 
                             -- 右側
@@ -418,8 +480,8 @@ viewContents model =
                                 , viewBottomLeftArea2 currentMusicInfo maybeCurrentOwnRecord
                                 , viewBottomRightArea currentMusicInfo
                                 ]
-                            , div [] [ Page.viewLoaded ]
                             ]
+                        , div [] [ Page.viewLoaded ]
                         ]
 
                 _ ->
@@ -804,3 +866,8 @@ viewBottomRightArea currentMusicInfo =
 toSession : Model -> Session
 toSession model =
     model.session
+
+
+toAllMusicInfoList : Model -> AllMusicInfoList
+toAllMusicInfoList model =
+    model.allMusicInfoList

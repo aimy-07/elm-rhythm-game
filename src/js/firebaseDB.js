@@ -186,7 +186,7 @@ export function databaseSetUpSubscriber (app) {
         }
         const bestScores = publicRecord.bestScores;
         if (score == 0) {
-          return bestScores ? bestScores : [];
+          return bestScores ? {csvFileName, bestScores} : {csvFileName, bestScores: []};
         }
         const newBestScores = _.sortBy(bestScores.concat({uid, score}), (record => record.score)).reverse();
         if (newBestScores.length > 3) {

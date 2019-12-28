@@ -1,6 +1,15 @@
-port module Page.Play exposing (Model, Msg, init, subscriptions, toSession, update, view)
+port module Page.Play exposing
+    ( Model
+    , Msg
+    , init
+    , subscriptions
+    , toAllMusicInfoList
+    , toSession
+    , update
+    , view
+    )
 
-import AllMusicInfoList
+import AllMusicInfoList exposing (AllMusicInfoList)
 import Constants exposing (allKeyStr, tweetText)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -36,6 +45,7 @@ import Utils exposing (cmdIf, viewIf)
 
 type alias Model =
     { session : Session
+    , allMusicInfoList : AllMusicInfoList
     , playStatus : PlayStatus
     , currentMusicInfo : MusicInfo
     , allNotes : List Note
@@ -58,29 +68,11 @@ type PlayStatus
     | PauseCountdown
 
 
-initModel : Session -> MusicInfo -> NotesSpeed -> Model
-initModel session currentMusicInfo notesSpeed =
-    { session = session
-    , playStatus = NotStart
-    , currentMusicInfo = currentMusicInfo
-    , allNotes = []
-    , isLoadedNotes = False
-    , lanes = List.map Lane.new allKeyStr
-    , currentMusicTime = 0
-    , notesSpeed = notesSpeed
-    , score = Score.init
-    , combo = Combo.init
-    }
-
-
-init : Session -> CsvFileName -> ( Model, Cmd Msg )
-init session csvFileName =
+init : Session -> AllMusicInfoList -> CsvFileName -> ( Model, Cmd Msg )
+init session allMusicInfoList csvFileName =
     let
         audioFileName =
             CsvFileName.toAudioFileName csvFileName
-
-        allMusicInfoList =
-            Session.toAllMusicInfoList session
 
         maybeCurrentMusicInfo =
             AllMusicInfoList.findByCsvFileName csvFileName allMusicInfoList
@@ -92,7 +84,7 @@ init session csvFileName =
     in
     case ( maybeCurrentMusicInfo, maybeNotesSpeed ) of
         ( Just currentMusicInfo, Just notesSpeed ) ->
-            ( initModel session currentMusicInfo notesSpeed
+            ( initModel session allMusicInfoList currentMusicInfo notesSpeed
             , Cmd.batch
                 [ getAllNotes
                     { csvFileName = csvFileName
@@ -106,9 +98,25 @@ init session csvFileName =
 
         _ ->
             -- 存在しないcsvFileNameを指定した or maybeNotesSpeed == Nothing だった場合、Homeに戻す
-            ( initModel session MusicInfo.empty 0
+            ( initModel session allMusicInfoList MusicInfo.empty 0
             , Route.replaceUrl (Session.toNavKey session) Route.Home
             )
+
+
+initModel : Session -> AllMusicInfoList -> MusicInfo -> NotesSpeed -> Model
+initModel session allMusicInfoList currentMusicInfo notesSpeed =
+    { session = session
+    , allMusicInfoList = allMusicInfoList
+    , playStatus = NotStart
+    , currentMusicInfo = currentMusicInfo
+    , allNotes = []
+    , isLoadedNotes = False
+    , lanes = List.map Lane.new allKeyStr
+    , currentMusicTime = 0
+    , notesSpeed = notesSpeed
+    , score = Score.init
+    , combo = Combo.init
+    }
 
 
 
@@ -759,3 +767,8 @@ viewResult musicInfo isHighScore model =
 toSession : Model -> Session
 toSession model =
     model.session
+
+
+toAllMusicInfoList : Model -> AllMusicInfoList
+toAllMusicInfoList model =
+    model.allMusicInfoList

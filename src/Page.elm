@@ -14,7 +14,7 @@ type Page
 
 
 view : Page -> { title : String, content : Html msg } -> Document msg
-view page { title, content } =
+view _ { title, content } =
     { title = title
     , body = [ content ]
     }

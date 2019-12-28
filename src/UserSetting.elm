@@ -27,6 +27,10 @@ import UserSetting.NotesSpeed exposing (NotesSpeed)
 import UserSetting.Volume exposing (Volume)
 
 
+
+-- TODO: settingとして切り出してもいいかも
+
+
 type UserSetting
     = Loaded UserSettingData
     | NotLoaded

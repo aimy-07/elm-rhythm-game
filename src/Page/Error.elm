@@ -1,5 +1,15 @@
-module Page.Error exposing (Model, Msg, init, subscriptions, toSession, update, view)
+module Page.Error exposing
+    ( Model
+    , Msg
+    , init
+    , subscriptions
+    , toAllMusicInfoList
+    , toSession
+    , update
+    , view
+    )
 
+import AllMusicInfoList exposing (AllMusicInfoList)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -12,12 +22,16 @@ import Session exposing (Session)
 
 
 type alias Model =
-    { session : Session }
+    { session : Session
+    , allMusicInfoList : AllMusicInfoList
+    }
 
 
-init : Session -> ( Model, Cmd Msg )
-init session =
-    ( { session = session }
+init : Session -> AllMusicInfoList -> ( Model, Cmd Msg )
+init session allMusicInfoList =
+    ( { session = session
+      , allMusicInfoList = allMusicInfoList
+      }
     , Cmd.none
     )
 
@@ -46,7 +60,7 @@ update msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -55,7 +69,7 @@ subscriptions model =
 
 
 view : Model -> { title : String, content : Html Msg }
-view model =
+view _ =
     { title = "Error"
     , content =
         div
@@ -89,3 +103,8 @@ view model =
 toSession : Model -> Session
 toSession model =
     model.session
+
+
+toAllMusicInfoList : Model -> AllMusicInfoList
+toAllMusicInfoList model =
+    model.allMusicInfoList
