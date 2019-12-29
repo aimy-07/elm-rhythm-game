@@ -16,6 +16,7 @@ import Route exposing (Route)
 import Session exposing (Session)
 import Url exposing (Url)
 import User exposing (UserDto)
+import UserSetting exposing (UserSetting)
 
 
 
@@ -23,9 +24,9 @@ import User exposing (UserDto)
 
 
 type Model
-    = Init Session AllMusicInfoList
-    | Redirect Session AllMusicInfoList
-    | NotFound Session AllMusicInfoList
+    = Init Session UserSetting AllMusicInfoList
+    | Redirect Session UserSetting AllMusicInfoList
+    | NotFound Session UserSetting AllMusicInfoList
     | Title Title.Model
     | Home Home.Model
     | Play CsvFileName Play.Model
@@ -35,19 +36,19 @@ type Model
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ _ navKey =
     -- onAuthChangedのレスポンスを受け取るまでInit
-    ( Init (Session.init navKey) AllMusicInfoList.init, Cmd.none )
+    ( Init (Session.init navKey) UserSetting.init AllMusicInfoList.init, Cmd.none )
 
 
 toSession : Model -> Session
 toSession model =
     case model of
-        Init session _ ->
+        Init session _ _ ->
             session
 
-        Redirect session _ ->
+        Redirect session _ _ ->
             session
 
-        NotFound session _ ->
+        NotFound session _ _ ->
             session
 
         Title title ->
@@ -63,16 +64,41 @@ toSession model =
             Error.toSession error
 
 
+toUserSetting : Model -> UserSetting
+toUserSetting model =
+    case model of
+        Init _ userSetting _ ->
+            userSetting
+
+        Redirect _ userSetting _ ->
+            userSetting
+
+        NotFound _ userSetting _ ->
+            userSetting
+
+        Title title ->
+            Title.toUserSetting title
+
+        Home home ->
+            Home.toUserSetting home
+
+        Play _ play ->
+            Play.toUserSetting play
+
+        Error error ->
+            Error.toUserSetting error
+
+
 toAllMusicInfoList : Model -> AllMusicInfoList
 toAllMusicInfoList model =
     case model of
-        Init _ allMusicInfoList ->
+        Init _ _ allMusicInfoList ->
             allMusicInfoList
 
-        Redirect _ allMusicInfoList ->
+        Redirect _ _ allMusicInfoList ->
             allMusicInfoList
 
-        NotFound _ allMusicInfoList ->
+        NotFound _ _ allMusicInfoList ->
             allMusicInfoList
 
         Title title ->
@@ -110,14 +136,14 @@ update msg model =
         ( ClickedLink urlRequest, _ ) ->
             case urlRequest of
                 Browser.Internal url ->
-                    ( model
-                    , Nav.pushUrl (Session.toNavKey (toSession model)) (Url.toString url)
-                    )
+                    let
+                        navKey =
+                            Session.toNavKey (toSession model)
+                    in
+                    ( model, Nav.pushUrl navKey (Url.toString url) )
 
                 Browser.External href ->
-                    ( model
-                    , Nav.load href
-                    )
+                    ( model, Nav.load href )
 
         ( ChangedUrl url, _ ) ->
             changeRouteTo (Route.fromUrl url) model
@@ -147,11 +173,11 @@ update msg model =
                     Session.toNavKey <| toSession model
 
                 updatedSession =
-                    Session.setUser navKey maybeUserDto
+                    Session.toLoggedIn navKey maybeUserDto
 
                 nextRoute =
                     case model of
-                        Init _ _ ->
+                        Init _ _ _ ->
                             Route.Title
 
                         _ ->
@@ -161,12 +187,16 @@ update msg model =
                             else
                                 Route.Title
             in
-            ( Redirect updatedSession (toAllMusicInfoList model)
+            ( Redirect updatedSession (toUserSetting model) (toAllMusicInfoList model)
             , Route.replaceUrl navKey nextRoute
             )
 
         ( DetectedError (), _ ) ->
-            ( model, Route.replaceUrl (Session.toNavKey <| toSession model) Route.Error )
+            let
+                navKey =
+                    Session.toNavKey <| toSession model
+            in
+            ( model, Route.replaceUrl navKey Route.Error )
 
         ( _, _ ) ->
             ( model, Cmd.none )
@@ -187,30 +217,33 @@ changeRouteTo maybeRoute model =
 
         allMusicInfoList =
             toAllMusicInfoList model
+
+        userSetting =
+            toUserSetting model
     in
     case model of
-        Init _ _ ->
+        Init _ _ _ ->
             ( model, Cmd.none )
 
         _ ->
             case maybeRoute of
                 Nothing ->
-                    ( NotFound session allMusicInfoList, Cmd.none )
+                    ( NotFound session userSetting allMusicInfoList, Cmd.none )
 
                 Just Route.Title ->
-                    Title.init session allMusicInfoList
+                    Title.init session userSetting allMusicInfoList
                         |> updateWith Title GotTitleMsg model
 
                 Just Route.Home ->
-                    Home.init session allMusicInfoList
+                    Home.init session userSetting allMusicInfoList
                         |> updateWith Home GotHomeMsg model
 
                 Just (Route.Play csvFileName) ->
-                    Play.init session allMusicInfoList csvFileName
+                    Play.init session userSetting allMusicInfoList csvFileName
                         |> updateWith (Play csvFileName) GotPlayMsg model
 
                 Just Route.Error ->
-                    Error.init session allMusicInfoList
+                    Error.init session userSetting allMusicInfoList
                         |> updateWith Error GotErrorMsg model
 
 
@@ -233,13 +266,13 @@ subscriptions model =
     let
         subSubscriptions =
             case model of
-                Init _ _ ->
+                Init _ _ _ ->
                     Sub.none
 
-                Redirect _ _ ->
+                Redirect _ _ _ ->
                     Sub.none
 
-                NotFound _ _ ->
+                NotFound _ _ _ ->
                     Sub.none
 
                 Title title ->
@@ -278,13 +311,13 @@ view model =
             }
     in
     case model of
-        Init _ _ ->
+        Init _ _ _ ->
             Page.view Page.Other Blank.view
 
-        Redirect _ _ ->
+        Redirect _ _ _ ->
             Page.view Page.Other Blank.view
 
-        NotFound _ _ ->
+        NotFound _ _ _ ->
             Page.view Page.Other NotFound.view
 
         Title title ->

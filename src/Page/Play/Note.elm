@@ -27,7 +27,7 @@ import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.KeyStr exposing (KeyStr)
 import Page.Play.Lane as Lane
 import Page.Play.Note.JustTime exposing (JustTime)
-import UserSetting.NotesSpeed exposing (NotesSpeed)
+import Setting.NotesSpeed exposing (NotesSpeed)
 import Utils exposing (viewIf)
 
 

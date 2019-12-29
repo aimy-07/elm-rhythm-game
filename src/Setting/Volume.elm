@@ -1,4 +1,4 @@
-module UserSetting.Volume exposing (Volume, fromString)
+module Setting.Volume exposing (Volume, fromString)
 
 
 type alias Volume =

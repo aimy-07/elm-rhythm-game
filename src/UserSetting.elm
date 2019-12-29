@@ -1,11 +1,9 @@
 module UserSetting exposing
     ( UserSetting
-    , UserSettingData
-    , UserSettingDto
     , init
     , isLoaded
     , new
-    , toMaybe
+    , toSetting
     , updateBgmVolume
     , updateCurrentMode
     , updateCurrentMusicId
@@ -13,45 +11,16 @@ module UserSetting exposing
     , updateSeVolume
     )
 
-import Constants
-    exposing
-        ( bgmVolumeDefault
-        , currentModeDefault
-        , currentMusicIdDefault
-        , notesSpeedDefault
-        , seVolumeDefault
-        )
-import MusicInfo.Mode as Mode exposing (Mode)
+import MusicInfo.Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
-import UserSetting.NotesSpeed exposing (NotesSpeed)
-import UserSetting.Volume exposing (Volume)
-
-
-
--- TODO: settingとして切り出してもいいかも
+import Setting exposing (Setting, SettingDto)
+import Setting.NotesSpeed exposing (NotesSpeed)
+import Setting.Volume exposing (Volume)
 
 
 type UserSetting
-    = Loaded UserSettingData
+    = Loaded Setting
     | NotLoaded
-
-
-type alias UserSettingData =
-    { currentMusicId : MusicId
-    , currentMode : Mode
-    , notesSpeed : NotesSpeed
-    , bgmVolume : Volume
-    , seVolume : Volume
-    }
-
-
-type alias UserSettingDto =
-    { currentMusicId : Maybe String
-    , currentMode : Maybe String
-    , notesSpeed : Maybe Float
-    , bgmVolume : Maybe Float
-    , seVolume : Maybe Float
-    }
 
 
 init : UserSetting
@@ -59,30 +28,9 @@ init =
     NotLoaded
 
 
-new : UserSettingDto -> UserSetting
-new { currentMusicId, currentMode, notesSpeed, bgmVolume, seVolume } =
-    Loaded
-        { currentMusicId =
-            currentMusicId
-                |> Maybe.map identity
-                |> Maybe.withDefault currentMusicIdDefault
-        , currentMode =
-            currentMode
-                |> Maybe.map Mode.new
-                |> Maybe.withDefault currentModeDefault
-        , notesSpeed =
-            notesSpeed
-                |> Maybe.map identity
-                |> Maybe.withDefault notesSpeedDefault
-        , bgmVolume =
-            bgmVolume
-                |> Maybe.map identity
-                |> Maybe.withDefault bgmVolumeDefault
-        , seVolume =
-            seVolume
-                |> Maybe.map identity
-                |> Maybe.withDefault seVolumeDefault
-        }
+new : SettingDto -> UserSetting
+new settingDto =
+    Loaded <| Setting.new settingDto
 
 
 isLoaded : UserSetting -> Bool
@@ -95,8 +43,8 @@ isLoaded userSetting =
             False
 
 
-toMaybe : UserSetting -> Maybe UserSettingData
-toMaybe userSetting =
+toSetting : UserSetting -> Maybe Setting
+toSetting userSetting =
     case userSetting of
         Loaded setting ->
             Just setting

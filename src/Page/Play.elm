@@ -5,6 +5,7 @@ port module Page.Play exposing
     , subscriptions
     , toAllMusicInfoList
     , toSession
+    , toUserSetting
     , update
     , view
     )
@@ -32,10 +33,10 @@ import Record exposing (RecordDto)
 import Route
 import Session exposing (Session)
 import Set
+import Setting.NotesSpeed exposing (NotesSpeed)
 import Task
 import Time
-import UserSetting
-import UserSetting.NotesSpeed exposing (NotesSpeed)
+import UserSetting exposing (UserSetting)
 import Utils exposing (cmdIf, viewIf)
 
 
@@ -45,6 +46,7 @@ import Utils exposing (cmdIf, viewIf)
 
 type alias Model =
     { session : Session
+    , userSetting : UserSetting
     , allMusicInfoList : AllMusicInfoList
     , playStatus : PlayStatus
     , currentMusicInfo : MusicInfo
@@ -68,8 +70,8 @@ type PlayStatus
     | PauseCountdown
 
 
-init : Session -> AllMusicInfoList -> CsvFileName -> ( Model, Cmd Msg )
-init session allMusicInfoList csvFileName =
+init : Session -> UserSetting -> AllMusicInfoList -> CsvFileName -> ( Model, Cmd Msg )
+init session userSetting allMusicInfoList csvFileName =
     let
         audioFileName =
             CsvFileName.toAudioFileName csvFileName
@@ -78,13 +80,13 @@ init session allMusicInfoList csvFileName =
             AllMusicInfoList.findByCsvFileName csvFileName allMusicInfoList
 
         maybeNotesSpeed =
-            Session.toUserSetting session
-                |> UserSetting.toMaybe
+            userSetting
+                |> UserSetting.toSetting
                 |> Maybe.map .notesSpeed
     in
     case ( maybeCurrentMusicInfo, maybeNotesSpeed ) of
         ( Just currentMusicInfo, Just notesSpeed ) ->
-            ( initModel session allMusicInfoList currentMusicInfo notesSpeed
+            ( initModel session userSetting allMusicInfoList currentMusicInfo notesSpeed
             , Cmd.batch
                 [ getAllNotes
                     { csvFileName = csvFileName
@@ -98,14 +100,19 @@ init session allMusicInfoList csvFileName =
 
         _ ->
             -- 存在しないcsvFileNameを指定した or maybeNotesSpeed == Nothing だった場合、Homeに戻す
-            ( initModel session allMusicInfoList MusicInfo.empty 0
-            , Route.replaceUrl (Session.toNavKey session) Route.Home
+            let
+                navKey =
+                    Session.toNavKey session
+            in
+            ( initModel session userSetting allMusicInfoList MusicInfo.empty 0
+            , Route.replaceUrl navKey Route.Home
             )
 
 
-initModel : Session -> AllMusicInfoList -> MusicInfo -> NotesSpeed -> Model
-initModel session allMusicInfoList currentMusicInfo notesSpeed =
+initModel : Session -> UserSetting -> AllMusicInfoList -> MusicInfo -> NotesSpeed -> Model
+initModel session userSetting allMusicInfoList currentMusicInfo notesSpeed =
     { session = session
+    , userSetting = userSetting
     , allMusicInfoList = allMusicInfoList
     , playStatus = NotStart
     , currentMusicInfo = currentMusicInfo
@@ -767,6 +774,11 @@ viewResult musicInfo isHighScore model =
 toSession : Model -> Session
 toSession model =
     model.session
+
+
+toUserSetting : Model -> UserSetting
+toUserSetting model =
+    model.userSetting
 
 
 toAllMusicInfoList : Model -> AllMusicInfoList

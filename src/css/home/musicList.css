@@ -9,6 +9,11 @@
   cursor: pointer;
 }
 
+.homeMusicListItem_topContainer {
+  position: relative;
+  pointer-events: none;
+}
+
 .homeMusicListItem_top {
   display: inline-block;
   vertical-align: top;
@@ -115,6 +120,11 @@
   left: 50%;
   transform: translateX(-50%);
   font-family: "fortunaDot";
+}
+
+.homeMusicListItem_bottomContainer {
+  position: relative;
+  pointer-events: none;
 }
 
 .homeMusicListItem_bottomText {

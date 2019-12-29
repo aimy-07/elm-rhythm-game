@@ -22,8 +22,8 @@ module Constants exposing
 import MusicInfo.Mode as Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
 import Page.Play.KeyStr exposing (KeyStr)
-import UserSetting.NotesSpeed exposing (NotesSpeed)
-import UserSetting.Volume exposing (Volume)
+import Setting.NotesSpeed exposing (NotesSpeed)
+import Setting.Volume exposing (Volume)
 
 
 allKeyStr : List KeyStr

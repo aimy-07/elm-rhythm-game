@@ -5,6 +5,7 @@ port module Page.Title exposing
     , subscriptions
     , toAllMusicInfoList
     , toSession
+    , toUserSetting
     , update
     , view
     )
@@ -19,6 +20,7 @@ import Page.Title.LoginBtnS as LoginBtnS exposing (LoginBtnS)
 import Route
 import Session exposing (Session)
 import User.AccountType as AccountType exposing (AccountType(..))
+import UserSetting exposing (UserSetting)
 import Utils exposing (cmdIf, viewIf)
 
 
@@ -28,14 +30,16 @@ import Utils exposing (cmdIf, viewIf)
 
 type alias Model =
     { session : Session
+    , userSetting : UserSetting
     , allMusicInfoList : AllMusicInfoList
     , loginBtnS : LoginBtnS
     }
 
 
-init : Session -> AllMusicInfoList -> ( Model, Cmd Msg )
-init session allMusicInfoList =
+init : Session -> UserSetting -> AllMusicInfoList -> ( Model, Cmd Msg )
+init session userSetting allMusicInfoList =
     ( { session = session
+      , userSetting = userSetting
       , allMusicInfoList = allMusicInfoList
       , loginBtnS = LoginBtnS.init
       }
@@ -265,6 +269,11 @@ viewLoginBtn accountType loginBtnS =
 toSession : Model -> Session
 toSession model =
     model.session
+
+
+toUserSetting : Model -> UserSetting
+toUserSetting model =
+    model.userSetting
 
 
 toAllMusicInfoList : Model -> AllMusicInfoList
