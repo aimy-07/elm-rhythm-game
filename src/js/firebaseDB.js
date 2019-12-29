@@ -167,7 +167,7 @@ export function databaseSetUpSubscriber (app) {
             playCount: playRecord.playCount + 1
           }
         } else {
-          isHighScore = true;
+          isHighScore = score === 0 ? false : true;
           return {
             csvFileName,
             bestCombo: combo,
