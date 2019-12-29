@@ -13,8 +13,8 @@ import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 
 
 type Route
-    = Home
-    | Login
+    = Title
+    | Home
     | Play CsvFileName
     | Error
 
@@ -22,8 +22,8 @@ type Route
 parser : Parser (Route -> a) a
 parser =
     oneOf
-        [ Parser.map Home Parser.top
-        , Parser.map Login (s "login")
+        [ Parser.map Title Parser.top
+        , Parser.map Home (s "home")
         , Parser.map Play (s "play" </> string)
         , Parser.map Error (s "error")
         ]
@@ -57,11 +57,11 @@ routeToString page =
     let
         pieces =
             case page of
-                Home ->
+                Title ->
                     []
 
-                Login ->
-                    [ "login" ]
+                Home ->
+                    [ "home" ]
 
                 Play csvFileName ->
                     [ "play", csvFileName ]

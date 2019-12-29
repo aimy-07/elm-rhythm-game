@@ -24,19 +24,25 @@ export function authSetUpSubscriber (app) {
   app.ports.signInWithGoogle.subscribe(() => {
     firebase.auth().signInWithPopup(googleAuthProvider)
       .then(() => {})
-      .catch(detectedError);
+      .catch((error) => {
+        app.ports.canceledSignIn.send(null);
+      });
   });
 
   app.ports.signInWithTwitter.subscribe(() => {
     firebase.auth().signInWithPopup(twitterAuthProvider)
       .then(() => {})
-      .catch(detectedError);
+      .catch((error) => {
+        app.ports.canceledSignIn.send(null);
+      });
   });
 
   app.ports.signInWithGithub.subscribe(() => {
     firebase.auth().signInWithPopup(githubAuthProvider)
       .then(() => {})
-      .catch(detectedError);
+      .catch((error) => {
+        app.ports.canceledSignIn.send(null);
+      });
   });
 
   // サインアウト

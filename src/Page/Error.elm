@@ -37,22 +37,18 @@ init session allMusicInfoList =
 
 
 type Msg
-    = ClickedBackHomeButton
+    = ClickedBackTitleButton
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ClickedBackHomeButton ->
+        ClickedBackTitleButton ->
             let
-                routeReplaceCmd =
-                    if Session.isLoggedIn model.session then
-                        Route.replaceUrl (Session.toNavKey model.session) Route.Home
-
-                    else
-                        Route.replaceUrl (Session.toNavKey model.session) Route.Login
+                navKey =
+                    Session.toNavKey model.session
             in
-            ( model, routeReplaceCmd )
+            ( model, Route.replaceUrl navKey Route.Title )
 
 
 
@@ -81,8 +77,8 @@ view _ =
                     [ div [ class "error_largeText" ] [ text "- ERROR -" ]
                     , div [ class "error_smallText" ] [ text "通信エラーが発生しました" ]
                     , div
-                        [ class "error_btnText", onClick ClickedBackHomeButton ]
-                        [ text "- Back to Home -" ]
+                        [ class "error_btnText", onClick ClickedBackTitleButton ]
+                        [ text "- Back to Title -" ]
                     , a
                         [ class "error_btnText"
                         , href "https://github.com/aimy-07/elm-rhythm-game/issues"

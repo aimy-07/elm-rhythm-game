@@ -25,9 +25,23 @@ body, html {
   --color-elm-darkblue-w1: #8f95a3;
 }
 
+div, span, button, a, img {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  outline: none;
+  cursor: default;
+  font-family: "makinas";
+}
+
 /* -------------------------- */
 /* 共通 */
 @import url("./css/common.css");
+/* タイトル */
+@import url("./css/title.css");
+@import url("./css/title/titleArea.css");
+@import url("./css/title/overview.css");
+@import url("./css/title/backGroundEffect.css");
 /* ホーム画面 */
 @import url("./css/home.css");
 @import url("./css/home/userSetting.css");

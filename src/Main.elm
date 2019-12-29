@@ -9,9 +9,9 @@ import Page
 import Page.Blank as Blank
 import Page.Error as Error
 import Page.Home as Home
-import Page.Login as Login
 import Page.NotFound as NotFound
 import Page.Play as Play
+import Page.Title as Title
 import Route exposing (Route)
 import Session exposing (Session)
 import Url exposing (Url)
@@ -26,7 +26,7 @@ type Model
     = Init Session AllMusicInfoList
     | Redirect Session AllMusicInfoList
     | NotFound Session AllMusicInfoList
-    | Login Login.Model
+    | Title Title.Model
     | Home Home.Model
     | Play CsvFileName Play.Model
     | Error Error.Model
@@ -50,11 +50,11 @@ toSession model =
         NotFound session _ ->
             session
 
+        Title title ->
+            Title.toSession title
+
         Home home ->
             Home.toSession home
-
-        Login login ->
-            Login.toSession login
 
         Play _ play ->
             Play.toSession play
@@ -75,11 +75,11 @@ toAllMusicInfoList model =
         NotFound _ allMusicInfoList ->
             allMusicInfoList
 
+        Title title ->
+            Title.toAllMusicInfoList title
+
         Home home ->
             Home.toAllMusicInfoList home
-
-        Login login ->
-            Login.toAllMusicInfoList login
 
         Play _ play ->
             Play.toAllMusicInfoList play
@@ -96,8 +96,8 @@ type Msg
     = ChangedRoute (Maybe Route)
     | ChangedUrl Url
     | ClickedLink Browser.UrlRequest
+    | GotTitleMsg Title.Msg
     | GotHomeMsg Home.Msg
-    | GotLoginMsg Login.Msg
     | GotPlayMsg Play.Msg
     | GotErrorMsg Error.Msg
     | ChangedAuth (Maybe UserDto)
@@ -125,13 +125,13 @@ update msg model =
         ( ChangedRoute route, _ ) ->
             changeRouteTo route model
 
+        ( GotTitleMsg subMsg, Title subModel ) ->
+            Title.update subMsg subModel
+                |> updateWith Title GotTitleMsg model
+
         ( GotHomeMsg subMsg, Home subModel ) ->
             Home.update subMsg subModel
                 |> updateWith Home GotHomeMsg model
-
-        ( GotLoginMsg subMsg, Login subModel ) ->
-            Login.update subMsg subModel
-                |> updateWith Login GotLoginMsg model
 
         ( GotPlayMsg subMsg, Play csvFileName subModel ) ->
             Play.update subMsg subModel
@@ -149,14 +149,21 @@ update msg model =
                 updatedSession =
                     Session.setUser navKey maybeUserDto
 
-                replaceUrlCmd =
-                    if Session.isLoggedIn updatedSession then
-                        Route.replaceUrl navKey Route.Home
+                nextRoute =
+                    case model of
+                        Init _ _ ->
+                            Route.Title
 
-                    else
-                        Route.replaceUrl navKey Route.Login
+                        _ ->
+                            if Session.isLoggedIn updatedSession then
+                                Route.Home
+
+                            else
+                                Route.Title
             in
-            ( Redirect updatedSession (toAllMusicInfoList model), replaceUrlCmd )
+            ( Redirect updatedSession (toAllMusicInfoList model)
+            , Route.replaceUrl navKey nextRoute
+            )
 
         ( DetectedError (), _ ) ->
             ( model, Route.replaceUrl (Session.toNavKey <| toSession model) Route.Error )
@@ -190,13 +197,13 @@ changeRouteTo maybeRoute model =
                 Nothing ->
                     ( NotFound session allMusicInfoList, Cmd.none )
 
+                Just Route.Title ->
+                    Title.init session allMusicInfoList
+                        |> updateWith Title GotTitleMsg model
+
                 Just Route.Home ->
                     Home.init session allMusicInfoList
                         |> updateWith Home GotHomeMsg model
-
-                Just Route.Login ->
-                    Login.init session allMusicInfoList
-                        |> updateWith Login GotLoginMsg model
 
                 Just (Route.Play csvFileName) ->
                     Play.init session allMusicInfoList csvFileName
@@ -235,11 +242,11 @@ subscriptions model =
                 NotFound _ _ ->
                     Sub.none
 
+                Title title ->
+                    Sub.map GotTitleMsg (Title.subscriptions title)
+
                 Home home ->
                     Sub.map GotHomeMsg (Home.subscriptions home)
-
-                Login login ->
-                    Sub.map GotLoginMsg (Login.subscriptions login)
 
                 Play _ play ->
                     Sub.map GotPlayMsg (Play.subscriptions play)
@@ -280,11 +287,11 @@ view model =
         NotFound _ _ ->
             Page.view Page.Other NotFound.view
 
+        Title title ->
+            viewPage Page.Title GotTitleMsg (Title.view title)
+
         Home home ->
             viewPage Page.Home GotHomeMsg (Home.view home)
-
-        Login login ->
-            viewPage Page.Other GotLoginMsg (Login.view login)
 
         Play _ play ->
             viewPage Page.Play GotPlayMsg (Play.view play)

@@ -1,7 +1,7 @@
 module Record exposing (Record, RecordDto, new)
 
 import MusicInfo.CsvFileName exposing (CsvFileName)
-import User exposing (Uid)
+import User.Uid exposing (Uid)
 
 
 type alias Record =

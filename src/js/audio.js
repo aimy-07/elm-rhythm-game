@@ -84,6 +84,12 @@ export function audioSetUpSubscriber (app) {
   app.ports.changeBgmVolume.subscribe((bgmVolume) => {
     bgmAudio.volume = bgmVolume;
   })
+
+  // TitleBgmを再生する
+  app.ports.playTitleBgm.subscribe(() => {
+    bgmAudio.pause();
+    bgmAudio.currentTime = 0
+  })
 }
 
 

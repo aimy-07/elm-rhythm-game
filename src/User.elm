@@ -1,8 +1,6 @@
-module User exposing (Uid, User, UserDto, new, updatePictureUrl, updateUserName)
+module User exposing (User, UserDto, new, updatePictureUrl, updateUserName)
 
-
-type alias Uid =
-    String
+import User.Uid exposing (Uid)
 
 
 type alias User =

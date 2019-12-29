@@ -1,0 +1,113 @@
+.titleOverview_LoginBoxesContainer {
+  padding: 280px 140px;
+  animation: 0.3s ease-out 0s 1 normal forwards running loginBoxShowAnim;
+}
+
+@keyframes loginBoxShowAnim {
+  0% {
+    transform: scale(0.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.titleOverviewLoginBox_container {
+  display: inline-block;
+  width: 140px;
+  height: 140px;
+  margin: 0 50px;
+  position: relative;
+  background-color: transparent;
+  border: 0;
+  outline: 0;
+}
+
+.titleOverviewLoginBox_container.is-selecting {
+  animation: 0.4s ease-out 0s 1 normal forwards running loginBoxSelectAnim;
+  z-index: 1;
+}
+
+.titleOverviewLoginBox_container.is-disabled {
+  opacity: 0.7;
+}
+
+@keyframes loginBoxSelectAnim {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1.3);
+  }
+}
+
+.titleOverviewLoginBox_back {
+  width: 160px;
+  height: 160px;
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  transform: rotate(45deg);
+  background-color: white;
+  filter: drop-shadow(0 0 20px white);
+  cursor: pointer;
+}
+
+.titleOverviewLoginBox_container.is-selecting .titleOverviewLoginBox_back {
+  cursor: wait;
+}
+
+.titleOverviewLoginBox_container.is-disabled .titleOverviewLoginBox_back {
+  cursor: wait;
+}
+
+.titleOverviewLoginBox_backInner {
+  width: 140px;
+  height: 140px;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.titleOverviewLoginBox_backInner.orange {
+  background-color: var(--color-elm-orange);
+}
+
+.titleOverviewLoginBox_backInner.green {
+  background-color: var(--color-elm-green);
+}
+
+.titleOverviewLoginBox_backInner.lightblue {
+  background-color: var(--color-elm-lightblue);
+}
+
+.titleOverviewLoginBox_container.is-disabled .titleOverviewLoginBox_backInner {
+  background-color: var(--color-elm-darkblue-w1);
+}
+
+.titleOverviewLoginBox_icon {
+  width: 80px;
+  height: 80px;
+  position: absolute;
+  top: 10px;
+  left: 30px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.titleOverviewLoginBox_text {
+  width: 120px;
+  position: absolute;
+  top: 90px;
+  left: 10px;
+  color: white;
+  font-size: 12px;
+  line-height: 150%;
+  text-align: center;
+  pointer-events: none;
+}

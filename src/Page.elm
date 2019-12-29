@@ -7,8 +7,8 @@ import Html.Attributes exposing (..)
 
 type Page
     = Other
+    | Title
     | Home
-    | Login
     | Play
     | Error
 

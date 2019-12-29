@@ -15,7 +15,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode
-import MusicInfo as MusicInfo exposing (MusicInfo, MusicInfoDto)
+import MusicInfo as MusicInfo exposing (MusicInfo)
 import MusicInfo.CsvFileName as CsvFileName
 import MusicInfo.Level as Level
 import MusicInfo.Mode as Mode exposing (Mode)
@@ -63,22 +63,20 @@ init session allMusicInfoList =
             in
             ( initModel updatedSession allMusicInfoList
             , Cmd.batch
-                [ getAllMusicInfoList ()
-                    |> cmdIf (not <| AllMusicInfoList.isLoaded allMusicInfoList)
-                , getUserSetting user.uid
+                [ getUserSetting user.uid
                 , getOwnRecords user.uid
                 , getPublicRecords ()
                 ]
             )
 
         Nothing ->
-            -- Homeで user == Nothing にはまずならないが、念のためログイン画面に戻す処理を入れておく
+            -- Homeで user == Nothing にはまずならないが、念のためログイン画面(タイトル)に戻す処理を入れておく
             let
                 navKey =
                     Session.toNavKey session
             in
             ( initModel (Session.init navKey) allMusicInfoList
-            , Route.replaceUrl navKey Route.Login
+            , Route.replaceUrl navKey Route.Title
             )
 
 
@@ -98,9 +96,7 @@ initModel session allMusicInfoList =
 
 
 type Msg
-    = GotAllMusicInfoList (List MusicInfoDto)
-    | GotAllSampleAudio ()
-    | GotUserSetting UserSettingDto
+    = GotUserSetting UserSettingDto
     | GotOwnRecords (List OwnRecordDto)
     | GotPublicRecords (List PublicRecordDto)
     | ChangeMusicId MusicId
@@ -122,35 +118,6 @@ update msg model =
     case Session.toUser model.session of
         Just user ->
             case msg of
-                GotAllMusicInfoList musicInfoDtos ->
-                    let
-                        allMusicInfoList =
-                            AllMusicInfoList.new musicInfoDtos
-
-                        audioFileNameList =
-                            musicInfoDtos
-                                |> List.map (.csvFileName >> CsvFileName.toAudioFileName)
-                    in
-                    ( { model | allMusicInfoList = allMusicInfoList }
-                    , getAllSampleAudio audioFileNameList
-                    )
-
-                GotAllSampleAudio _ ->
-                    let
-                        allMusicInfoList =
-                            AllMusicInfoList.ready model.allMusicInfoList
-
-                        playHomeBgmCmd =
-                            model.session
-                                |> Session.toUserSetting
-                                |> UserSetting.toMaybe
-                                |> Maybe.map (playHomeBgm << .currentMusicId)
-                                |> Maybe.withDefault Cmd.none
-                    in
-                    ( { model | allMusicInfoList = allMusicInfoList }
-                    , playHomeBgmCmd
-                    )
-
                 GotUserSetting userSettingDto ->
                     let
                         session =
@@ -316,26 +283,18 @@ update msg model =
                     ( model, signOut () )
 
         Nothing ->
-            -- Homeで user == Nothing にはまずならないが、念のためログイン画面に戻す処理を入れておく
-            ( { model | session = Session.init (Session.toNavKey model.session) }
-            , Route.replaceUrl (Session.toNavKey model.session) Route.Login
+            -- Homeで user == Nothing にはまずならないが、念のためログイン画面(タイトル)に戻す処理を入れておく
+            let
+                navKey =
+                    Session.toNavKey model.session
+            in
+            ( { model | session = Session.init navKey }
+            , Route.replaceUrl navKey Route.Title
             )
 
 
 
 -- PORT
-
-
-port getAllMusicInfoList : () -> Cmd msg
-
-
-port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg
-
-
-port getAllSampleAudio : List String -> Cmd msg
-
-
-port gotAllSampleAudio : (() -> msg) -> Sub msg
 
 
 port getOwnRecords : String -> Cmd msg
@@ -402,9 +361,7 @@ port signOut : () -> Cmd msg
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ gotAllMusicInfoList GotAllMusicInfoList
-        , gotAllSampleAudio GotAllSampleAudio
-        , gotUserSetting GotUserSetting
+        [ gotUserSetting GotUserSetting
         , gotOwnRecords GotOwnRecords
         , gotPublicRecords GotPublicRecords
         , savedUserPicture SavedUserPicture

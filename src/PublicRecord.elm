@@ -13,7 +13,7 @@ module PublicRecord exposing
     )
 
 import MusicInfo.CsvFileName exposing (CsvFileName)
-import User exposing (Uid)
+import User.Uid exposing (Uid)
 
 
 type alias PublicRecord =
