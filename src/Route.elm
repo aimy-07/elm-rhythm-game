@@ -5,7 +5,8 @@ import Html exposing (Attribute)
 import Html.Attributes as Attr
 import MusicInfo.CsvFileName exposing (CsvFileName)
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
+import Url.Parser as Parser exposing ((<?>), Parser, oneOf, s, string)
+import Url.Parser.Query as Query
 
 
 
@@ -15,7 +16,7 @@ import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 type Route
     = Title
     | Home
-    | Play CsvFileName
+    | Play (Maybe CsvFileName)
     | Error
 
 
@@ -24,7 +25,7 @@ parser =
     oneOf
         [ Parser.map Title Parser.top
         , Parser.map Home (s "home")
-        , Parser.map Play (s "play" </> string)
+        , Parser.map Play (s "play" <?> Query.string "q")
         , Parser.map Error (s "error")
         ]
 
@@ -54,19 +55,17 @@ fromUrl url =
 
 routeToString : Route -> String
 routeToString page =
-    let
-        pieces =
-            case page of
-                Title ->
-                    []
+    case page of
+        Title ->
+            "/"
 
-                Home ->
-                    [ "home" ]
+        Home ->
+            "/home"
 
-                Play csvFileName ->
-                    [ "play", csvFileName ]
+        Play maybeCsvFileName ->
+            maybeCsvFileName
+                |> Maybe.map (\csvFileName -> "/play?q=" ++ csvFileName)
+                |> Maybe.withDefault "/play"
 
-                Error ->
-                    [ "error" ]
-    in
-    "/" ++ String.join "/" pieces
+        Error ->
+            "/error"

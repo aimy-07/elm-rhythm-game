@@ -238,9 +238,15 @@ changeRouteTo maybeRoute model =
                     Home.init session userSetting allMusicInfoList
                         |> updateWith Home GotHomeMsg model
 
-                Just (Route.Play csvFileName) ->
-                    Play.init session userSetting allMusicInfoList csvFileName
-                        |> updateWith (Play csvFileName) GotPlayMsg model
+                Just (Route.Play maybeCsvFileName) ->
+                    case maybeCsvFileName of
+                        Just csvFileName ->
+                            Play.init session userSetting allMusicInfoList csvFileName
+                                |> updateWith (Play csvFileName) GotPlayMsg model
+
+                        Nothing ->
+                            Home.init session userSetting allMusicInfoList
+                                |> updateWith Home GotHomeMsg model
 
                 Just Route.Error ->
                     Error.init session userSetting allMusicInfoList
