@@ -24,7 +24,8 @@ export function authSetUpSubscriber (app) {
   app.ports.signInWithGoogle.subscribe(() => {
     firebase.auth().signInWithPopup(googleAuthProvider)
       .then(() => {})
-      .catch((error) => {
+      .catch((err) => {
+        console.log(err)
         app.ports.canceledSignIn.send(null);
       });
   });
@@ -32,7 +33,8 @@ export function authSetUpSubscriber (app) {
   app.ports.signInWithTwitter.subscribe(() => {
     firebase.auth().signInWithPopup(twitterAuthProvider)
       .then(() => {})
-      .catch((error) => {
+      .catch((err) => {
+        console.log(err)
         app.ports.canceledSignIn.send(null);
       });
   });
@@ -40,7 +42,8 @@ export function authSetUpSubscriber (app) {
   app.ports.signInWithGithub.subscribe(() => {
     firebase.auth().signInWithPopup(githubAuthProvider)
       .then(() => {})
-      .catch((error) => {
+      .catch((err) => {
+        console.log(err)
         app.ports.canceledSignIn.send(null);
       });
   });

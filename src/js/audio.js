@@ -97,14 +97,8 @@ export function audioSetUpSubscriber (app) {
 /* ---------------------------------
 	曲を取得する
 ---------------------------------- */
-const getAudio = (audioFileName) => {
-  return firebase.storage().ref(`audio/${audioFileName}.mp3`).getDownloadURL()
-    .then(url => url)
-    .catch(detectedError)
-}
+const getAudio = (audioFileName) =>
+  firebase.storage().ref(`audio/${audioFileName}.mp3`).getDownloadURL()
 
-const getSampleAudio = (audioFileName) => {
-  return firebase.storage().ref(`audio/${audioFileName}_sample.mp3`).getDownloadURL()
-    .then(url => url)
-    .catch(detectedError)
-}
+const getSampleAudio = (audioFileName) =>
+  firebase.storage().ref(`audio/${audioFileName}_sample.mp3`).getDownloadURL()
