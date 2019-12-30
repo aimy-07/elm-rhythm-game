@@ -1,11 +1,10 @@
-port module Page.Play exposing
+module Page.Play exposing
     ( Model
     , Msg
     , init
     , subscriptions
     , toAllMusicInfoList
     , toSession
-    , toUserSetting
     , update
     , view
     )
@@ -13,7 +12,7 @@ port module Page.Play exposing
 import AllMusicInfoList exposing (AllMusicInfoList)
 import AudioManager
 import AudioManager.AudioInfo as AudioInfo exposing (AudioInfoDto)
-import Constants exposing (allKeyStr, tweetText)
+import Constants exposing (allKeyStr, notesSpeedDefault, tweetText)
 import Html exposing (Html, a, div, span, text)
 import Html.Attributes exposing (class, href, id, style, target)
 import Keyboard exposing (Key(..))
@@ -24,7 +23,7 @@ import MusicInfo.Mode as Mode
 import Page
 import Page.Play.AudioLoadingS as AudioLoadingS exposing (AudioLoadingS)
 import Page.Play.Combo as Combo exposing (Combo)
-import Page.Play.CurrentMusicTime exposing (CurrentMusicTime, update)
+import Page.Play.CurrentMusicTime as CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note as Note exposing (Note, NoteDto)
@@ -35,6 +34,7 @@ import Record exposing (RecordDto)
 import Route
 import Session exposing (Session)
 import Set
+import Setting exposing (Setting, SettingDto)
 import Setting.NotesSpeed exposing (NotesSpeed)
 import Task
 import Time
@@ -48,17 +48,16 @@ import Utils exposing (cmdIf, viewIf)
 
 type alias Model =
     { session : Session
-    , userSetting : UserSetting
     , allMusicInfoList : AllMusicInfoList
     , currentMusicInfo : MusicInfo
     , playStatus : PlayStatus
     , allNotes : List Note
-    , notesSpeed : NotesSpeed
+    , userSetting : UserSetting
+    , audioLoadingS : AudioLoadingS
     , currentMusicTime : CurrentMusicTime
     , score : Score
     , combo : Combo
     , lanes : List Lane
-    , audioLoadingS : AudioLoadingS
     }
 
 
@@ -73,56 +72,63 @@ type PlayStatus
     | PauseCountdown
 
 
-init : Session -> UserSetting -> AllMusicInfoList -> CsvFileName -> ( Model, Cmd Msg )
-init session userSetting allMusicInfoList csvFileName =
+init : Session -> AllMusicInfoList -> CsvFileName -> ( Model, Cmd Msg )
+init session allMusicInfoList csvFileName =
     let
         maybeCurrentMusicInfo =
             AllMusicInfoList.toMusicInfoFindByCsvFileName csvFileName allMusicInfoList
-
-        maybeNotesSpeed =
-            userSetting
-                |> UserSetting.toSetting
-                |> Maybe.map .notesSpeed
     in
-    case ( maybeCurrentMusicInfo, maybeNotesSpeed ) of
-        ( Just currentMusicInfo, Just notesSpeed ) ->
-            ( initModel session userSetting allMusicInfoList currentMusicInfo notesSpeed
-            , Cmd.batch
-                [ getAllNotes
-                    { csvFileName = csvFileName
-                    , bpm = currentMusicInfo.bpm
-                    , beatsCountPerMeasure = currentMusicInfo.beatsCountPerMeasure
-                    , offset = currentMusicInfo.offset
-                    }
-                , AudioManager.getAudioInfo (CsvFileName.toMusicId csvFileName)
-                ]
-            )
+    case Session.toUser session of
+        Just user ->
+            case maybeCurrentMusicInfo of
+                Just currentMusicInfo ->
+                    ( initModel session allMusicInfoList currentMusicInfo
+                    , Cmd.batch
+                        [ UserSetting.getUserSetting user.uid
+                        , MusicInfo.getAllNotes
+                            { csvFileName = csvFileName
+                            , bpm = currentMusicInfo.bpm
+                            , beatsCountPerMeasure = currentMusicInfo.beatsCountPerMeasure
+                            , offset = currentMusicInfo.offset
+                            }
+                        , AudioManager.getAudioInfo (CsvFileName.toMusicId csvFileName)
+                        ]
+                    )
 
-        _ ->
-            -- 存在しないcsvFileNameを指定した or maybeNotesSpeed == Nothing だった場合、Homeに戻す
+                Nothing ->
+                    -- 存在しないcsvFileNameを指定した場合、Homeに戻す
+                    let
+                        navKey =
+                            Session.toNavKey session
+                    in
+                    ( initModel session allMusicInfoList MusicInfo.empty
+                    , Route.replaceUrl navKey Route.Home
+                    )
+
+        Nothing ->
+            -- Playで user == Nothing にはまずならないが、念のためエラー画面に飛ばす処理を入れておく
             let
                 navKey =
                     Session.toNavKey session
             in
-            ( initModel session userSetting allMusicInfoList MusicInfo.empty 0
-            , Route.replaceUrl navKey Route.Home
+            ( initModel (Session.init navKey) allMusicInfoList MusicInfo.empty
+            , Route.replaceUrl navKey Route.Error
             )
 
 
-initModel : Session -> UserSetting -> AllMusicInfoList -> MusicInfo -> NotesSpeed -> Model
-initModel session userSetting allMusicInfoList currentMusicInfo notesSpeed =
+initModel : Session -> AllMusicInfoList -> MusicInfo -> Model
+initModel session allMusicInfoList currentMusicInfo =
     { session = session
-    , userSetting = userSetting
     , allMusicInfoList = allMusicInfoList
     , currentMusicInfo = currentMusicInfo
     , playStatus = Loading
     , allNotes = []
-    , notesSpeed = notesSpeed
+    , userSetting = UserSetting.init
+    , audioLoadingS = AudioLoadingS.init
     , currentMusicTime = 0
     , score = Score.init
     , combo = Combo.init
     , lanes = List.map Lane.new allKeyStr
-    , audioLoadingS = AudioLoadingS.init
     }
 
 
@@ -132,6 +138,7 @@ initModel session userSetting allMusicInfoList currentMusicInfo notesSpeed =
 
 type Msg
     = GotAllNotes (List NoteDto)
+    | GotUserSetting SettingDto
     | GotAudioInfo AudioInfoDto
     | FinishedCountdown ()
     | KeyDown Keyboard.RawKey
@@ -139,6 +146,15 @@ type Msg
     | Tick Time.Posix
     | GotCurrentMusicTime CurrentMusicTime
     | SavedRecord Bool
+
+
+toReady : Model -> Model
+toReady model =
+    if (not <| List.isEmpty model.allNotes) && UserSetting.isLoaded model.userSetting && AudioLoadingS.isLoaded model.audioLoadingS then
+        { model | playStatus = Ready }
+
+    else
+        model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -152,33 +168,30 @@ update msg model =
                         |> List.filter (\noteDto -> noteDto.longTime >= 0)
                         |> List.map Note.new
 
-                nextPlayStatus =
-                    if AudioLoadingS.isLoaded model.audioLoadingS then
-                        Ready
-
-                    else
-                        Loading
+                updatedModel =
+                    { model | allNotes = allNotes }
             in
-            ( { model | allNotes = allNotes, playStatus = nextPlayStatus }, Cmd.none )
+            ( toReady updatedModel, Cmd.none )
+
+        GotUserSetting settingDto ->
+            let
+                userSetting =
+                    UserSetting.new settingDto
+
+                updatedModel =
+                    { model | userSetting = userSetting }
+            in
+            ( toReady updatedModel, Cmd.none )
 
         GotAudioInfo audioInfoDto ->
             let
-                audioInfo =
-                    AudioInfo.new audioInfoDto
+                audioLoadingS =
+                    AudioLoadingS.loaded (AudioInfo.new audioInfoDto).audioUrl
 
-                nextPlayStatus =
-                    if not <| List.isEmpty model.allNotes then
-                        Ready
-
-                    else
-                        Loading
+                updatedModel =
+                    { model | audioLoadingS = audioLoadingS }
             in
-            ( { model
-                | audioLoadingS = AudioLoadingS.loaded audioInfo.audioUrl
-                , playStatus = nextPlayStatus
-              }
-            , Cmd.none
-            )
+            ( toReady updatedModel, Cmd.none )
 
         FinishedCountdown () ->
             case model.playStatus of
@@ -370,7 +383,7 @@ update msg model =
                     ( model, Cmd.none )
 
         Tick _ ->
-            ( model, getCurrentMusicTime () )
+            ( model, CurrentMusicTime.getCurrentMusicTime () )
 
         GotCurrentMusicTime updatedTime ->
             let
@@ -436,7 +449,7 @@ update msg model =
                     Session.toUser model.session
                         |> Maybe.map
                             (\user ->
-                                saveRecord
+                                Record.saveRecord
                                     { uid = user.uid
                                     , csvFileName = model.currentMusicInfo.csvFileName
                                     , combo = Combo.toMaxCombo model.combo
@@ -467,28 +480,6 @@ update msg model =
 
 
 
--- PORT
-
-
-port getAllNotes : { csvFileName : String, bpm : Int, beatsCountPerMeasure : Int, offset : Float } -> Cmd msg
-
-
-port gotAllNotes : (List NoteDto -> msg) -> Sub msg
-
-
-port getCurrentMusicTime : () -> Cmd msg
-
-
-port gotCurrentMusicTime : (Float -> msg) -> Sub msg
-
-
-port saveRecord : RecordDto -> Cmd msg
-
-
-port savedRecord : (Bool -> msg) -> Sub msg
-
-
-
 -- SUBSCRIPTIONS
 
 
@@ -497,7 +488,8 @@ subscriptions model =
     case model.playStatus of
         Loading ->
             Sub.batch
-                [ gotAllNotes GotAllNotes
+                [ UserSetting.gotUserSetting GotUserSetting
+                , MusicInfo.gotAllNotes GotAllNotes
                 , AudioManager.gotAudioInfo GotAudioInfo
                 , Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
@@ -512,7 +504,7 @@ subscriptions model =
         Playing ->
             Sub.batch
                 [ Time.every 30 Tick -- ほぼ30fps
-                , gotCurrentMusicTime GotCurrentMusicTime
+                , CurrentMusicTime.gotCurrentMusicTime GotCurrentMusicTime
                 , Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
                 ]
@@ -524,7 +516,7 @@ subscriptions model =
                 ]
 
         PreFinish ->
-            savedRecord SavedRecord
+            Record.savedRecord SavedRecord
 
         Finish _ ->
             Sub.none
@@ -556,11 +548,17 @@ view model =
 viewContents : Model -> Html Msg
 viewContents model =
     if not <| model.playStatus == Loading then
+        let
+            notesSpeed =
+                UserSetting.toSetting model.userSetting
+                    |> Maybe.map .notesSpeed
+                    |> Maybe.withDefault notesSpeedDefault
+        in
         div [ class "play_contentsContainer" ]
             [ div
                 [ class "play_contents" ]
                 [ viewLanes model
-                , viewNotes model model.notesSpeed
+                , viewNotes model notesSpeed
                 , viewMusicInfo model.currentMusicInfo
                 , viewDisplayCircle model.currentMusicInfo model
                 ]
@@ -808,11 +806,6 @@ viewResult musicInfo isHighScore model =
 toSession : Model -> Session
 toSession model =
     model.session
-
-
-toUserSetting : Model -> UserSetting
-toUserSetting model =
-    model.userSetting
 
 
 toAllMusicInfoList : Model -> AllMusicInfoList

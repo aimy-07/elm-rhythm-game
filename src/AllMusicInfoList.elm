@@ -1,5 +1,7 @@
-module AllMusicInfoList exposing
+port module AllMusicInfoList exposing
     ( AllMusicInfoList
+    , getAllMusicInfoList
+    , gotAllMusicInfoList
     , init
     , isLoaded
     , setAudioInfo
@@ -16,6 +18,7 @@ import MusicInfo exposing (MusicInfo, MusicInfoDto)
 import MusicInfo.CsvFileName exposing (CsvFileName)
 import MusicInfo.Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
+import Utils exposing (cmdIf)
 
 
 type AllMusicInfoList
@@ -144,3 +147,15 @@ toAudioInfoFindByMusicId musicId allMusicInfoList =
 
         NotLoaded ->
             Nothing
+
+
+getAllMusicInfoList : AllMusicInfoList -> Cmd msg
+getAllMusicInfoList allMusicInfoList =
+    getAllMusicInfoList_ ()
+        |> cmdIf (not <| isLoaded allMusicInfoList)
+
+
+port getAllMusicInfoList_ : () -> Cmd msg
+
+
+port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg

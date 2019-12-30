@@ -1,7 +1,9 @@
-module MusicInfo exposing
+port module MusicInfo exposing
     ( MusicInfo
     , MusicInfoDto
     , empty
+    , getAllNotes
+    , gotAllNotes
     , new
     , toStringTime
     )
@@ -10,6 +12,7 @@ import MusicInfo.CsvFileName exposing (CsvFileName)
 import MusicInfo.Level exposing (Level)
 import MusicInfo.Mode as Mode exposing (Mode)
 import MusicInfo.MusicId exposing (MusicId)
+import Page.Play.Note exposing (NoteDto)
 
 
 type alias MusicInfo =
@@ -88,3 +91,13 @@ toStringTime time =
             Basics.round time // 60
     in
     String.fromInt min ++ "分" ++ String.fromInt sec ++ "秒"
+
+
+
+-- TODO: Csvのモジュールを作ったらそこにおく
+
+
+port getAllNotes : { csvFileName : String, bpm : Int, beatsCountPerMeasure : Int, offset : Float } -> Cmd msg
+
+
+port gotAllNotes : (List NoteDto -> msg) -> Sub msg

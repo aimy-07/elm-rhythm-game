@@ -1,8 +1,10 @@
-module PublicRecord exposing
+port module PublicRecord exposing
     ( BestScoreRecord
     , PublicRecord
     , PublicRecordDto
     , findByCsvFileName
+    , getPublicRecords
+    , gotPublicRecords
     , isOwnRecord
     , new
     , toFirstScoreRecord
@@ -99,3 +101,9 @@ toStringScore maybeRecord =
     maybeRecord
         |> Maybe.map (.score >> String.fromInt)
         |> Maybe.withDefault "---"
+
+
+port getPublicRecords : () -> Cmd msg
+
+
+port gotPublicRecords : (List PublicRecordDto -> msg) -> Sub msg

@@ -1,7 +1,13 @@
-module Session exposing
+port module Session exposing
     ( Session
+    , canceledSignIn
     , init
     , isLoggedIn
+    , onAuthStateChanged
+    , signInWithGithub
+    , signInWithGoogle
+    , signInWithTwitter
+    , signOut
     , toLoggedIn
     , toNavKey
     , toUser
@@ -70,3 +76,21 @@ updateUser data update session =
 
         NotLogin _ ->
             session
+
+
+port onAuthStateChanged : (Maybe UserDto -> msg) -> Sub msg
+
+
+port signInWithGoogle : () -> Cmd msg
+
+
+port signInWithTwitter : () -> Cmd msg
+
+
+port signInWithGithub : () -> Cmd msg
+
+
+port canceledSignIn : (() -> msg) -> Sub msg
+
+
+port signOut : () -> Cmd msg

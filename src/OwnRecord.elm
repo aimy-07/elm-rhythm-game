@@ -1,7 +1,9 @@
-module OwnRecord exposing
+port module OwnRecord exposing
     ( OwnRecord
     , OwnRecordDto
     , findByCsvFileName
+    , getOwnRecords
+    , gotOwnRecords
     , new
     , toPlayCount
     , toStringCombo
@@ -82,3 +84,9 @@ toPlayCount maybeOwnRecord =
         |> Maybe.map .playCount
         |> Maybe.withDefault 0
         |> String.fromInt
+
+
+port getOwnRecords : String -> Cmd msg
+
+
+port gotOwnRecords : (List OwnRecordDto -> msg) -> Sub msg

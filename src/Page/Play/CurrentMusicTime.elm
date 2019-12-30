@@ -1,10 +1,15 @@
-module Page.Play.CurrentMusicTime exposing (CurrentMusicTime, update)
+port module Page.Play.CurrentMusicTime exposing
+    ( CurrentMusicTime
+    , getCurrentMusicTime
+    , gotCurrentMusicTime
+    )
 
 
 type alias CurrentMusicTime =
     Float
 
 
-update : CurrentMusicTime -> CurrentMusicTime
-update currentMusicTime =
-    currentMusicTime + 10
+port getCurrentMusicTime : () -> Cmd msg
+
+
+port gotCurrentMusicTime : (Float -> msg) -> Sub msg

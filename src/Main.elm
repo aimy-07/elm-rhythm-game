@@ -16,7 +16,6 @@ import Route exposing (Route)
 import Session exposing (Session)
 import Url exposing (Url)
 import User exposing (UserDto)
-import UserSetting exposing (UserSetting)
 
 
 
@@ -24,9 +23,9 @@ import UserSetting exposing (UserSetting)
 
 
 type Model
-    = Init Session UserSetting AllMusicInfoList
-    | Redirect Session UserSetting AllMusicInfoList
-    | NotFound Session UserSetting AllMusicInfoList
+    = Init Session AllMusicInfoList
+    | Redirect Session AllMusicInfoList
+    | NotFound Session AllMusicInfoList
     | Title Title.Model
     | Home Home.Model
     | Play CsvFileName Play.Model
@@ -36,19 +35,19 @@ type Model
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ _ navKey =
     -- onAuthChangedのレスポンスを受け取るまでInit
-    ( Init (Session.init navKey) UserSetting.init AllMusicInfoList.init, Cmd.none )
+    ( Init (Session.init navKey) AllMusicInfoList.init, Cmd.none )
 
 
 toSession : Model -> Session
 toSession model =
     case model of
-        Init session _ _ ->
+        Init session _ ->
             session
 
-        Redirect session _ _ ->
+        Redirect session _ ->
             session
 
-        NotFound session _ _ ->
+        NotFound session _ ->
             session
 
         Title title ->
@@ -64,41 +63,16 @@ toSession model =
             Error.toSession error
 
 
-toUserSetting : Model -> UserSetting
-toUserSetting model =
-    case model of
-        Init _ userSetting _ ->
-            userSetting
-
-        Redirect _ userSetting _ ->
-            userSetting
-
-        NotFound _ userSetting _ ->
-            userSetting
-
-        Title title ->
-            Title.toUserSetting title
-
-        Home home ->
-            Home.toUserSetting home
-
-        Play _ play ->
-            Play.toUserSetting play
-
-        Error error ->
-            Error.toUserSetting error
-
-
 toAllMusicInfoList : Model -> AllMusicInfoList
 toAllMusicInfoList model =
     case model of
-        Init _ _ allMusicInfoList ->
+        Init _ allMusicInfoList ->
             allMusicInfoList
 
-        Redirect _ _ allMusicInfoList ->
+        Redirect _ allMusicInfoList ->
             allMusicInfoList
 
-        NotFound _ _ allMusicInfoList ->
+        NotFound _ allMusicInfoList ->
             allMusicInfoList
 
         Title title ->
@@ -177,7 +151,7 @@ update msg model =
 
                 nextRoute =
                     case model of
-                        Init _ _ _ ->
+                        Init _ _ ->
                             Route.Title
 
                         _ ->
@@ -187,7 +161,7 @@ update msg model =
                             else
                                 Route.Title
             in
-            ( Redirect updatedSession (toUserSetting model) (toAllMusicInfoList model)
+            ( Redirect updatedSession (toAllMusicInfoList model)
             , Route.replaceUrl navKey nextRoute
             )
 
@@ -217,47 +191,41 @@ changeRouteTo maybeRoute model =
 
         allMusicInfoList =
             toAllMusicInfoList model
-
-        userSetting =
-            toUserSetting model
     in
     case model of
-        Init _ _ _ ->
+        Init _ _ ->
             ( model, Cmd.none )
 
         _ ->
             case maybeRoute of
                 Nothing ->
-                    ( NotFound session userSetting allMusicInfoList, Cmd.none )
+                    ( NotFound session allMusicInfoList, Cmd.none )
 
                 Just Route.Title ->
-                    Title.init session userSetting allMusicInfoList
+                    Title.init session allMusicInfoList
                         |> updateWith Title GotTitleMsg model
 
                 Just Route.Home ->
-                    Home.init session userSetting allMusicInfoList
+                    Home.init session allMusicInfoList
                         |> updateWith Home GotHomeMsg model
 
                 Just (Route.Play maybeCsvFileName) ->
                     case maybeCsvFileName of
                         Just csvFileName ->
-                            Play.init session userSetting allMusicInfoList csvFileName
+                            Play.init session allMusicInfoList csvFileName
                                 |> updateWith (Play csvFileName) GotPlayMsg model
 
                         Nothing ->
-                            Home.init session userSetting allMusicInfoList
+                            Home.init session allMusicInfoList
                                 |> updateWith Home GotHomeMsg model
 
                 Just Route.Error ->
-                    Error.init session userSetting allMusicInfoList
+                    Error.init session allMusicInfoList
                         |> updateWith Error GotErrorMsg model
 
 
 
 -- PORT
-
-
-port onAuthStateChanged : (Maybe UserDto -> msg) -> Sub msg
 
 
 port detectedError : (() -> msg) -> Sub msg
@@ -272,13 +240,13 @@ subscriptions model =
     let
         subSubscriptions =
             case model of
-                Init _ _ _ ->
+                Init _ _ ->
                     Sub.none
 
-                Redirect _ _ _ ->
+                Redirect _ _ ->
                     Sub.none
 
-                NotFound _ _ _ ->
+                NotFound _ _ ->
                     Sub.none
 
                 Title title ->
@@ -295,7 +263,7 @@ subscriptions model =
     in
     Sub.batch
         [ subSubscriptions
-        , onAuthStateChanged ChangedAuth
+        , Session.onAuthStateChanged ChangedAuth
         , detectedError DetectedError
         ]
 
@@ -317,13 +285,13 @@ view model =
             }
     in
     case model of
-        Init _ _ _ ->
+        Init _ _ ->
             Page.view Page.Other Blank.view
 
-        Redirect _ _ _ ->
+        Redirect _ _ ->
             Page.view Page.Other Blank.view
 
-        NotFound _ _ _ ->
+        NotFound _ _ ->
             Page.view Page.Other NotFound.view
 
         Title title ->

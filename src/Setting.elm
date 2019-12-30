@@ -1,4 +1,14 @@
-module Setting exposing (Setting, SettingDto, empty, new)
+port module Setting exposing
+    ( Setting
+    , SettingDto
+    , empty
+    , new
+    , saveBgmVolume
+    , saveCurrentMode
+    , saveCurrentMusicId
+    , saveNotesSpeed
+    , saveSeVolume
+    )
 
 import Constants
     exposing
@@ -65,3 +75,18 @@ empty =
     , bgmVolume = bgmVolumeDefault
     , seVolume = seVolumeDefault
     }
+
+
+port saveCurrentMusicId : { uid : String, currentMusicId : String } -> Cmd msg
+
+
+port saveCurrentMode : { uid : String, currentMode : String } -> Cmd msg
+
+
+port saveNotesSpeed : { uid : String, notesSpeed : Float } -> Cmd msg
+
+
+port saveBgmVolume : { uid : String, bgmVolume : Float } -> Cmd msg
+
+
+port saveSeVolume : { uid : String, seVolume : Float } -> Cmd msg

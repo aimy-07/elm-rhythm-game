@@ -1,5 +1,15 @@
-module User exposing (User, UserDto, new, updatePictureUrl, updateUserName)
+port module User exposing
+    ( User
+    , UserDto
+    , new
+    , saveUserName
+    , saveUserPicture
+    , savedUserPicture
+    , updatePictureUrl
+    , updateUserName
+    )
 
+import Json.Decode as Decode
 import User.Uid exposing (Uid)
 
 
@@ -33,3 +43,12 @@ updateUserName userName user =
 updatePictureUrl : String -> User -> User
 updatePictureUrl pictureUrl user =
     { user | pictureUrl = pictureUrl }
+
+
+port saveUserName : { uid : String, userName : String } -> Cmd msg
+
+
+port saveUserPicture : { uid : String, event : Decode.Value } -> Cmd msg
+
+
+port savedUserPicture : (String -> msg) -> Sub msg

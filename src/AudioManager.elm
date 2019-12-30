@@ -1,9 +1,11 @@
 port module AudioManager exposing
-    ( getAudioInfo
+    ( changeBgmVolume
+    , getAudioInfo
     , gotAudioInfo
     , pauseBGM
     , playBGM
     , playSE
+    , playTitleBgm
     , unPauseBGM
     )
 
@@ -56,4 +58,10 @@ port pauseBGM : () -> Cmd msg
 port unPauseBGM : () -> Cmd msg
 
 
+port changeBgmVolume : Float -> Cmd msg
+
+
 port playSE_ : { audioUrl : String, volume : Float } -> Cmd msg
+
+
+port playTitleBgm : () -> Cmd msg

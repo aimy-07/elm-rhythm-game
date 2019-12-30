@@ -1,16 +1,16 @@
-port module Page.Home exposing
+module Page.Home exposing
     ( Model
     , Msg
     , init
     , subscriptions
     , toAllMusicInfoList
     , toSession
-    , toUserSetting
     , update
     , view
     )
 
 import AllMusicInfoList exposing (AllMusicInfoList)
+import AnimationManager
 import AudioManager exposing (playSE)
 import AudioManager.SE as SE
 import Constants exposing (allMode)
@@ -44,12 +44,12 @@ import Utils exposing (viewIf)
 
 type alias Model =
     { session : Session
-    , userSetting : UserSetting
     , allMusicInfoList : AllMusicInfoList
     , maybeOwnRecords : Maybe (List OwnRecord)
     , maybePublicRecords : Maybe (List PublicRecord)
-    , pictureUploadS : PictureUploadS
+    , userSetting : UserSetting
     , userSettingPanelS : UserSettingPanelS
+    , pictureUploadS : PictureUploadS
     }
 
 
@@ -58,38 +58,38 @@ type PictureUploadS
     | Uploading
 
 
-init : Session -> UserSetting -> AllMusicInfoList -> ( Model, Cmd Msg )
-init session _ allMusicInfoList =
+init : Session -> AllMusicInfoList -> ( Model, Cmd Msg )
+init session allMusicInfoList =
     case Session.toUser session of
         Just user ->
-            ( initModel session UserSetting.init allMusicInfoList
+            ( initModel session allMusicInfoList
             , Cmd.batch
-                [ getUserSetting user.uid
-                , getOwnRecords user.uid
-                , getPublicRecords ()
+                [ OwnRecord.getOwnRecords user.uid
+                , PublicRecord.getPublicRecords ()
+                , UserSetting.getUserSetting user.uid
                 ]
             )
 
         Nothing ->
-            -- Homeで user == Nothing にはまずならないが、念のためログイン画面(タイトル)に戻す処理を入れておく
+            -- Homeで user == Nothing にはまずならないが、念のためエラー画面に飛ばす処理を入れておく
             let
                 navKey =
                     Session.toNavKey session
             in
-            ( initModel (Session.init navKey) UserSetting.init allMusicInfoList
-            , Route.replaceUrl navKey Route.Title
+            ( initModel (Session.init navKey) allMusicInfoList
+            , Route.replaceUrl navKey Route.Error
             )
 
 
-initModel : Session -> UserSetting -> AllMusicInfoList -> Model
-initModel session userSetting allMusicInfoList =
+initModel : Session -> AllMusicInfoList -> Model
+initModel session allMusicInfoList =
     { session = session
-    , userSetting = userSetting
     , allMusicInfoList = allMusicInfoList
     , maybeOwnRecords = Nothing
     , maybePublicRecords = Nothing
-    , pictureUploadS = NotUploading
+    , userSetting = UserSetting.init
     , userSettingPanelS = UserSettingPanelS.init
+    , pictureUploadS = NotUploading
     }
 
 
@@ -98,9 +98,9 @@ initModel session userSetting allMusicInfoList =
 
 
 type Msg
-    = GotUserSetting SettingDto
-    | GotOwnRecords (List OwnRecordDto)
+    = GotOwnRecords (List OwnRecordDto)
     | GotPublicRecords (List PublicRecordDto)
+    | GotUserSetting SettingDto
     | ChangeMusicId MusicId
     | ChangeMode Mode
     | ChangeNotesSpeed String
@@ -120,6 +120,20 @@ update msg model =
     case Session.toUser model.session of
         Just user ->
             case msg of
+                GotOwnRecords ownRecordDtos ->
+                    let
+                        ownRecords =
+                            List.map OwnRecord.new ownRecordDtos
+                    in
+                    ( { model | maybeOwnRecords = Just ownRecords }, Cmd.none )
+
+                GotPublicRecords publicRecordDtos ->
+                    let
+                        publicRecords =
+                            List.map PublicRecord.new publicRecordDtos
+                    in
+                    ( { model | maybePublicRecords = Just publicRecords }, Cmd.none )
+
                 GotUserSetting settingDto ->
                     let
                         userSetting =
@@ -143,20 +157,6 @@ update msg model =
                     , AudioManager.playBGM audioUrl bgmVolume True
                     )
 
-                GotOwnRecords ownRecordDtos ->
-                    let
-                        ownRecords =
-                            List.map OwnRecord.new ownRecordDtos
-                    in
-                    ( { model | maybeOwnRecords = Just ownRecords }, Cmd.none )
-
-                GotPublicRecords publicRecordDtos ->
-                    let
-                        publicRecords =
-                            List.map PublicRecord.new publicRecordDtos
-                    in
-                    ( { model | maybePublicRecords = Just publicRecords }, Cmd.none )
-
                 ChangeMusicId musicId ->
                     let
                         updatedUserSetting =
@@ -177,9 +177,9 @@ update msg model =
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
-                        [ saveCurrentMusicId { uid = user.uid, currentMusicId = musicId }
+                        [ Setting.saveCurrentMusicId { uid = user.uid, currentMusicId = musicId }
                         , AudioManager.playBGM audioUrl bgmVolume True
-                        , playMusicSelectAnim ()
+                        , AnimationManager.playMusicSelectAnim ()
                         , playSE SE.MusicSelect seVolume
                         ]
                     )
@@ -195,8 +195,8 @@ update msg model =
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
-                        [ saveCurrentMode { uid = user.uid, currentMode = Mode.unwrap mode }
-                        , playMusicSelectAnim ()
+                        [ Setting.saveCurrentMode { uid = user.uid, currentMode = Mode.unwrap mode }
+                        , AnimationManager.playMusicSelectAnim ()
                         , playSE SE.MusicSelect seVolume
                         ]
                     )
@@ -210,7 +210,7 @@ update msg model =
                             UserSetting.updateNotesSpeed notesSpeed model.userSetting
                     in
                     ( { model | userSetting = updatedUserSetting }
-                    , saveNotesSpeed { uid = user.uid, notesSpeed = notesSpeed }
+                    , Setting.saveNotesSpeed { uid = user.uid, notesSpeed = notesSpeed }
                     )
 
                 ChangeBgmVolume volumeValue ->
@@ -223,8 +223,8 @@ update msg model =
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
-                        [ saveBgmVolume { uid = user.uid, bgmVolume = bgmVolume }
-                        , changeBgmVolume bgmVolume
+                        [ Setting.saveBgmVolume { uid = user.uid, bgmVolume = bgmVolume }
+                        , AudioManager.changeBgmVolume bgmVolume
                         ]
                     )
 
@@ -237,7 +237,7 @@ update msg model =
                             UserSetting.updateSeVolume seVolume model.userSetting
                     in
                     ( { model | userSetting = updatedUserSetting }
-                    , saveSeVolume { uid = user.uid, seVolume = seVolume }
+                    , Setting.saveSeVolume { uid = user.uid, seVolume = seVolume }
                     )
 
                 InputUserName nextUserName ->
@@ -246,12 +246,12 @@ update msg model =
                             Session.updateUser nextUserName User.updateUserName model.session
                     in
                     ( { model | session = updatedSession }
-                    , saveUserName { uid = user.uid, userName = nextUserName }
+                    , User.saveUserName { uid = user.uid, userName = nextUserName }
                     )
 
                 SelectdPicture event ->
                     ( { model | pictureUploadS = Uploading }
-                    , saveUserPicture { uid = user.uid, event = event }
+                    , User.saveUserPicture { uid = user.uid, event = event }
                     )
 
                 SavedUserPicture url ->
@@ -271,72 +271,17 @@ update msg model =
                     ( { model | userSettingPanelS = UserSettingPanelS.close model.userSettingPanelS }, Cmd.none )
 
                 SignOut ->
-                    ( model, signOut () )
+                    ( model, Session.signOut () )
 
         Nothing ->
-            -- Homeで user == Nothing にはまずならないが、念のためログイン画面(タイトル)に戻す処理を入れておく
+            -- Homeで user == Nothing にはまずならないが、念のためエラー画面に飛ばす処理を入れておく
             let
                 navKey =
                     Session.toNavKey model.session
             in
             ( { model | session = Session.init navKey }
-            , Route.replaceUrl navKey Route.Title
+            , Route.replaceUrl navKey Route.Error
             )
-
-
-
--- PORT
-
-
-port getOwnRecords : String -> Cmd msg
-
-
-port gotOwnRecords : (List OwnRecordDto -> msg) -> Sub msg
-
-
-port getPublicRecords : () -> Cmd msg
-
-
-port gotPublicRecords : (List PublicRecordDto -> msg) -> Sub msg
-
-
-port getUserSetting : String -> Cmd msg
-
-
-port gotUserSetting : (SettingDto -> msg) -> Sub msg
-
-
-port saveCurrentMusicId : { uid : String, currentMusicId : String } -> Cmd msg
-
-
-port saveCurrentMode : { uid : String, currentMode : String } -> Cmd msg
-
-
-port saveNotesSpeed : { uid : String, notesSpeed : Float } -> Cmd msg
-
-
-port saveBgmVolume : { uid : String, bgmVolume : Float } -> Cmd msg
-
-
-port saveSeVolume : { uid : String, seVolume : Float } -> Cmd msg
-
-
-port changeBgmVolume : Float -> Cmd msg
-
-
-port saveUserName : { uid : String, userName : String } -> Cmd msg
-
-
-port saveUserPicture : { uid : String, event : Decode.Value } -> Cmd msg
-
-
-port savedUserPicture : (String -> msg) -> Sub msg
-
-
-port playMusicSelectAnim : () -> Cmd msg
-
-
-port signOut : () -> Cmd msg
 
 
 
@@ -346,10 +291,10 @@ port signOut : () -> Cmd msg
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ gotUserSetting GotUserSetting
-        , gotOwnRecords GotOwnRecords
-        , gotPublicRecords GotPublicRecords
-        , savedUserPicture SavedUserPicture
+        [ OwnRecord.gotOwnRecords GotOwnRecords
+        , PublicRecord.gotPublicRecords GotPublicRecords
+        , UserSetting.gotUserSetting GotUserSetting
+        , User.savedUserPicture SavedUserPicture
         ]
 
 
@@ -810,11 +755,6 @@ viewBottomRightArea currentMusicInfo =
 toSession : Model -> Session
 toSession model =
     model.session
-
-
-toUserSetting : Model -> UserSetting
-toUserSetting model =
-    model.userSetting
 
 
 toAllMusicInfoList : Model -> AllMusicInfoList

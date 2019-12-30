@@ -5,7 +5,6 @@ module Page.Error exposing
     , subscriptions
     , toAllMusicInfoList
     , toSession
-    , toUserSetting
     , update
     , view
     )
@@ -16,7 +15,6 @@ import Html.Attributes exposing (class, href, target)
 import Html.Events exposing (onClick)
 import Route
 import Session exposing (Session)
-import UserSetting exposing (UserSetting)
 
 
 
@@ -25,15 +23,13 @@ import UserSetting exposing (UserSetting)
 
 type alias Model =
     { session : Session
-    , userSetting : UserSetting
     , allMusicInfoList : AllMusicInfoList
     }
 
 
-init : Session -> UserSetting -> AllMusicInfoList -> ( Model, Cmd Msg )
-init session userSetting allMusicInfoList =
+init : Session -> AllMusicInfoList -> ( Model, Cmd Msg )
+init session allMusicInfoList =
     ( { session = session
-      , userSetting = userSetting
       , allMusicInfoList = allMusicInfoList
       }
     , Cmd.none
@@ -103,11 +99,6 @@ view _ =
 toSession : Model -> Session
 toSession model =
     model.session
-
-
-toUserSetting : Model -> UserSetting
-toUserSetting model =
-    model.userSetting
 
 
 toAllMusicInfoList : Model -> AllMusicInfoList

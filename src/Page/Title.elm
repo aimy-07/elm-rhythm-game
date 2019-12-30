@@ -1,11 +1,10 @@
-port module Page.Title exposing
+module Page.Title exposing
     ( Model
     , Msg
     , init
     , subscriptions
     , toAllMusicInfoList
     , toSession
-    , toUserSetting
     , update
     , view
     )
@@ -24,7 +23,6 @@ import Page.Title.LoginBtnS as LoginBtnS exposing (LoginBtnS)
 import Route
 import Session exposing (Session)
 import User.AccountType as AccountType exposing (AccountType(..))
-import UserSetting exposing (UserSetting)
 import Utils exposing (cmdIf, viewIf)
 
 
@@ -34,23 +32,20 @@ import Utils exposing (cmdIf, viewIf)
 
 type alias Model =
     { session : Session
-    , userSetting : UserSetting
     , allMusicInfoList : AllMusicInfoList
     , loginBtnS : LoginBtnS
     }
 
 
-init : Session -> UserSetting -> AllMusicInfoList -> ( Model, Cmd Msg )
-init session userSetting allMusicInfoList =
+init : Session -> AllMusicInfoList -> ( Model, Cmd Msg )
+init session allMusicInfoList =
     ( { session = session
-      , userSetting = userSetting
       , allMusicInfoList = allMusicInfoList
       , loginBtnS = LoginBtnS.init
       }
     , Cmd.batch
-        [ getAllMusicInfoList ()
-            |> cmdIf (not <| AllMusicInfoList.isLoaded allMusicInfoList)
-        , playTitleBgm ()
+        [ AllMusicInfoList.getAllMusicInfoList allMusicInfoList
+        , AudioManager.playTitleBgm ()
         ]
     )
 
@@ -104,46 +99,21 @@ update msg model =
 
         ClickedGoogleLoginBtn ->
             ( { model | loginBtnS = LoginBtnS.toDisabled Google model.loginBtnS }
-            , signInWithGoogle ()
+            , Session.signInWithGoogle ()
             )
 
         ClickedTwitterLoginBtn ->
             ( { model | loginBtnS = LoginBtnS.toDisabled Twitter model.loginBtnS }
-            , signInWithTwitter ()
+            , Session.signInWithTwitter ()
             )
 
         ClickedGithubLoginBtn ->
             ( { model | loginBtnS = LoginBtnS.toDisabled Github model.loginBtnS }
-            , signInWithGithub ()
+            , Session.signInWithGithub ()
             )
 
         CanceledSignIn _ ->
             ( { model | loginBtnS = LoginBtnS.toShow model.loginBtnS }, Cmd.none )
-
-
-
--- PORT
-
-
-port getAllMusicInfoList : () -> Cmd msg
-
-
-port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg
-
-
-port signInWithGoogle : () -> Cmd msg
-
-
-port signInWithTwitter : () -> Cmd msg
-
-
-port signInWithGithub : () -> Cmd msg
-
-
-port canceledSignIn : (() -> msg) -> Sub msg
-
-
-port playTitleBgm : () -> Cmd msg
 
 
 
@@ -153,9 +123,9 @@ port playTitleBgm : () -> Cmd msg
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ gotAllMusicInfoList GotAllMusicInfoList
+        [ AllMusicInfoList.gotAllMusicInfoList GotAllMusicInfoList
         , AudioManager.gotAudioInfo GotAudioInfo
-        , canceledSignIn CanceledSignIn
+        , Session.canceledSignIn CanceledSignIn
         ]
 
 
@@ -272,11 +242,6 @@ viewLoginBtn accountType loginBtnS =
 toSession : Model -> Session
 toSession model =
     model.session
-
-
-toUserSetting : Model -> UserSetting
-toUserSetting model =
-    model.userSetting
 
 
 toAllMusicInfoList : Model -> AllMusicInfoList

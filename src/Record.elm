@@ -1,4 +1,10 @@
-module Record exposing (Record, RecordDto, new)
+port module Record exposing
+    ( Record
+    , RecordDto
+    , new
+    , saveRecord
+    , savedRecord
+    )
 
 import MusicInfo.CsvFileName exposing (CsvFileName)
 import User.Uid exposing (Uid)
@@ -27,3 +33,9 @@ new { uid, csvFileName, combo, score } =
     , combo = combo
     , score = score
     }
+
+
+port saveRecord : RecordDto -> Cmd msg
+
+
+port savedRecord : (Bool -> msg) -> Sub msg

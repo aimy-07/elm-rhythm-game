@@ -1,4 +1,4 @@
-port module Page.Play.Judge exposing
+module Page.Play.Judge exposing
     ( Judge(..)
     , isOverJustTime
     , isOverMiss
@@ -9,6 +9,7 @@ port module Page.Play.Judge exposing
     , toStringJudge
     )
 
+import AnimationManager
 import Constants exposing (goodRange, greatRange, missRange, perfectRange)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.KeyStr exposing (KeyStr)
@@ -74,11 +75,11 @@ isOverJustTime currentMusicTime justTime =
 keyDownEffectCmd : KeyStr -> Judge -> Bool -> Cmd msg
 keyDownEffectCmd keyStr judge isLongNote =
     Cmd.batch
-        [ playJudgeEffectAnim
+        [ AnimationManager.playJudgeEffectAnim
             { keyStr = keyStr
             , isLongNote = isLongNote
             }
-        , playJudgeEffectTextAnim
+        , AnimationManager.playJudgeEffectTextAnim
             { keyStr = keyStr
             , judgeText = toStringJudge judge
             }
@@ -88,7 +89,7 @@ keyDownEffectCmd keyStr judge isLongNote =
 
 missEffectCmd : KeyStr -> Cmd msg
 missEffectCmd keyStr =
-    playJudgeEffectTextAnim
+    AnimationManager.playJudgeEffectTextAnim
         { keyStr = keyStr
         , judgeText = toStringJudge Miss
         }
@@ -96,13 +97,7 @@ missEffectCmd keyStr =
 
 longEffectCmd : KeyStr -> Cmd msg
 longEffectCmd keyStr =
-    playJudgeEffectAnim
+    AnimationManager.playJudgeEffectAnim
         { keyStr = keyStr
         , isLongNote = True
         }
-
-
-port playJudgeEffectAnim : { keyStr : String, isLongNote : Bool } -> Cmd msg
-
-
-port playJudgeEffectTextAnim : { keyStr : String, judgeText : String } -> Cmd msg

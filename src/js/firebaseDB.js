@@ -63,7 +63,7 @@ export function databaseSetUpSubscriber (app) {
   });
 
   // 全ての楽曲の情報を取得する
-  app.ports.getAllMusicInfoList.subscribe(() => {
+  app.ports.getAllMusicInfoList_.subscribe(() => {
     firebase.database().ref('/musicInfos').once('value')
       .then(
         (snapshot) => {

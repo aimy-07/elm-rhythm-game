@@ -1,5 +1,7 @@
-module UserSetting exposing
+port module UserSetting exposing
     ( UserSetting
+    , getUserSetting
+    , gotUserSetting
     , init
     , isLoaded
     , new
@@ -106,3 +108,9 @@ updateSeVolume seVolume userSetting =
 
         NotLoaded ->
             userSetting
+
+
+port getUserSetting : String -> Cmd msg
+
+
+port gotUserSetting : (SettingDto -> msg) -> Sub msg
