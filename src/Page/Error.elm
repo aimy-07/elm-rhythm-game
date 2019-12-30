@@ -11,9 +11,9 @@ module Page.Error exposing
     )
 
 import AllMusicInfoList exposing (AllMusicInfoList)
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+import Html exposing (Html, a, div, text)
+import Html.Attributes exposing (class, href, target)
+import Html.Events exposing (onClick)
 import Route
 import Session exposing (Session)
 import UserSetting exposing (UserSetting)

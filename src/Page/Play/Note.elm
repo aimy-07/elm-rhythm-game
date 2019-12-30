@@ -20,8 +20,8 @@ module Page.Play.Note exposing
     )
 
 import Constants exposing (longTimeDuration, longTimeOffset)
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, div, text)
+import Html.Attributes exposing (class, style)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.KeyStr exposing (KeyStr)
@@ -40,7 +40,7 @@ type Note
         { keyStr : KeyStr
         , justTime : JustTime
         , longTime : LongTime
-        , subNotes : List LongSubNote
+        , subJustTimeList : List LongSubJustTime
         , isJudging : Bool
         }
     | Disabled
@@ -53,8 +53,8 @@ type alias LongTime =
     Float
 
 
-type alias LongSubNote =
-    { justTime : JustTime }
+type alias LongSubJustTime =
+    JustTime
 
 
 type alias NoteDto =
@@ -74,23 +74,23 @@ new noteDto =
 
     else
         let
-            subNotes =
+            subJustTimeList =
                 Basics.floor ((noteDto.longTime - longTimeOffset) / longTimeDuration)
                     |> List.range 0
                     |> List.map
                         (\index ->
                             if index == 0 then
-                                { justTime = noteDto.justTime + longTimeOffset }
+                                noteDto.justTime + longTimeOffset
 
                             else
-                                { justTime = noteDto.justTime + longTimeOffset + longTimeDuration * Basics.toFloat index }
+                                noteDto.justTime + longTimeOffset + longTimeDuration * Basics.toFloat index
                         )
         in
         LongNote
             { keyStr = noteDto.keyStr
             , justTime = noteDto.justTime
             , longTime = noteDto.longTime
-            , subNotes = subNotes
+            , subJustTimeList = subJustTimeList
             , isJudging = False
             }
 
@@ -131,11 +131,11 @@ toLongTime note =
             0
 
 
-toLongSubNotes : Note -> List LongSubNote
-toLongSubNotes note =
+toLongSubJustTimeList : Note -> List LongSubJustTime
+toLongSubJustTimeList note =
     case note of
-        LongNote { subNotes } ->
-            subNotes
+        LongNote { subJustTimeList } ->
+            subJustTimeList
 
         _ ->
             []
@@ -211,19 +211,21 @@ update currentMusicTime note =
         LongNote note_ ->
             if isLongJudging note then
                 let
-                    nextSubNotes =
-                        toLongSubNotes note
+                    nextSubJustTimeList =
+                        toLongSubJustTimeList note
                             |> List.filter
-                                (\subNote -> not <| Judge.isOverJustTime currentMusicTime subNote.justTime)
+                                (\subJustTime ->
+                                    not <| Judge.isOverJustTime currentMusicTime subJustTime
+                                )
 
                     endTime =
                         toJustTime note + toLongTime note
                 in
-                if List.isEmpty nextSubNotes && endTime < currentMusicTime then
+                if List.isEmpty nextSubJustTimeList && endTime < currentMusicTime then
                     Disabled { keyStr = toKeyStr note, isMiss = False }
 
                 else
-                    LongNote { note_ | subNotes = nextSubNotes }
+                    LongNote { note_ | subJustTimeList = nextSubJustTimeList }
 
             else if Judge.isOverMiss currentMusicTime (toJustTime note) then
                 Disabled { keyStr = toKeyStr note, isMiss = True }
@@ -242,11 +244,9 @@ judgedLongNoteKeys currentMusicTime note =
     case note of
         LongNote _ ->
             if isLongJudging note then
-                toLongSubNotes note
-                    |> List.filter
-                        (\subNote -> Judge.isOverJustTime currentMusicTime subNote.justTime)
-                    |> List.map
-                        (\_ -> toKeyStr note)
+                toLongSubJustTimeList note
+                    |> List.filter (Judge.isOverJustTime currentMusicTime)
+                    |> List.map (\_ -> toKeyStr note)
 
             else
                 []

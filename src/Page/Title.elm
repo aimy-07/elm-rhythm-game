@@ -11,11 +11,15 @@ port module Page.Title exposing
     )
 
 import AllMusicInfoList exposing (AllMusicInfoList)
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+import AudioManager
+import AudioManager.AudioInfo exposing (AudioInfoDto)
+import Constants exposing (currentModeDefault)
+import Html exposing (Html, a, br, button, div, img, li, text)
+import Html.Attributes exposing (class, disabled, href, src)
+import Html.Events exposing (onClick)
 import MusicInfo exposing (MusicInfoDto)
 import MusicInfo.CsvFileName as CsvFileName
+import MusicInfo.Mode as Mode
 import Page.Title.LoginBtnS as LoginBtnS exposing (LoginBtnS)
 import Route
 import Session exposing (Session)
@@ -57,7 +61,7 @@ init session userSetting allMusicInfoList =
 
 type Msg
     = GotAllMusicInfoList (List MusicInfoDto)
-    | GotAllSampleAudio ()
+    | GotAudioInfo AudioInfoDto
     | ClickedStartBtn
     | ClickedGoogleLoginBtn
     | ClickedTwitterLoginBtn
@@ -71,24 +75,29 @@ update msg model =
         GotAllMusicInfoList musicInfoDtos ->
             let
                 allMusicInfoList =
-                    AllMusicInfoList.new musicInfoDtos
+                    AllMusicInfoList.setMusicInfo musicInfoDtos model.allMusicInfoList
 
-                audioFileNameList =
+                audioFileNames =
                     musicInfoDtos
-                        |> List.map (.csvFileName >> CsvFileName.toAudioFileName)
+                        |> List.filter
+                            (\musicInfo ->
+                                Mode.new musicInfo.mode == currentModeDefault
+                            )
+                        |> List.map
+                            (\musicInfo ->
+                                CsvFileName.toMusicId musicInfo.csvFileName ++ "_sample"
+                            )
             in
             ( { model | allMusicInfoList = allMusicInfoList }
-            , getAllSampleAudio audioFileNameList
+            , Cmd.batch <| List.map AudioManager.getAudioInfo audioFileNames
             )
 
-        GotAllSampleAudio _ ->
+        GotAudioInfo audioInfoDto ->
             let
                 allMusicInfoList =
-                    AllMusicInfoList.ready model.allMusicInfoList
+                    AllMusicInfoList.setAudioInfo audioInfoDto model.allMusicInfoList
             in
-            ( { model | allMusicInfoList = allMusicInfoList }
-            , Cmd.none
-            )
+            ( { model | allMusicInfoList = allMusicInfoList }, Cmd.none )
 
         ClickedStartBtn ->
             ( { model | loginBtnS = LoginBtnS.toShow model.loginBtnS }, Cmd.none )
@@ -122,12 +131,6 @@ port getAllMusicInfoList : () -> Cmd msg
 port gotAllMusicInfoList : (List MusicInfoDto -> msg) -> Sub msg
 
 
-port getAllSampleAudio : List String -> Cmd msg
-
-
-port gotAllSampleAudio : (() -> msg) -> Sub msg
-
-
 port signInWithGoogle : () -> Cmd msg
 
 
@@ -151,7 +154,7 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ gotAllMusicInfoList GotAllMusicInfoList
-        , gotAllSampleAudio GotAllSampleAudio
+        , AudioManager.gotAudioInfo GotAudioInfo
         , canceledSignIn CanceledSignIn
         ]
 

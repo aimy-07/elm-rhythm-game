@@ -1,4 +1,4 @@
-module MusicInfo.CsvFileName exposing (CsvFileName, new, toAudioFileName)
+module MusicInfo.CsvFileName exposing (CsvFileName, new, toMusicId)
 
 import Constants exposing (currentMusicIdDefault)
 import MusicInfo.Mode as Mode exposing (Mode)
@@ -14,8 +14,8 @@ new musicId mode =
     musicId ++ "-" ++ Mode.unwrap mode
 
 
-toAudioFileName : CsvFileName -> MusicId
-toAudioFileName csvFileName =
+toMusicId : CsvFileName -> MusicId
+toMusicId csvFileName =
     String.split "-" csvFileName
         |> List.head
         |> Maybe.withDefault currentMusicIdDefault

@@ -1,5 +1,3 @@
-let seVolume = 0.7;
-
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
@@ -41,15 +39,6 @@ export function animationSetUpSubscriber (app) {
     replayAnim(bottomLeftArea2);
     const bottomRightArea = document.getElementById("home_bottomRightArea");
     replayAnim(bottomRightArea);
-    const se = new Audio();
-    se.src = "./audios/se_music_select.wav";
-    se.volume = seVolume;
-    se.play();
-  })
-
-  // SE音量を変更する
-  app.ports.changeSeVolume.subscribe((nextSeVolume) => {
-    seVolume = nextSeVolume;
   })
 }
 

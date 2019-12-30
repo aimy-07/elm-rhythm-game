@@ -11,10 +11,12 @@ port module Page.Home exposing
     )
 
 import AllMusicInfoList exposing (AllMusicInfoList)
+import AudioManager exposing (playSE)
+import AudioManager.SE as SE
 import Constants exposing (allMode)
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+import Html exposing (Html, a, div, img, input, label, text)
+import Html.Attributes exposing (class, disabled, href, id, max, min, name, src, step, target, type_, value)
+import Html.Events exposing (on, onClick, onInput)
 import Json.Decode as Decode
 import MusicInfo as MusicInfo exposing (MusicInfo)
 import MusicInfo.CsvFileName as CsvFileName
@@ -123,17 +125,22 @@ update msg model =
                         userSetting =
                             UserSetting.new settingDto
 
-                        setting =
-                            userSetting
-                                |> UserSetting.toSetting
-                                |> Maybe.withDefault Setting.empty
+                        currentMusicId =
+                            UserSetting.toSetting userSetting
+                                |> Maybe.map .currentMusicId
+                                |> Maybe.withDefault ""
+
+                        audioUrl =
+                            model.allMusicInfoList
+                                |> AllMusicInfoList.toAudioInfoFindByMusicId currentMusicId
+                                |> Maybe.map .audioUrl
+
+                        bgmVolume =
+                            UserSetting.toSetting userSetting
+                                |> Maybe.map .bgmVolume
                     in
                     ( { model | userSetting = userSetting }
-                    , Cmd.batch
-                        [ changeBgmVolume setting.bgmVolume
-                        , changeSeVolume setting.seVolume
-                        , playHomeBgm setting.currentMusicId
-                        ]
+                    , AudioManager.playBGM audioUrl bgmVolume True
                     )
 
                 GotOwnRecords ownRecordDtos ->
@@ -154,12 +161,26 @@ update msg model =
                     let
                         updatedUserSetting =
                             UserSetting.updateCurrentMusicId musicId model.userSetting
+
+                        audioUrl =
+                            model.allMusicInfoList
+                                |> AllMusicInfoList.toAudioInfoFindByMusicId musicId
+                                |> Maybe.map .audioUrl
+
+                        bgmVolume =
+                            UserSetting.toSetting updatedUserSetting
+                                |> Maybe.map .bgmVolume
+
+                        seVolume =
+                            UserSetting.toSetting updatedUserSetting
+                                |> Maybe.map .seVolume
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
                         [ saveCurrentMusicId { uid = user.uid, currentMusicId = musicId }
+                        , AudioManager.playBGM audioUrl bgmVolume True
                         , playMusicSelectAnim ()
-                        , playHomeBgm musicId
+                        , playSE SE.MusicSelect seVolume
                         ]
                     )
 
@@ -167,11 +188,16 @@ update msg model =
                     let
                         updatedUserSetting =
                             UserSetting.updateCurrentMode mode model.userSetting
+
+                        seVolume =
+                            UserSetting.toSetting updatedUserSetting
+                                |> Maybe.map .seVolume
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
                         [ saveCurrentMode { uid = user.uid, currentMode = Mode.unwrap mode }
                         , playMusicSelectAnim ()
+                        , playSE SE.MusicSelect seVolume
                         ]
                     )
 
@@ -211,10 +237,7 @@ update msg model =
                             UserSetting.updateSeVolume seVolume model.userSetting
                     in
                     ( { model | userSetting = updatedUserSetting }
-                    , Cmd.batch
-                        [ saveSeVolume { uid = user.uid, seVolume = seVolume }
-                        , changeSeVolume seVolume
-                        ]
+                    , saveSeVolume { uid = user.uid, seVolume = seVolume }
                     )
 
                 InputUserName nextUserName ->
@@ -295,13 +318,10 @@ port saveNotesSpeed : { uid : String, notesSpeed : Float } -> Cmd msg
 port saveBgmVolume : { uid : String, bgmVolume : Float } -> Cmd msg
 
 
-port changeBgmVolume : Float -> Cmd msg
-
-
 port saveSeVolume : { uid : String, seVolume : Float } -> Cmd msg
 
 
-port changeSeVolume : Float -> Cmd msg
+port changeBgmVolume : Float -> Cmd msg
 
 
 port saveUserName : { uid : String, userName : String } -> Cmd msg
@@ -311,9 +331,6 @@ port saveUserPicture : { uid : String, event : Decode.Value } -> Cmd msg
 
 
 port savedUserPicture : (String -> msg) -> Sub msg
-
-
-port playHomeBgm : String -> Cmd msg
 
 
 port playMusicSelectAnim : () -> Cmd msg
@@ -362,7 +379,7 @@ viewContents model =
                 |> Maybe.withDefault ""
 
         maybeCurrentMusicInfo =
-            AllMusicInfoList.findByCsvFileName currentCsvFileName model.allMusicInfoList
+            AllMusicInfoList.toMusicInfoFindByCsvFileName currentCsvFileName model.allMusicInfoList
     in
     case ( maybeUser, maybeSetting ) of
         ( Just user, Just setting ) ->
@@ -568,7 +585,7 @@ viewMusicList currentMode currentMusicInfo allMusicInfoList ownRecords =
     let
         filteredMusicInfoList =
             allMusicInfoList
-                |> AllMusicInfoList.filterByMode currentMode
+                |> AllMusicInfoList.toMusicInfoListFilterByMode currentMode
     in
     div [ class "homeMusicList_container" ]
         (filteredMusicInfoList
@@ -775,7 +792,7 @@ viewBottomRightArea : MusicInfo -> Html msg
 viewBottomRightArea currentMusicInfo =
     div []
         -- 戻るボタンでHomeに戻ることを許容する
-        [ a [ Route.href <| Route.Play currentMusicInfo.csvFileName ]
+        [ a [ Route.href <| Route.Play (Just <| currentMusicInfo.csvFileName) ]
             [ div
                 [ class "home_bottomRightArea", id "home_bottomRightArea" ]
                 [ div [ class "homeBottomRight_playText" ] [ text "Play" ]

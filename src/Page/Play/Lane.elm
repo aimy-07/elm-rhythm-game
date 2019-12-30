@@ -10,8 +10,8 @@ module Page.Play.Lane exposing
     , view
     )
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, div, text)
+import Html.Attributes exposing (class, id, style)
 import Page.Play.KeyStr exposing (KeyStr)
 
 
@@ -96,31 +96,23 @@ allUnPress (Lane lane) =
 
 view : Lane -> Html msg
 view (Lane lane) =
+    let
+        clsIsPressing =
+            if lane.isPressing then
+                "is-pressing"
+
+            else
+                ""
+    in
     div
-        [ classList
-            [ ( "playLane_lane", True )
-            , ( "is-pressing", lane.isPressing )
-            ]
+        [ class "playLane_lane"
+        , class clsIsPressing
         , style "left" (String.fromInt lane.left ++ "px")
         ]
         [ div [ class "playCenterLine_judgeArea" ] []
         , div [ class "playCenterLine_judgeAreaLine left" ] []
         , div [ class "playCenterLine_judgeAreaLine right" ] []
-        , div
-            [ classList
-                [ ( "playLane_keyText", True )
-                , ( "is-pressing", lane.isPressing )
-                ]
-            ]
-            [ text lane.keyStr ]
-        , div
-            [ class "playJudgeEffect_effect"
-            , id <| "judgeEffect_" ++ lane.keyStr
-            ]
-            []
-        , div
-            [ class "playJudgeEffect_text"
-            , id <| "judgeEffectText_" ++ lane.keyStr
-            ]
-            []
+        , div [ class "playLane_keyText", class clsIsPressing ] [ text lane.keyStr ]
+        , div [ class "playJudgeEffect_effect", id <| "judgeEffect_" ++ lane.keyStr ] []
+        , div [ class "playJudgeEffect_text", id <| "judgeEffectText_" ++ lane.keyStr ] []
         ]

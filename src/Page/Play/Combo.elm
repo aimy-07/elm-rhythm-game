@@ -26,12 +26,12 @@ init =
 
 
 unwrap : Combo -> Int
-unwrap (Combo combo maxCombo) =
+unwrap (Combo combo _) =
     combo
 
 
 toMaxCombo : Combo -> MaxCombo
-toMaxCombo (Combo combo maxCombo) =
+toMaxCombo (Combo _ maxCombo) =
     maxCombo
 
 

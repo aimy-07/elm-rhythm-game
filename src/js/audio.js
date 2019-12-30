@@ -2,8 +2,7 @@ import firebase from 'firebase/app';
 import 'firebase/storage';
 import {detectedError} from '../index';
 
-let bgmAudio = new Audio();
-let sampleAudioSrcList = {}
+const bgmAudio = new Audio();
 
 
 
@@ -11,94 +10,58 @@ let sampleAudioSrcList = {}
 	Subscriber
 ---------------------------------- */
 export function audioSetUpSubscriber (app) {
-  // 曲を取得する
-  app.ports.setMusic.subscribe((audioFileName) => {
+  // BGMのUrlを取得する（共通）
+  app.ports.getAudioInfo.subscribe(audioFileName => {
     bgmAudio.pause();
-    bgmAudio.currentTime = 0;
-    bgmAudio.loop = false;
-    getAudio(audioFileName)
-      .then((url) => {
-        bgmAudio.src = url
+    firebase.storage().ref(`audio/${audioFileName}.mp3`).getDownloadURL()
+      .then((audioUrl) => {
+        console.log({audioFileName, audioUrl});
+        app.ports.gotAudioInfo.send({audioFileName, audioUrl});
       })
       .catch(detectedError)
   })
 
-  // 曲を再生する
-  app.ports.startMusic.subscribe(() => {
-    if (bgmAudio.src) {
-      bgmAudio.play();
-      app.ports.gotCurrentMusicTime.send(0);
-    } else {
-      detectedError('bgmAudio is undefined');
-    }
+  // BGMを再生する（共通）
+  app.ports.playBGM_.subscribe(({audioUrl, volume, isLoop}) => {
+    bgmAudio.pause();
+    bgmAudio.src = audioUrl;
+    bgmAudio.volume = volume;
+    bgmAudio.loop = isLoop;
+    bgmAudio.currentMusicTime = 0;
+    bgmAudio.play();
   })
 
-  // 曲を一時停止する
-  app.ports.pauseMusic.subscribe(() => {
+  // BGMを一時停止する（共通）
+  app.ports.pauseBGM.subscribe(() => {
     bgmAudio.pause();
   })
 
-  // 曲を一時停止から再生する
-  app.ports.unPauseMusic.subscribe(() => {
+  // BGMを一時停止から再生する（共通）
+  app.ports.unPauseBGM.subscribe(() => {
     bgmAudio.play();
-    const currentMusicTime = bgmAudio.currentTime * 1000;
-    app.ports.gotCurrentMusicTime.send(currentMusicTime);
   })
 
-  // 曲の現在の再生時間を取得する
+  // 曲の現在の再生時間を取得する（Play）
   app.ports.getCurrentMusicTime.subscribe(() => {
     const currentMusicTime = bgmAudio.currentTime * 1000;
     app.ports.gotCurrentMusicTime.send(currentMusicTime);
   })
 
-  // HomeBgmを取得する
-  app.ports.getAllSampleAudio.subscribe((audioFileNames) => {
-    const getSampleAudioSrcList = audioFileNames.map(audioFileName => 
-      getSampleAudio(audioFileName)
-        .then((url) => {
-          return {[audioFileName]: url}
-        })
-        .catch(detectedError)
-    );
-    Promise.all(getSampleAudioSrcList)
-      .then((sampleAudioSrcs) => {
-        sampleAudioSrcs.forEach(sampleAudioSrc => 
-          Object.assign(sampleAudioSrcList, sampleAudioSrc)
-        )
-        console.log(sampleAudioSrcList);
-        app.ports.gotAllSampleAudio.send(null);
-      })
-      .catch(detectedError)
+  // BGMの音量を変更する（Home）
+  app.ports.changeBgmVolume.subscribe(volume => {
+    bgmAudio.volume = volume;
   })
 
-  // HomeBgmを再生・変更する
-  app.ports.playHomeBgm.subscribe((audioFileName) => {
-    bgmAudio.pause();
-    bgmAudio.currentTime = 0
-    bgmAudio.src = sampleAudioSrcList[audioFileName];
-    bgmAudio.loop = true;
-    bgmAudio.play();
-  })
-
-  // Bgm音量を変更する
-  app.ports.changeBgmVolume.subscribe((bgmVolume) => {
-    bgmAudio.volume = bgmVolume;
-  })
-
-  // TitleBgmを再生する
+  // FIXME: TitleページのBgmを再生する(仮)（Title）
   app.ports.playTitleBgm.subscribe(() => {
     bgmAudio.pause();
-    bgmAudio.currentTime = 0
+  })
+
+  // SEを再生する
+  app.ports.playSE_.subscribe(({audioUrl, volume}) => {
+    const seAudio = new Audio();
+    seAudio.src = audioUrl;
+    seAudio.volume = volume;
+    seAudio.play();
   })
 }
-
-
-
-/* ---------------------------------
-	曲を取得する
----------------------------------- */
-const getAudio = (audioFileName) =>
-  firebase.storage().ref(`audio/${audioFileName}.mp3`).getDownloadURL()
-
-const getSampleAudio = (audioFileName) =>
-  firebase.storage().ref(`audio/${audioFileName}_sample.mp3`).getDownloadURL()

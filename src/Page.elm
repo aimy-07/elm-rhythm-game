@@ -1,8 +1,8 @@
 module Page exposing (Page(..), view, viewLoaded, viewLoading)
 
 import Browser exposing (Document)
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, div)
+import Html.Attributes exposing (class)
 
 
 type Page

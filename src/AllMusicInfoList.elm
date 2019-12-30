@@ -1,21 +1,26 @@
 module AllMusicInfoList exposing
     ( AllMusicInfoList
-    , filterByMode
-    , findByCsvFileName
     , init
     , isLoaded
-    , new
-    , ready
+    , setAudioInfo
+    , setMusicInfo
+    , toAudioInfoFindByMusicId
+    , toAudioInfoList
+    , toMusicInfoFindByCsvFileName
     , toMusicInfoList
+    , toMusicInfoListFilterByMode
     )
 
+import AudioManager.AudioInfo as AudioInfo exposing (AudioInfo, AudioInfoDto)
 import MusicInfo exposing (MusicInfo, MusicInfoDto)
 import MusicInfo.CsvFileName exposing (CsvFileName)
 import MusicInfo.Mode exposing (Mode)
+import MusicInfo.MusicId exposing (MusicId)
 
 
 type AllMusicInfoList
-    = Loaded (List MusicInfo) Bool
+    = Loaded (List MusicInfo) (List AudioInfo)
+    | Loading (List MusicInfo) (List AudioInfo)
     | NotLoaded
 
 
@@ -24,26 +29,48 @@ init =
     NotLoaded
 
 
-new : List MusicInfoDto -> AllMusicInfoList
-new musicInfoDtos =
-    Loaded (List.map MusicInfo.new musicInfoDtos) False
-
-
-ready : AllMusicInfoList -> AllMusicInfoList
-ready allMusicInfoList =
+setMusicInfo : List MusicInfoDto -> AllMusicInfoList -> AllMusicInfoList
+setMusicInfo musicInfoDtos allMusicInfoList =
     case allMusicInfoList of
-        Loaded musicInfoList _ ->
-            Loaded musicInfoList True
+        NotLoaded ->
+            Loading (List.map MusicInfo.new musicInfoDtos) []
+
+        Loading _ _ ->
+            allMusicInfoList
+
+        Loaded _ _ ->
+            allMusicInfoList
+
+
+setAudioInfo : AudioInfoDto -> AllMusicInfoList -> AllMusicInfoList
+setAudioInfo audioInfoDto allMusicInfoList =
+    case allMusicInfoList of
+        Loading musicInfoList audioInfoList ->
+            let
+                nextAudioInfoList =
+                    AudioInfo.new audioInfoDto :: audioInfoList
+            in
+            if List.length nextAudioInfoList >= List.length musicInfoList // 3 then
+                Loaded musicInfoList nextAudioInfoList
+
+            else
+                Loading musicInfoList nextAudioInfoList
+
+        Loaded _ _ ->
+            allMusicInfoList
 
         NotLoaded ->
-            NotLoaded
+            allMusicInfoList
 
 
 isLoaded : AllMusicInfoList -> Bool
 isLoaded allMusicInfoList =
     case allMusicInfoList of
-        Loaded _ isReady ->
-            isReady
+        Loaded _ _ ->
+            True
+
+        Loading _ _ ->
+            False
 
         NotLoaded ->
             False
@@ -52,43 +79,68 @@ isLoaded allMusicInfoList =
 toMusicInfoList : AllMusicInfoList -> List MusicInfo
 toMusicInfoList allMusicInfoList =
     case allMusicInfoList of
-        Loaded musicInfoList isReady ->
-            if isReady then
-                musicInfoList
+        Loaded musicInfoList _ ->
+            musicInfoList
 
-            else
-                []
+        Loading _ _ ->
+            []
 
         NotLoaded ->
             []
 
 
-filterByMode : Mode -> AllMusicInfoList -> List MusicInfo
-filterByMode mode allMusicInfoList =
+toMusicInfoListFilterByMode : Mode -> AllMusicInfoList -> List MusicInfo
+toMusicInfoListFilterByMode mode allMusicInfoList =
     case allMusicInfoList of
-        Loaded musicInfoList isReady ->
-            if isReady then
-                musicInfoList
-                    |> List.filter (.mode >> (==) mode)
+        Loaded musicInfoList _ ->
+            musicInfoList
+                |> List.filter (.mode >> (==) mode)
 
-            else
-                []
+        Loading _ _ ->
+            []
 
         NotLoaded ->
             []
 
 
-findByCsvFileName : CsvFileName -> AllMusicInfoList -> Maybe MusicInfo
-findByCsvFileName csvFileName allMusicInfoList =
+toMusicInfoFindByCsvFileName : CsvFileName -> AllMusicInfoList -> Maybe MusicInfo
+toMusicInfoFindByCsvFileName csvFileName allMusicInfoList =
     case allMusicInfoList of
-        Loaded musicInfoList isReady ->
-            if isReady then
-                musicInfoList
-                    |> List.filter (.csvFileName >> (==) csvFileName)
-                    |> List.head
+        Loaded musicInfoList _ ->
+            musicInfoList
+                |> List.filter (.csvFileName >> (==) csvFileName)
+                |> List.head
 
-            else
-                Nothing
+        Loading _ _ ->
+            Nothing
+
+        NotLoaded ->
+            Nothing
+
+
+toAudioInfoList : AllMusicInfoList -> List AudioInfo
+toAudioInfoList allMusicInfoList =
+    case allMusicInfoList of
+        Loaded _ audioInfoList ->
+            audioInfoList
+
+        Loading _ _ ->
+            []
+
+        NotLoaded ->
+            []
+
+
+toAudioInfoFindByMusicId : MusicId -> AllMusicInfoList -> Maybe AudioInfo
+toAudioInfoFindByMusicId musicId allMusicInfoList =
+    case allMusicInfoList of
+        Loaded _ audioInfoList ->
+            audioInfoList
+                |> List.filter (\audioInfo -> audioInfo.audioFileName == musicId ++ "_sample")
+                |> List.head
+
+        Loading _ _ ->
+            Nothing
 
         NotLoaded ->
             Nothing

@@ -11,16 +11,18 @@ port module Page.Play exposing
     )
 
 import AllMusicInfoList exposing (AllMusicInfoList)
+import AudioManager
+import AudioManager.AudioInfo as AudioInfo exposing (AudioInfoDto)
 import Constants exposing (allKeyStr, tweetText)
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+import Html exposing (Html, a, div, span, text)
+import Html.Attributes exposing (class, href, id, style, target)
 import Keyboard exposing (Key(..))
 import MusicInfo exposing (MusicInfo)
 import MusicInfo.CsvFileName as CsvFileName exposing (CsvFileName)
 import MusicInfo.Level as Level
 import MusicInfo.Mode as Mode
 import Page
+import Page.Play.AudioLoadingS as AudioLoadingS exposing (AudioLoadingS)
 import Page.Play.Combo as Combo exposing (Combo)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime, update)
 import Page.Play.Judge as Judge exposing (Judge(..))
@@ -48,20 +50,21 @@ type alias Model =
     { session : Session
     , userSetting : UserSetting
     , allMusicInfoList : AllMusicInfoList
-    , playStatus : PlayStatus
     , currentMusicInfo : MusicInfo
+    , playStatus : PlayStatus
     , allNotes : List Note
-    , isLoadedNotes : Bool
-    , lanes : List Lane
-    , currentMusicTime : CurrentMusicTime
     , notesSpeed : NotesSpeed
+    , currentMusicTime : CurrentMusicTime
     , score : Score
     , combo : Combo
+    , lanes : List Lane
+    , audioLoadingS : AudioLoadingS
     }
 
 
 type PlayStatus
-    = NotStart
+    = Loading
+    | Ready
     | Playing
     | Pause
     | PreFinish
@@ -73,11 +76,8 @@ type PlayStatus
 init : Session -> UserSetting -> AllMusicInfoList -> CsvFileName -> ( Model, Cmd Msg )
 init session userSetting allMusicInfoList csvFileName =
     let
-        audioFileName =
-            CsvFileName.toAudioFileName csvFileName
-
         maybeCurrentMusicInfo =
-            AllMusicInfoList.findByCsvFileName csvFileName allMusicInfoList
+            AllMusicInfoList.toMusicInfoFindByCsvFileName csvFileName allMusicInfoList
 
         maybeNotesSpeed =
             userSetting
@@ -94,7 +94,7 @@ init session userSetting allMusicInfoList csvFileName =
                     , beatsCountPerMeasure = currentMusicInfo.beatsCountPerMeasure
                     , offset = currentMusicInfo.offset
                     }
-                , setMusic audioFileName
+                , AudioManager.getAudioInfo (CsvFileName.toMusicId csvFileName)
                 ]
             )
 
@@ -114,15 +114,15 @@ initModel session userSetting allMusicInfoList currentMusicInfo notesSpeed =
     { session = session
     , userSetting = userSetting
     , allMusicInfoList = allMusicInfoList
-    , playStatus = NotStart
     , currentMusicInfo = currentMusicInfo
+    , playStatus = Loading
     , allNotes = []
-    , isLoadedNotes = False
-    , lanes = List.map Lane.new allKeyStr
-    , currentMusicTime = 0
     , notesSpeed = notesSpeed
+    , currentMusicTime = 0
     , score = Score.init
     , combo = Combo.init
+    , lanes = List.map Lane.new allKeyStr
+    , audioLoadingS = AudioLoadingS.init
     }
 
 
@@ -132,6 +132,7 @@ initModel session userSetting allMusicInfoList currentMusicInfo notesSpeed =
 
 type Msg
     = GotAllNotes (List NoteDto)
+    | GotAudioInfo AudioInfoDto
     | FinishedCountdown ()
     | KeyDown Keyboard.RawKey
     | KeyUp Keyboard.RawKey
@@ -150,13 +151,49 @@ update msg model =
                         -- ここで無効なノーツをはじいておく
                         |> List.filter (\noteDto -> noteDto.longTime >= 0)
                         |> List.map Note.new
+
+                nextPlayStatus =
+                    if AudioLoadingS.isLoaded model.audioLoadingS then
+                        Ready
+
+                    else
+                        Loading
             in
-            ( { model | allNotes = allNotes, isLoadedNotes = True }, Cmd.none )
+            ( { model | allNotes = allNotes, playStatus = nextPlayStatus }, Cmd.none )
+
+        GotAudioInfo audioInfoDto ->
+            let
+                audioInfo =
+                    AudioInfo.new audioInfoDto
+
+                nextPlayStatus =
+                    if not <| List.isEmpty model.allNotes then
+                        Ready
+
+                    else
+                        Loading
+            in
+            ( { model
+                | audioLoadingS = AudioLoadingS.loaded audioInfo.audioUrl
+                , playStatus = nextPlayStatus
+              }
+            , Cmd.none
+            )
 
         FinishedCountdown () ->
             case model.playStatus of
                 StartCountdown ->
-                    ( { model | playStatus = Playing }, startMusic () )
+                    let
+                        audioUrl =
+                            AudioLoadingS.toAudioUrl model.audioLoadingS
+
+                        bgmVolume =
+                            UserSetting.toSetting model.userSetting
+                                |> Maybe.map .bgmVolume
+                    in
+                    ( { model | playStatus = Playing }
+                    , AudioManager.playBGM audioUrl bgmVolume False
+                    )
 
                 PauseCountdown ->
                     let
@@ -173,7 +210,7 @@ update msg model =
                         , allNotes = nextAllNotes
                         , lanes = nextLanes
                       }
-                    , unPauseMusic ()
+                    , AudioManager.unPauseBGM ()
                     )
 
                 _ ->
@@ -187,14 +224,16 @@ update msg model =
             case maybeKey of
                 Just Keyboard.Spacebar ->
                     case model.playStatus of
-                        NotStart ->
+                        Ready ->
                             ( { model | playStatus = StartCountdown }
                             , Process.sleep 1500
                                 |> Task.perform (\_ -> FinishedCountdown ())
                             )
 
                         Playing ->
-                            ( { model | playStatus = Pause }, pauseMusic () )
+                            ( { model | playStatus = Pause }
+                            , AudioManager.pauseBGM ()
+                            )
 
                         Pause ->
                             ( { model | playStatus = PauseCountdown }
@@ -431,7 +470,7 @@ update msg model =
 -- PORT
 
 
-port getAllNotes : { csvFileName : CsvFileName, bpm : Int, beatsCountPerMeasure : Int, offset : Float } -> Cmd msg
+port getAllNotes : { csvFileName : String, bpm : Int, beatsCountPerMeasure : Int, offset : Float } -> Cmd msg
 
 
 port gotAllNotes : (List NoteDto -> msg) -> Sub msg
@@ -440,19 +479,7 @@ port gotAllNotes : (List NoteDto -> msg) -> Sub msg
 port getCurrentMusicTime : () -> Cmd msg
 
 
-port gotCurrentMusicTime : (CurrentMusicTime -> msg) -> Sub msg
-
-
-port setMusic : String -> Cmd msg
-
-
-port startMusic : () -> Cmd msg
-
-
-port pauseMusic : () -> Cmd msg
-
-
-port unPauseMusic : () -> Cmd msg
+port gotCurrentMusicTime : (Float -> msg) -> Sub msg
 
 
 port saveRecord : RecordDto -> Cmd msg
@@ -468,10 +495,17 @@ port savedRecord : (Bool -> msg) -> Sub msg
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.playStatus of
-        NotStart ->
+        Loading ->
             Sub.batch
                 [ gotAllNotes GotAllNotes
+                , AudioManager.gotAudioInfo GotAudioInfo
                 , Keyboard.downs KeyDown
+                , Keyboard.ups KeyUp
+                ]
+
+        Ready ->
+            Sub.batch
+                [ Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
                 ]
 
@@ -521,20 +555,17 @@ view model =
 
 viewContents : Model -> Html Msg
 viewContents model =
-    if model.isLoadedNotes then
-        div [ class "mainWide" ]
+    if not <| model.playStatus == Loading then
+        div [ class "play_contentsContainer" ]
             [ div
-                [ class "play_contentsContainer" ]
-                [ div
-                    [ class "play_contents" ]
-                    [ viewLanes model
-                    , viewNotes model model.notesSpeed
-                    , viewMusicInfo model.currentMusicInfo
-                    , viewDisplayCircle model.currentMusicInfo model
-                    ]
-                , viewOverView model.currentMusicInfo model
-                , div [] [ Page.viewLoaded ]
+                [ class "play_contents" ]
+                [ viewLanes model
+                , viewNotes model model.notesSpeed
+                , viewMusicInfo model.currentMusicInfo
+                , viewDisplayCircle model.currentMusicInfo model
                 ]
+            , viewOverView model.currentMusicInfo model
+            , div [] [ Page.viewLoaded ]
             ]
 
     else
@@ -544,8 +575,11 @@ viewContents model =
 viewOverView : MusicInfo -> Model -> Html msg
 viewOverView musicInfo model =
     case model.playStatus of
-        NotStart ->
-            viewNotStart
+        Loading ->
+            text ""
+
+        Ready ->
+            viewReady
 
         Playing ->
             text ""
@@ -646,8 +680,8 @@ viewDisplayCircle musicInfo model =
         ]
 
 
-viewNotStart : Html msg
-viewNotStart =
+viewReady : Html msg
+viewReady =
     div [ class "play_overview" ]
         [ div
             [ class "playOverview_container" ]
