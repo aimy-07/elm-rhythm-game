@@ -396,7 +396,7 @@ update msg model =
                                 Record.saveRecord
                                     { uid = user.uid
                                     , csvFileName = model.currentMusicData.csvFileName
-                                    , combo = Combo.toMaxCombo model.combo
+                                    , combo = Combo.toResultCombo model.combo
                                     , score = Score.unwrap model.score
                                     }
                             )
@@ -640,7 +640,7 @@ viewResult musicData isHighScore model =
             Combo.unwrap model.combo == musicData.maxCombo
 
         comboRank =
-            Rank.newComboRank (Combo.toMaxCombo model.combo) musicData.maxCombo
+            Rank.newComboRank (Combo.toResultCombo model.combo) musicData.maxCombo
 
         scoreRank =
             Rank.newScoreRank (Score.unwrap model.score) musicData.maxScore
@@ -679,7 +679,7 @@ viewResult musicData isHighScore model =
                         [ class "playOverviewResultItem_textContainer" ]
                         [ span
                             [ class "playOverviewResultItem_resultText" ]
-                            [ text <| String.fromInt (Combo.toMaxCombo model.combo) ]
+                            [ text <| String.fromInt (Combo.toResultCombo model.combo) ]
                         , span
                             [ class "playOverviewResultItem_maxText" ]
                             [ text <| " / " ++ String.fromInt musicData.maxCombo ]

@@ -2,7 +2,7 @@ module Page.Play.Combo exposing
     ( Combo
     , comboEffectCmd
     , init
-    , toMaxCombo
+    , toResultCombo
     , unwrap
     , update
     , updateKeyDown
@@ -14,15 +14,10 @@ import Utils exposing (cmdIf)
 
 
 type Combo
-    = Combo Int MaxCombo
+    = Combo Int ResultCombo
 
 
-
--- TODO: 名前が紛らわしいので変える
--- 意味的には、連続した最大コンボ
-
-
-type alias MaxCombo =
+type alias ResultCombo =
     Int
 
 
@@ -36,13 +31,13 @@ unwrap (Combo combo _) =
     combo
 
 
-toMaxCombo : Combo -> MaxCombo
-toMaxCombo (Combo _ maxCombo) =
-    maxCombo
+toResultCombo : Combo -> ResultCombo
+toResultCombo (Combo _ resultCombo) =
+    resultCombo
 
 
 update : Bool -> Int -> Combo -> Combo
-update hasDisabledNotes judgedLongNoteCount (Combo combo maxCombo) =
+update hasDisabledNotes judgedLongNoteCount (Combo combo resultCombo) =
     let
         -- Disabledノーツがあったら先にCombo = 0を実行する
         nextCombo =
@@ -52,11 +47,11 @@ update hasDisabledNotes judgedLongNoteCount (Combo combo maxCombo) =
             else
                 combo + judgedLongNoteCount
     in
-    Combo nextCombo (updateMaxCombo nextCombo maxCombo)
+    Combo nextCombo (updateResultCombo nextCombo resultCombo)
 
 
 updateKeyDown : Judge -> Combo -> Combo
-updateKeyDown judge (Combo combo maxCombo) =
+updateKeyDown judge (Combo combo resultCombo) =
     let
         -- Disabledノーツがあったら先にCombo = 0を実行する
         nextCombo =
@@ -76,16 +71,16 @@ updateKeyDown judge (Combo combo maxCombo) =
                 Invalid ->
                     combo
     in
-    Combo nextCombo (updateMaxCombo nextCombo maxCombo)
+    Combo nextCombo (updateResultCombo nextCombo resultCombo)
 
 
-updateMaxCombo : Int -> MaxCombo -> MaxCombo
-updateMaxCombo combo maxCombo =
-    if combo > maxCombo then
+updateResultCombo : Int -> ResultCombo -> ResultCombo
+updateResultCombo combo resultCombo =
+    if combo > resultCombo then
         combo
 
     else
-        maxCombo
+        resultCombo
 
 
 comboEffectCmd : Combo -> Combo -> Cmd msg
