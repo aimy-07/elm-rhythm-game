@@ -2,6 +2,7 @@ port module AudioManager exposing
     ( changeBgmVolume
     , getCurrentBGMTime
     , gotCurrentBGMTime
+    , onEndBGM
     , pauseBGM
     , playBGM
     , playSE
@@ -79,6 +80,9 @@ port getCurrentBGMTime_ : String -> Cmd msg
 
 
 port gotCurrentBGMTime : (Float -> msg) -> Sub msg
+
+
+port onEndBGM : (() -> msg) -> Sub msg
 
 
 port changeBgmVolume : Float -> Cmd msg

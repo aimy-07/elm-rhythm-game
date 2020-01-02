@@ -5,24 +5,36 @@ import { Howl } from 'howler';
 /* ---------------------------------
 	Audio
 ---------------------------------- */
-const createBGM = (fileName, loop, onload) => new Howl({src: [`./audios/BGM/${fileName}.mp3`], loop, preload: false, onload});
-const createSE = (fileName, onload) => new Howl({src: [`./audios/SE/${fileName}.mp3`], loop: false, preload: false, onload});
+const createLoopBGM = (fileName, onload) =>
+  new Howl({src: [`./audios/BGM/${fileName}.mp3`], loop: true , preload: false, onload});
+
+const createNoLoopBGM = (fileName, onload, onend) =>
+  new Howl({src: [`./audios/BGM/${fileName}.mp3`], loop: false, preload: false, onload, onend});
+
+const createSE = (fileName, onload) =>
+  new Howl({src: [`./audios/SE/${fileName}.mp3`] , loop: false, preload: false, onload});
 
 export const BGM = (app) => {
+  const loadedAudioInitial = () => {app.ports.loadedAudioInitial.send(null)};
+  const loadedBGM = (fileName) => (() => {app.ports.loadedBGM.send(fileName)});
+  const onEndBGM = () => {app.ports.onEndBGM.send(null)};
+
   return {
-    theRoadToHeaven: createBGM('theRoadToHeaven', true, () => {app.ports.loadedAudioInitial.send(null)}),
-    sampleSound: createBGM('sampleSound', false, () => {app.ports.loadedBGM.send('sampleSound')}),
-    sampleSoundShort: createBGM('sampleSoundShort', false, () => {app.ports.loadedBGM.send('sampleSoundShort')}),
-    whiteGlow: createBGM('whiteGlow', false, () => {app.ports.loadedBGM.send('whiteGlow')}),
-    sampleSound_sample: createBGM('sampleSound_sample', true, () => {app.ports.loadedBGM.send('sampleSound_sample')}),
-    sampleSoundShort_sample: createBGM('sampleSoundShort_sample', true, () => {app.ports.loadedBGM.send('sampleSoundShort_sample')}),
-    whiteGlow_sample: createBGM('whiteGlow_sample', true, () => {app.ports.loadedBGM.send('whiteGlow_sample')}),
+    theRoadToHeaven        : createLoopBGM  ('theRoadToHeaven', loadedAudioInitial),
+    sampleSound            : createNoLoopBGM('sampleSound'            , loadedBGM('sampleSound')     , onEndBGM),
+    sampleSoundShort       : createNoLoopBGM('sampleSoundShort'       , loadedBGM('sampleSoundShort'), onEndBGM),
+    whiteGlow              : createNoLoopBGM('whiteGlow'              , loadedBGM('whiteGlow')       , onEndBGM),
+    sampleSound_sample     : createLoopBGM  ('sampleSound_sample'     , loadedBGM('sampleSound_sample')),
+    sampleSoundShort_sample: createLoopBGM  ('sampleSoundShort_sample', loadedBGM('sampleSoundShort_sample')),
+    whiteGlow_sample       : createLoopBGM  ('whiteGlow_sample'       , loadedBGM('whiteGlow_sample')),
   }
 }
 
 export const SE = (app) => {
+  const loadedSE = (fileName) => (() => {app.ports.loadedSE.send(fileName)});
+
   return {
-    selectPlayMusic: createSE('selectPlayMusic', () => {app.ports.loadedSE.send('selectPlayMusic')}),
+    selectPlayMusic: createSE('selectPlayMusic', loadedSE('selectPlayMusic')),
   }
 }
 

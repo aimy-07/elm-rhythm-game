@@ -28,18 +28,17 @@ import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note as Note exposing (Note)
+import Page.Play.PlayStatus as PlayStatus exposing (PlayStatus)
 import Page.Play.Score as Score exposing (Score)
-import Process
 import Rank
 import Record
 import Route
 import Session exposing (Session)
 import Set
-import Task
 import Time
 import UserSetting exposing (UserSetting)
 import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
-import Utils exposing (cmdIf, viewIf)
+import Utils exposing (subIf, viewIf)
 
 
 
@@ -61,30 +60,15 @@ type alias Model =
     }
 
 
-
--- TODO: 切り出せない？
-
-
-type PlayStatus
-    = Ready
-    | Playing
-    | Pause
-    | PreFinish
-    | Finish Bool
-    | StartCountdown
-    | PauseCountdown
-
-
 init : Session -> AllMusicData -> AudioLoadingS -> Maybe CsvFileName -> Maybe UserSetting -> ( Model, Cmd Msg )
 init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
     let
         maybeCurrentMusicData =
-            case maybeCsvFileName of
-                Just csvFileName ->
-                    AllMusicData.findByCsvFileName csvFileName allMusicData
-
-                Nothing ->
-                    Nothing
+            maybeCsvFileName
+                |> Maybe.andThen
+                    (\csvFileName ->
+                        AllMusicData.findByCsvFileName csvFileName allMusicData
+                    )
     in
     case ( maybeCurrentMusicData, maybeUserSetting ) of
         ( Just currentMusicData, Just userSetting ) ->
@@ -110,7 +94,7 @@ initModel session allMusicData audioLoadingS currentMusicData userSetting =
     , audioLoadingS = audioLoadingS
     , currentMusicData = currentMusicData
     , userSetting = userSetting
-    , playStatus = Ready
+    , playStatus = PlayStatus.init
     , allNotes = currentMusicData.allNotes
     , currentMusicTime = 0
     , score = Score.init
@@ -124,11 +108,12 @@ initModel session allMusicData audioLoadingS currentMusicData userSetting =
 
 
 type Msg
-    = FinishedCountdown ()
+    = Tick Time.Posix
+    | GotCurrentMusicTime CurrentMusicTime
     | KeyDown Keyboard.RawKey
     | KeyUp Keyboard.RawKey
-    | Tick Time.Posix
-    | GotCurrentMusicTime CurrentMusicTime
+    | FinishedCountdown ()
+    | FinishedMusic ()
     | SavedRecord Bool
 
 
@@ -137,38 +122,78 @@ update msg model =
     let
         bgm =
             BGM.fromMusicId model.currentMusicData.musicId
+
+        bgmVolume =
+            UserSetting.toSetting model.userSetting
+                |> Maybe.map .bgmVolume
     in
     case msg of
-        FinishedCountdown () ->
-            case model.playStatus of
-                StartCountdown ->
+        Tick _ ->
+            ( model, AudioManager.getCurrentBGMTime bgm )
+
+        GotCurrentMusicTime time ->
+            let
+                updatedTime =
+                    time * 1000
+
+                updatedNotes =
+                    model.allNotes
+                        |> List.map (Note.update updatedTime model.lanes)
+
+                nextAllNotes =
+                    updatedNotes
+                        |> List.filter Note.isNotDisabled
+
+                missDisabledNoteKeys =
+                    updatedNotes
+                        |> List.filter Note.isMissDisabled
+                        |> List.map Note.toKeyStr
+
+                judgedLongNoteKeys =
+                    model.allNotes
+                        |> List.concatMap (Note.judgedLongNoteKeys updatedTime model.lanes)
+
+                nextScore =
+                    Score.update (List.length judgedLongNoteKeys) model.score
+
+                nextCombo =
                     let
-                        bgmVolume =
-                            UserSetting.toSetting model.userSetting
-                                |> Maybe.map .bgmVolume
+                        hasDisabledNotes =
+                            not <| List.isEmpty missDisabledNoteKeys
                     in
-                    ( { model | playStatus = Playing }, AudioManager.playBGM bgm bgmVolume )
+                    Combo.update hasDisabledNotes (List.length judgedLongNoteKeys) model.combo
 
-                PauseCountdown ->
-                    let
-                        nextAllNotes =
-                            model.allNotes
-                                |> List.map Note.updateOnKeyUp
-                                |> List.filter Note.isNotDisabled
+                missEffectCmds =
+                    missDisabledNoteKeys
+                        -- 重複を削除するために一度Setに変換する
+                        |> Set.fromList
+                        |> Set.toList
+                        |> List.map Judge.missEffectCmd
+                        |> Cmd.batch
 
-                        nextLanes =
-                            List.map Lane.allUnPress model.lanes
-                    in
-                    ( { model
-                        | playStatus = Playing
-                        , allNotes = nextAllNotes
-                        , lanes = nextLanes
-                      }
-                    , AudioManager.unPauseBGM bgm
-                    )
+                longEffectCmds =
+                    judgedLongNoteKeys
+                        -- 重複を削除するために一度Setに変換する
+                        |> Set.fromList
+                        |> Set.toList
+                        |> List.map Judge.longEffectCmd
+                        |> Cmd.batch
 
-                _ ->
-                    ( model, Cmd.none )
+                comboEffectCmd =
+                    Combo.comboEffectCmd model.combo nextCombo
+            in
+            ( { model
+                | currentMusicTime = updatedTime
+                , allNotes = nextAllNotes
+                , score = nextScore
+                , combo = nextCombo
+              }
+            , Cmd.batch
+                [ missEffectCmds
+                , longEffectCmds
+                , comboEffectCmd
+                ]
+            )
 
         KeyDown rawKey ->
             let
@@ -177,35 +202,20 @@ update msg model =
             in
             case maybeKey of
                 Just Keyboard.Spacebar ->
-                    case model.playStatus of
-                        Ready ->
-                            ( { model | playStatus = StartCountdown }
-                            , Process.sleep 1500
-                                |> Task.perform (\_ -> FinishedCountdown ())
-                            )
-
-                        Playing ->
-                            ( { model | playStatus = Pause }
-                            , AudioManager.pauseBGM bgm
-                            )
-
-                        Pause ->
-                            ( { model | playStatus = PauseCountdown }
-                            , Process.sleep 1500
-                                |> Task.perform (\_ -> FinishedCountdown ())
-                            )
-
-                        _ ->
-                            ( model, Cmd.none )
+                    let
+                        ( nextPlayStatus, cmd ) =
+                            PlayStatus.pressSpaceKey bgm (FinishedCountdown ()) model.playStatus
+                    in
+                    ( { model | playStatus = nextPlayStatus }, cmd )
 
                 Just (Keyboard.Character keyStr) ->
                     let
                         nextLanes =
                             List.map (Lane.press keyStr) model.lanes
                     in
-                    if model.playStatus /= Playing then
+                    if not <| PlayStatus.isPlaying model.playStatus then
                         -- Playingの時しか判定しない
-                        -- keyを押しているかどうかだけ更新する
+                        -- LaneのisPressingの更新のみ行う
                         ( { model | lanes = nextLanes }, Cmd.none )
 
                     else if List.any (Lane.isPressing keyStr) model.lanes then
@@ -215,10 +225,7 @@ update msg model =
                     else
                         let
                             maybeHeadNote =
-                                model.allNotes
-                                    |> List.filter (Note.isSameKey keyStr)
-                                    |> List.sortBy Note.toJustTime
-                                    |> List.head
+                                Note.maybeHeadNote keyStr model.allNotes
                         in
                         case maybeHeadNote of
                             Just headNote ->
@@ -228,14 +235,7 @@ update msg model =
 
                                     nextAllNotes =
                                         model.allNotes
-                                            |> List.map
-                                                (\note ->
-                                                    if Note.isSameNote note headNote then
-                                                        Note.updateOnKeyDown judge note
-
-                                                    else
-                                                        note
-                                                )
+                                            |> Note.updateHeadNote keyStr (Note.updateOnKeyDown judge)
                                             |> List.filter Note.isNotDisabled
 
                                     nextScore =
@@ -277,9 +277,9 @@ update msg model =
                         nextLanes =
                             List.map (Lane.unPress keyStr) model.lanes
                     in
-                    if model.playStatus /= Playing then
+                    if not <| PlayStatus.isPlaying model.playStatus then
                         -- Playingの時しか判定しない
-                        -- keyを押しているかどうかだけ更新する
+                        -- LaneのisPressingの更新のみ行う
                         ( { model | lanes = nextLanes }, Cmd.none )
 
                     else if not <| List.any (Lane.isPressing keyStr) model.lanes then
@@ -289,32 +289,17 @@ update msg model =
                     else
                         let
                             maybeHeadNote =
-                                model.allNotes
-                                    |> List.filter (Note.isSameKey keyStr)
-                                    |> List.sortBy Note.toJustTime
-                                    |> List.head
+                                Note.maybeHeadNote keyStr model.allNotes
                         in
                         case maybeHeadNote of
-                            Just headNote ->
+                            Just _ ->
                                 let
                                     nextAllNotes =
                                         model.allNotes
-                                            |> List.map
-                                                (\note ->
-                                                    if Note.isSameNote note headNote then
-                                                        Note.updateOnKeyUp note
-
-                                                    else
-                                                        note
-                                                )
+                                            |> Note.updateHeadNote keyStr Note.updateOnKeyUp
                                             |> List.filter Note.isNotDisabled
                                 in
-                                ( { model
-                                    | allNotes = nextAllNotes
-                                    , lanes = nextLanes
-                                  }
-                                , Cmd.none
-                                )
+                                ( { model | allNotes = nextAllNotes, lanes = nextLanes }, Cmd.none )
 
                             Nothing ->
                                 -- このレーンのノーツはもうない
@@ -323,72 +308,15 @@ update msg model =
                 _ ->
                     ( model, Cmd.none )
 
-        Tick _ ->
-            ( model, AudioManager.getCurrentBGMTime bgm )
-
-        GotCurrentMusicTime time ->
+        FinishedCountdown () ->
             let
-                updatedTime =
-                    time * 1000
+                ( nextPlayStatus, cmd ) =
+                    PlayStatus.finishedCountdown bgm bgmVolume model.playStatus
+            in
+            ( { model | playStatus = nextPlayStatus }, cmd )
 
-                nextAllNotes =
-                    model.allNotes
-                        |> List.map (Note.update updatedTime)
-                        |> List.filter Note.isNotDisabled
-
-                missDisabledNoteKeys =
-                    model.allNotes
-                        |> List.map (Note.update updatedTime)
-                        |> List.filter Note.isMissDisabled
-                        |> List.map Note.toKeyStr
-
-                judgedLongNoteKeys =
-                    model.allNotes
-                        |> List.concatMap (Note.judgedLongNoteKeys updatedTime)
-
-                nextScore =
-                    Score.update (List.length judgedLongNoteKeys) model.score
-
-                nextCombo =
-                    let
-                        hasDisabledNotes =
-                            not <| List.isEmpty missDisabledNoteKeys
-                    in
-                    Combo.update hasDisabledNotes (List.length judgedLongNoteKeys) model.combo
-
-                missEffectCmds =
-                    missDisabledNoteKeys
-                        -- 重複を削除するために一度Setに変換する
-                        |> Set.fromList
-                        |> Set.toList
-                        |> List.map Judge.missEffectCmd
-                        |> Cmd.batch
-
-                longEffectCmds =
-                    judgedLongNoteKeys
-                        -- 重複を削除するために一度Setに変換する
-                        |> Set.fromList
-                        |> Set.toList
-                        |> List.map Judge.longEffectCmd
-                        |> Cmd.batch
-
-                comboEffectCmd =
-                    Combo.comboEffectCmd model.combo nextCombo
-
-                nextPlayStatus =
-                    if model.currentMusicData.fullTime * 1000 <= model.currentMusicTime then
-                        PreFinish
-
-                    else
-                        model.playStatus
-
-                nextLanes =
-                    if nextPlayStatus == PreFinish then
-                        List.map Lane.allUnPress model.lanes
-
-                    else
-                        model.lanes
-
+        FinishedMusic _ ->
+            let
                 saveRecordCmd =
                     Session.toUser model.session
                         |> Maybe.map
@@ -403,24 +331,14 @@ update msg model =
                         |> Maybe.withDefault Cmd.none
             in
             ( { model
-                | currentMusicTime = updatedTime
-                , playStatus = nextPlayStatus
-                , lanes = nextLanes
-                , allNotes = nextAllNotes
-                , score = nextScore
-                , combo = nextCombo
+                | playStatus = PlayStatus.preFinish
+                , lanes = List.map Lane.allUnPress model.lanes
               }
-            , Cmd.batch
-                [ missEffectCmds
-                , longEffectCmds
-                , comboEffectCmd
-                , saveRecordCmd
-                    |> cmdIf (nextPlayStatus == PreFinish)
-                ]
+            , saveRecordCmd
             )
 
-        SavedRecord isHighScore ->
-            ( { model | playStatus = Finish isHighScore }, Cmd.none )
+        SavedRecord _ ->
+            ( { model | playStatus = PlayStatus.finish }, Cmd.none )
 
 
 
@@ -429,44 +347,28 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case model.playStatus of
-        Ready ->
-            Sub.batch
-                [ Keyboard.downs KeyDown
-                , Keyboard.ups KeyUp
-                ]
-
-        Playing ->
+    let
+        updateCurrentMusicTimeSub =
             Sub.batch
                 [ Time.every 30 Tick -- ほぼ30fps
                 , AudioManager.gotCurrentBGMTime GotCurrentMusicTime
-                , Keyboard.downs KeyDown
-                , Keyboard.ups KeyUp
                 ]
 
-        Pause ->
+        keyboardSub =
             Sub.batch
                 [ Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
                 ]
-
-        PreFinish ->
-            Record.savedRecord SavedRecord
-
-        Finish _ ->
-            Sub.none
-
-        StartCountdown ->
-            Sub.batch
-                [ Keyboard.downs KeyDown
-                , Keyboard.ups KeyUp
-                ]
-
-        PauseCountdown ->
-            Sub.batch
-                [ Keyboard.downs KeyDown
-                , Keyboard.ups KeyUp
-                ]
+    in
+    Sub.batch
+        [ updateCurrentMusicTimeSub
+            |> subIf (PlayStatus.isPlaying model.playStatus)
+        , keyboardSub
+            |> subIf (not (PlayStatus.isPreFinish model.playStatus || PlayStatus.isFinish model.playStatus))
+        , AudioManager.onEndBGM FinishedMusic
+        , Record.savedRecord SavedRecord
+            |> subIf (PlayStatus.isPreFinish model.playStatus)
+        ]
 
 
 
@@ -489,37 +391,21 @@ view model =
             , viewMusicInfo model.currentMusicData
             , viewDisplayCircle model.currentMusicData model
             ]
-        , viewOverView model.currentMusicData model
+        , viewReady
+            |> viewIf (PlayStatus.isReady model.playStatus)
+        , viewPause
+            |> viewIf (PlayStatus.isPause model.playStatus)
+        , viewCountdown
+            |> viewIf (PlayStatus.isCountdown model.playStatus)
+        , Page.viewLoading
+            |> viewIf (PlayStatus.isPreFinish model.playStatus)
+        , div []
+            [ viewResult model.currentMusicData False model -- TODO: isHighScore
+            , Page.viewLoaded
+            ]
+            |> viewIf (PlayStatus.isFinish model.playStatus)
         , div [] [ Page.viewLoaded ]
         ]
-
-
-viewOverView : MusicData -> Model -> Html msg
-viewOverView musicData model =
-    case model.playStatus of
-        Ready ->
-            viewReady
-
-        Playing ->
-            text ""
-
-        Pause ->
-            viewPause
-
-        PreFinish ->
-            Page.viewLoading
-
-        Finish isHighScore ->
-            div []
-                [ viewResult musicData isHighScore model
-                , Page.viewLoaded
-                ]
-
-        StartCountdown ->
-            viewCountdown
-
-        PauseCountdown ->
-            viewCountdown
 
 
 viewLanes : Model -> Html msg

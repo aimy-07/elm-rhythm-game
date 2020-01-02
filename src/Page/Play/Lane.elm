@@ -5,6 +5,7 @@ module Page.Play.Lane exposing
     , leftFromKeyStr
     , new
     , press
+    , pressingKeyStrs
     , toKeyStr
     , unPress
     , view
@@ -69,6 +70,20 @@ isPressing keyStr (Lane lane) =
 
     else
         False
+
+
+pressingKeyStrs : KeyStr -> List Lane -> List KeyStr
+pressingKeyStrs keyStr lanes =
+    lanes
+        |> List.map
+            (\lane ->
+                if isPressing keyStr lane then
+                    Just keyStr
+
+                else
+                    Nothing
+            )
+        |> List.filterMap identity
 
 
 press : KeyStr -> Lane -> Lane

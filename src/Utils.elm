@@ -1,4 +1,4 @@
-module Utils exposing (cmdIf, viewIf)
+module Utils exposing (cmdIf, subIf, viewIf)
 
 import Html exposing (Html, text)
 
@@ -19,3 +19,12 @@ cmdIf execute cmd =
 
     else
         Cmd.none
+
+
+subIf : Bool -> Sub msg -> Sub msg
+subIf execute sub =
+    if execute then
+        sub
+
+    else
+        Sub.none

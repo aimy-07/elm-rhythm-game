@@ -11,11 +11,13 @@ module Page.Play.Note exposing
     , isSameKey
     , isSameNote
     , judgedLongNoteKeys
+    , maybeHeadNote
     , new
     , toJustTime
     , toKeyStr
     , toLongTime
     , update
+    , updateHeadNote
     , updateOnKeyDown
     , updateOnKeyUp
     , view
@@ -27,7 +29,7 @@ import Html.Attributes exposing (class, style)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.KeyStr exposing (KeyStr)
-import Page.Play.Lane as Lane
+import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note.JustTime exposing (JustTime)
 import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
 import Utils exposing (viewIf)
@@ -133,7 +135,7 @@ toJustTime note =
         LongNote { justTime } ->
             justTime
 
-        _ ->
+        Disabled _ ->
             0
 
 
@@ -143,7 +145,10 @@ toLongTime note =
         LongNote { longTime } ->
             longTime
 
-        _ ->
+        SingleNote _ ->
+            0
+
+        Disabled _ ->
             0
 
 
@@ -153,7 +158,10 @@ toLongSubJustTimeList note =
         LongNote { subJustTimeList } ->
             subJustTimeList
 
-        _ ->
+        SingleNote _ ->
+            []
+
+        Disabled _ ->
             []
 
 
@@ -173,7 +181,10 @@ isLongNote note =
         LongNote _ ->
             True
 
-        _ ->
+        SingleNote _ ->
+            False
+
+        Disabled _ ->
             False
 
 
@@ -183,7 +194,10 @@ isLongJudging note =
         LongNote { isJudging } ->
             isJudging
 
-        _ ->
+        SingleNote _ ->
+            False
+
+        Disabled _ ->
             False
 
 
@@ -193,7 +207,10 @@ isDisabled note =
         Disabled _ ->
             True
 
-        _ ->
+        SingleNote _ ->
+            False
+
+        LongNote _ ->
             False
 
 
@@ -208,17 +225,51 @@ isMissDisabled note =
         Disabled { isMiss } ->
             isMiss
 
-        _ ->
+        SingleNote _ ->
             False
+
+        LongNote _ ->
+            False
+
+
+{-| 同じレーンのノーツの中で、現在先頭にあるノーツを取得する
+-}
+maybeHeadNote : KeyStr -> List Note -> Maybe Note
+maybeHeadNote keyStr allNotes =
+    allNotes
+        |> List.filter (isSameKey keyStr)
+        |> List.sortBy toJustTime
+        |> List.head
+
+
+{-| 同じレーンのノーツの中で、現在先頭にあるノーツのみを更新する
+-}
+updateHeadNote : KeyStr -> (Note -> Note) -> List Note -> List Note
+updateHeadNote keyStr updateNote allNotes =
+    maybeHeadNote keyStr allNotes
+        |> Maybe.map
+            (\headNote ->
+                allNotes
+                    |> List.map
+                        (\note ->
+                            if isSameNote note headNote then
+                                updateNote note
+
+                            else
+                                note
+                        )
+            )
+        |> Maybe.withDefault allNotes
 
 
 {-| 毎フレームUpdateごとに、ノーツの状態を更新する
 -}
-update : CurrentMusicTime -> Note -> Note
-update currentMusicTime note =
+update : CurrentMusicTime -> List Lane -> Note -> Note
+update currentMusicTime lanes note =
     case note of
         SingleNote _ ->
             if Judge.isOverMiss currentMusicTime (toJustTime note) then
+                -- 判定可能領域内でKeyDownをせず、Missになった
                 Disabled { keyStr = toKeyStr note, isMiss = True }
 
             else
@@ -226,6 +277,7 @@ update currentMusicTime note =
 
         LongNote note_ ->
             if isLongJudging note then
+                -- ロングノーツ判定中
                 let
                     nextSubJustTimeList =
                         toLongSubJustTimeList note
@@ -236,14 +288,25 @@ update currentMusicTime note =
 
                     endTime =
                         toJustTime note + toLongTime note
+
+                    isPressing =
+                        Lane.pressingKeyStrs (toKeyStr note) lanes
+                            |> List.member (toKeyStr note)
                 in
                 if List.isEmpty nextSubJustTimeList && endTime < currentMusicTime then
+                    -- 長押しを最後までしてロングノーツの判定を終えた
+                    Disabled { keyStr = toKeyStr note, isMiss = False }
+
+                else if not isPressing then
+                    -- ロングノーツ判定中にPauseし、Pause中にKeyUpした
                     Disabled { keyStr = toKeyStr note, isMiss = False }
 
                 else
+                    -- 長押しを継続している
                     LongNote { note_ | subJustTimeList = nextSubJustTimeList }
 
             else if Judge.isOverMiss currentMusicTime (toJustTime note) then
+                -- 判定可能領域内でKeyDownをせず、Missになった
                 Disabled { keyStr = toKeyStr note, isMiss = True }
 
             else
@@ -255,20 +318,19 @@ update currentMusicTime note =
 
 {-| 毎フレームUpdateごとに、伸ばしているノングノーツのスコア・コンボ増分を計算するための関数
 -}
-judgedLongNoteKeys : CurrentMusicTime -> Note -> List KeyStr
-judgedLongNoteKeys currentMusicTime note =
-    case note of
-        LongNote _ ->
-            if isLongJudging note then
-                toLongSubJustTimeList note
-                    |> List.filter (Judge.isOverJustTime currentMusicTime)
-                    |> List.map (\_ -> toKeyStr note)
-
-            else
-                []
-
-        _ ->
-            []
+judgedLongNoteKeys : CurrentMusicTime -> List Lane -> Note -> List KeyStr
+judgedLongNoteKeys currentMusicTime lanes note =
+    let
+        isPressing =
+            Lane.pressingKeyStrs (toKeyStr note) lanes
+                |> List.member (toKeyStr note)
+    in
+    toLongSubJustTimeList note
+        |> List.filter
+            (\subJustTime ->
+                Judge.isOverJustTime currentMusicTime subJustTime && isPressing
+            )
+        |> List.map (\_ -> toKeyStr note)
 
 
 {-| KeyDown時に、判定結果に応じてノーツの状態を更新する
@@ -316,7 +378,10 @@ updateOnKeyUp note =
             else
                 note
 
-        _ ->
+        SingleNote _ ->
+            note
+
+        Disabled _ ->
             note
 
 
