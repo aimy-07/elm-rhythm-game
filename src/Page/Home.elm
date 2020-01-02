@@ -296,15 +296,8 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> { title : String, content : Html Msg }
+view : Model -> Html Msg
 view model =
-    { title = "Home"
-    , content = div [ class "mainWide" ] [ viewContents model ]
-    }
-
-
-viewContents : Model -> Html Msg
-viewContents model =
     let
         maybeUser =
             Session.toUser model.session
@@ -331,7 +324,7 @@ viewContents model =
                             PublicRecord.findByCsvFileName currentCsvFileName publicRecords
                     in
                     div
-                        [ class "home_contentsContainer" ]
+                        [ class "home_back" ]
                         [ div
                             [ class "home_contents" ]
                             -- 左側
@@ -364,10 +357,10 @@ viewContents model =
                         ]
 
                 _ ->
-                    div [ class "home_contentsContainer" ] [ Page.viewLoading ]
+                    div [ class "home_back" ] [ Page.viewLoading ]
 
         _ ->
-            div [ class "home_contentsContainer" ] [ Page.viewLoading ]
+            div [ class "home_back" ] [ Page.viewLoading ]
 
 
 viewSettingIcon : Html Msg

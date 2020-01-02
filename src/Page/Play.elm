@@ -35,10 +35,10 @@ import Record
 import Route
 import Session exposing (Session)
 import Set
-import  UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
 import Task
 import Time
 import UserSetting exposing (UserSetting)
+import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
 import Utils exposing (cmdIf, viewIf)
 
 
@@ -473,22 +473,15 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> { title : String, content : Html Msg }
+view : Model -> Html Msg
 view model =
-    { title = "Play"
-    , content = div [ class "mainWide" ] [ viewContents model ]
-    }
-
-
-viewContents : Model -> Html Msg
-viewContents model =
     let
         notesSpeed =
             UserSetting.toSetting model.userSetting
                 |> Maybe.map .notesSpeed
                 |> Maybe.withDefault notesSpeedDefault
     in
-    div [ class "play_contentsContainer" ]
+    div [ class "play_back" ]
         [ div
             [ class "play_contents" ]
             [ viewLanes model

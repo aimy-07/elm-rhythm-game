@@ -1,24 +1,14 @@
-module Page exposing (Page(..), view, viewLoaded, viewLoading)
+module Page exposing (view, viewLoaded, viewLoading)
 
 import Browser exposing (Document)
 import Html exposing (Html, div)
 import Html.Attributes exposing (class)
 
 
-type Page
-    = Init
-    | DataLoading
-    | Title
-    | Home
-    | Play
-    | Error
-    | Blank
-
-
-view : Page -> { title : String, content : Html msg } -> Document msg
-view _ { title, content } =
-    { title = title
-    , body = [ content ]
+view : Html msg -> Document msg
+view viewContents =
+    { title = "ELMusic"
+    , body = [ div [ class "mainWide" ] [ viewContents ] ]
     }
 
 

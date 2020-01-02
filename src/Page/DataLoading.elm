@@ -146,20 +146,13 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> { title : String, content : Html Msg }
+view : Model -> Html Msg
 view model =
-    { title = "Title"
-    , content = div [ class "mainWide" ] [ viewContents model ]
-    }
-
-
-viewContents : Model -> Html Msg
-viewContents model =
     let
         contents =
             case model.viewState of
                 Blank ->
-                    text ""
+                    viewBlank
 
                 Attention ->
                     viewAudioAttention
@@ -167,7 +160,7 @@ viewContents model =
                 DataLoading ->
                     viewDataLoading
     in
-    div [ class "title_contentsContainer" ]
+    div [ class "title_back" ]
         [ contents
         , Page.viewLoaded
         ]
@@ -190,21 +183,26 @@ viewDataLoading =
 
 viewAudioAttention : Html Msg
 viewAudioAttention =
-    div []
+    div [ class "title_overview" ]
         [ div
-            [ class "audioConfirm_contentsContainer" ]
-            [ div [ class "audioConfirm_mainText" ] [ text "Welcome to ElMusic" ]
-            , div [ class "audioConfirm_subText" ] [ text "- Please click anywhere on the screen -" ]
+            [ class "audioAttention_textContainer" ]
+            [ div [ class "audioAttention_mainText" ] [ text "Welcome to ElMusic" ]
+            , div [ class "audioAttention_subText" ] [ text "- Please click anywhere on the screen -" ]
             , div
-                [ class "audioConfirm_attentionContainer" ]
-                [ div [ class "audioConfirm_attentionMainText" ] [ text "[注意] このゲームは音を使用します" ]
-                , div [ class "audioConfirm_attentionSubText" ] [ text "・大きな音で耳を痛めないよう、音量にご注意ください。" ]
-                , div [ class "audioConfirm_attentionSubText" ] [ text "・音を出せない環境でプレイする場合は、イヤホンやヘッドホンなどを用意して遊んでください。" ]
-                , div [ class "audioConfirm_attentionSubText" ] [ text "・目や耳に疲れを感じたら、プレイを中断して休憩してください。" ]
+                [ class "audioAttention_attentionContainer" ]
+                [ div [ class "audioAttention_attentionMainText" ] [ text "[注意] このゲームは音を使用します" ]
+                , div [ class "audioAttention_attentionSubText" ] [ text "・大きな音で耳を痛めないよう、音量にご注意ください。" ]
+                , div [ class "audioAttention_attentionSubText" ] [ text "・音を出せない環境でプレイする場合は、イヤホンやヘッドホンなどを用意して遊んでください。" ]
+                , div [ class "audioAttention_attentionSubText" ] [ text "・目や耳に疲れを感じたら、プレイを中断して休憩してください。" ]
                 ]
             ]
-        , div [ class "audioConfirm_screenBtn", onClick ClickedAudioAttention ] []
+        , div [ class "audioAttention_screenBtn", onClick ClickedAudioAttention ] []
         ]
+
+
+viewBlank : Html Msg
+viewBlank =
+    div [ class "title_overview" ] []
 
 
 

@@ -208,12 +208,10 @@
 
 @keyframes CubeEffectsAnimation {
   0% {
-    /* transform: translateY(0) rotateY(0deg) rotateZ(45deg); */
     transform: translateY(0) rotate(0deg);
     opacity: 1;
   }
   100% {
-    /* transform: translateY(1000px) rotateY(720deg) rotateZ(45deg); */
     transform: translateY(1000px) rotate(720deg);
     opacity: 0;
   }

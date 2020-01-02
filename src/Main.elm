@@ -215,26 +215,24 @@ update msg model =
                             -- それ以外の場合はタイトル画面に強制的に戻すので、Redirectに一度通す
                             ( Redirect updatedSession (toAllMusicData model) (toAudioLoadingS model), Cmd.none )
 
-                routeChangeCmd =
+                nextRoute =
                     case model of
                         Init _ ->
-                            -- InitはタイトルページのRouteと同じなので、ルートの変更を行わない
-                            Cmd.none
+                            Route.Title
 
                         DataLoading _ ->
-                            -- DataLoadingはタイトルページのRouteと同じなので、ルートの変更を行わない
-                            Cmd.none
+                            Route.Title
 
                         _ ->
                             if Session.isLoggedIn <| updatedSession then
                                 -- NotLogin -> LoggedIn or LoggedIn -> LoggedInであれば、userが存在するので直接Homeへ遷移させる
-                                Route.replaceUrl navKey Route.Home
+                                Route.Home
 
                             else
                                 -- LoggedIn -> NotLogin or NotLogin -> NotLoginであれば、userが存在しないので強制的にTitleへ戻す
-                                Route.replaceUrl navKey Route.Title
+                                Route.Title
             in
-            ( updatedModel, Cmd.batch [ cmd, routeChangeCmd ] )
+            ( updatedModel, Cmd.batch [ cmd, Route.replaceUrl navKey nextRoute ] )
 
         ( DetectedError (), _ ) ->
             ( model, Route.replaceUrl (Session.toNavKey <| toSession model) Route.Error )
@@ -356,10 +354,10 @@ subscriptions model =
 view : Model -> Document Msg
 view model =
     let
-        viewPage page toMsg config =
+        viewPage toMsg config =
             let
                 { title, body } =
-                    Page.view page config
+                    Page.view config
             in
             { title = title
             , body = List.map (Html.map toMsg) body
@@ -367,25 +365,25 @@ view model =
     in
     case model of
         Init _ ->
-            Page.view Page.Init Init.view
+            Page.view Init.view
 
         DataLoading dataLoading ->
-            viewPage Page.DataLoading GotDataLoadingMsg (DataLoading.view dataLoading)
+            viewPage GotDataLoadingMsg (DataLoading.view dataLoading)
 
         Title title ->
-            viewPage Page.Title GotTitleMsg (Title.view title)
+            viewPage GotTitleMsg (Title.view title)
 
         Home home ->
-            viewPage Page.Home GotHomeMsg (Home.view home)
+            viewPage GotHomeMsg (Home.view home)
 
         Play play ->
-            viewPage Page.Play GotPlayMsg (Play.view play)
+            viewPage GotPlayMsg (Play.view play)
 
         Error error ->
-            viewPage Page.Error GotErrorMsg (Error.view error)
+            viewPage GotErrorMsg (Error.view error)
 
         Redirect _ _ _ ->
-            Page.view Page.Blank Blank.view
+            Page.view Blank.view
 
 
 

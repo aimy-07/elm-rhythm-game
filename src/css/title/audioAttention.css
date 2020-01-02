@@ -1,0 +1,66 @@
+.audioAttention_textContainer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+  height: 300px;
+}
+
+.audioAttention_mainText {
+  color: white;
+  font-size: 60px;
+  font-weight: 600;
+  text-shadow: 0 0 3px white;
+  text-align: center;
+  line-height: 80px;
+  letter-spacing: 1px;
+}
+
+.audioAttention_subText {
+  color: white;
+  font-size: 20px;
+  text-align: center;
+  line-height: 20px;
+  margin-bottom: 80px;
+  letter-spacing: 1px;
+}
+
+.audioAttention_attentionContainer {
+  width: 580px;
+  height: 140px;
+  background-color: rgba(255, 255, 255, 0.7);
+  border: solid 2px white;
+  border-radius: 20px;
+  padding: 20px;
+  box-sizing: border-box;
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+}
+
+.audioAttention_attentionMainText {
+  color: black;
+  font-size: 18px;
+  text-align: start;
+  line-height: 20px;
+  margin-bottom: 20px;
+}
+
+.audioAttention_attentionSubText {
+  color: black;
+  font-size: 12px;
+  text-align: start;
+  line-height: 20px;
+}
+
+.audioAttention_screenBtn {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+}

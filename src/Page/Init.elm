@@ -5,13 +5,6 @@ import Html.Attributes exposing (class)
 import Page
 
 
-view : { title : String, content : Html msg }
+view : Html msg
 view =
-    { title = "Title"
-    , content = div [ class "mainWide" ] [ viewContents ]
-    }
-
-
-viewContents : Html msg
-viewContents =
-    div [ class "init_back" ] [ Page.viewLoading ]
+    div [ class "title_back" ] [ Page.viewLoading ]

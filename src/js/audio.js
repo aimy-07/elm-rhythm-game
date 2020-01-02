@@ -91,7 +91,7 @@ export function audioSetUpSubscriber (app, BGM, SE) {
     app.ports.gotCurrentBGMTime.send(currentTime);
   })
 
-  // BGMの音量を変更する（Home）
+  // BGMの音量を変更する
   app.ports.changeBgmVolume.subscribe(volume => {
     for (let key in BGM) {
       BGM[key].volume(volume);

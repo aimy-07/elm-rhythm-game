@@ -112,12 +112,12 @@ notesSpeedDefault =
 
 bgmVolumeDefault : Volume
 bgmVolumeDefault =
-    0.7
+    0.5
 
 
 seVolumeDefault : Volume
 seVolumeDefault =
-    0.7
+    0.5
 
 
 tweetText : String -> Mode -> Int -> Int -> String

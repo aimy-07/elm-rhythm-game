@@ -98,20 +98,13 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> { title : String, content : Html Msg }
+view : Model -> Html Msg
 view model =
-    { title = "Title"
-    , content = div [ class "mainWide" ] [ viewContents model ]
-    }
-
-
-viewContents : Model -> Html Msg
-viewContents model =
     let
         isLoggedIn =
             Session.isLoggedIn model.session
     in
-    div [ class "title_contentsContainer" ]
+    div [ class "title_back" ]
         [ div [ class "titleCubeEffects" ] (List.map (\_ -> li [] []) (List.range 0 16))
         , div
             [ class "title_contents" ]

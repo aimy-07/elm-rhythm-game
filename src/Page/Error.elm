@@ -69,32 +69,29 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> { title : String, content : Html Msg }
+view : Model -> Html Msg
 view _ =
-    { title = "Error"
-    , content =
-        div
-            [ class "error_back" ]
+    div
+        [ class "error_back" ]
+        [ div
+            [ class "error_overview" ]
             [ div
-                [ class "error_contentsContainer" ]
-                [ div
-                    [ class "error_contents" ]
-                    [ div [ class "error_largeText" ] [ text "- ERROR -" ]
-                    , div [ class "error_smallText" ] [ text "通信エラーが発生しました" ]
-                    , div
-                        [ class "error_btnText", onClick ClickedBackTitleButton ]
-                        [ text "- Back to Title -" ]
-                    , a
-                        [ class "error_btnText"
-                        , href "https://github.com/aimy-07/elm-rhythm-game/issues"
-                        , target "_blank"
-                        ]
-                        [ text "- Report -" ]
+                [ class "error_textContainer" ]
+                [ div [ class "error_largeText" ] [ text "- ERROR -" ]
+                , div [ class "error_smallText" ] [ text "通信エラーが発生しました" ]
+                , div
+                    [ class "error_btnText", onClick ClickedBackTitleButton ]
+                    [ text "- Back to Title -" ]
+                , a
+                    [ class "error_btnText"
+                    , href "https://github.com/aimy-07/elm-rhythm-game/issues"
+                    , target "_blank"
                     ]
-                , div [ class "error_boxContainer" ] [ div [ class "error_box" ] [] ]
+                    [ text "- Report -" ]
                 ]
+            , div [ class "error_boxContainer" ] [ div [ class "error_box" ] [] ]
             ]
-    }
+        ]
 
 
 
