@@ -11,6 +11,7 @@ module Page.Error exposing
     )
 
 import AllMusicData exposing (AllMusicData)
+import AudioManager
 import AudioManager.AudioLoadingS exposing (AudioLoadingS)
 import Html exposing (Html, a, div, text)
 import Html.Attributes exposing (class, href, target)
@@ -36,7 +37,7 @@ init session audioMusicData audioLoadingS =
       , allMusicData = audioMusicData
       , audioLoadingS = audioLoadingS
       }
-    , Cmd.none
+    , AudioManager.stopBGM ()
     )
 
 
