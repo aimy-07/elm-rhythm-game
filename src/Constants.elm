@@ -1,6 +1,7 @@
 module Constants exposing
-    ( allKeyStr
-    , allMode
+    ( allKeyStrList
+    , allModeList
+    , allMusicIdList
     , bgmVolumeDefault
     , currentModeDefault
     , currentMusicIdDefault
@@ -19,15 +20,28 @@ module Constants exposing
     , tweetText
     )
 
-import MusicInfo.Mode as Mode exposing (Mode)
-import MusicInfo.MusicId exposing (MusicId)
+import AllMusicData.MusicData.Mode as Mode exposing (Mode)
+import AllMusicData.MusicData.MusicId exposing (MusicId)
 import Page.Play.KeyStr exposing (KeyStr)
-import Setting.NotesSpeed exposing (NotesSpeed)
-import Setting.Volume exposing (Volume)
+import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
+import UserSetting.Setting.Volume exposing (Volume)
 
 
-allKeyStr : List KeyStr
-allKeyStr =
+allMusicIdList : List String
+allMusicIdList =
+    [ "sampleSound"
+    , "sampleSoundShort"
+    , "whiteGlow"
+    ]
+
+
+allModeList : List Mode
+allModeList =
+    [ Mode.Normal, Mode.Hard, Mode.Master ]
+
+
+allKeyStrList : List KeyStr
+allKeyStrList =
     [ "S", "D", "F", "J", "K", "L" ]
 
 
@@ -83,22 +97,17 @@ longScore =
 
 currentMusicIdDefault : MusicId
 currentMusicIdDefault =
-    "sample_sound"
+    "sampleSound"
 
 
 currentModeDefault : Mode
 currentModeDefault =
-    Mode.normal
-
-
-allMode : List Mode
-allMode =
-    [ Mode.normal, Mode.hard, Mode.master ]
+    Mode.Normal
 
 
 notesSpeedDefault : NotesSpeed
 notesSpeedDefault =
-    0.4
+    0.5
 
 
 bgmVolumeDefault : Volume

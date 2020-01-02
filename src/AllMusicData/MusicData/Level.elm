@@ -1,4 +1,4 @@
-module MusicInfo.Level exposing (Level, toString)
+module AllMusicData.MusicData.Level exposing (Level, toString)
 
 
 type alias Level =

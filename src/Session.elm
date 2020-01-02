@@ -15,7 +15,7 @@ port module Session exposing
     )
 
 import Browser.Navigation as Nav
-import User exposing (User, UserDto)
+import Session.User as User exposing (User, UserDto)
 
 
 type Session

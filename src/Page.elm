@@ -6,11 +6,13 @@ import Html.Attributes exposing (class)
 
 
 type Page
-    = Other
+    = Init
+    | DataLoading
     | Title
     | Home
     | Play
     | Error
+    | Blank
 
 
 view : Page -> { title : String, content : Html msg } -> Document msg

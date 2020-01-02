@@ -1,6 +1,8 @@
 module Page.Play.Note exposing
     ( Note
     , NoteDto
+    , computeMaxCombo
+    , computeMaxScore
     , isDisabled
     , isLongJudging
     , isLongNote
@@ -19,7 +21,7 @@ module Page.Play.Note exposing
     , view
     )
 
-import Constants exposing (longTimeDuration, longTimeOffset)
+import Constants exposing (longScore, longTimeDuration, longTimeOffset, perfectScore)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, style)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
@@ -27,7 +29,7 @@ import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.KeyStr exposing (KeyStr)
 import Page.Play.Lane as Lane
 import Page.Play.Note.JustTime exposing (JustTime)
-import Setting.NotesSpeed exposing (NotesSpeed)
+import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
 import Utils exposing (viewIf)
 
 
@@ -93,6 +95,20 @@ new noteDto =
             , subJustTimeList = subJustTimeList
             , isJudging = False
             }
+
+
+computeMaxScore : List Note -> Int
+computeMaxScore notes =
+    notes
+        |> List.map (\note -> perfectScore + List.length (toLongSubJustTimeList note) * longScore)
+        |> List.sum
+
+
+computeMaxCombo : List Note -> Int
+computeMaxCombo notes =
+    notes
+        |> List.map (\note -> 1 + List.length (toLongSubJustTimeList note))
+        |> List.sum
 
 
 toKeyStr : Note -> KeyStr

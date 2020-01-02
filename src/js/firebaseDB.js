@@ -9,7 +9,7 @@ const uuidv4 = require('uuid/v4');
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
-export function databaseSetUpSubscriber (app) {
+export function firebaseDBSetUpSubscriber (app) {
   // ユーザー設定の取得
   app.ports.getUserSetting.subscribe(uid => {
     firebase.database().ref(`/userDatas/${uid}`).once('value')
@@ -61,36 +61,6 @@ export function databaseSetUpSubscriber (app) {
   app.ports.saveSeVolume.subscribe(({uid, seVolume}) => {
     firebase.database().ref(`/userDatas/${uid}/seVolume/`).set(seVolume, detectedError);
   });
-
-  // 全ての楽曲の情報を取得する
-  app.ports.getAllMusicInfoList_.subscribe(() => {
-    firebase.database().ref('/musicInfos').once('value')
-      .then(
-        (snapshot) => {
-          // musicInfosが存在しないことはありえないので、!snapshot.val()でも問題ない
-          const musicInfos = toArrFromObj(snapshot.val());
-          const allMusicInfoList = musicInfos.map(musicInfo => {
-            return {
-              musicId: musicInfo.musicId,
-              csvFileName: musicInfo.csvFileName,
-              musicName: musicInfo.musicName,
-              composer: musicInfo.composer,
-              mode: musicInfo.mode,
-              level: musicInfo.level,
-              fullTime: musicInfo.fullTime,
-              bpm: musicInfo.bpm,
-              beatsCountPerMeasure: musicInfo.beatsCountPerMeasure,
-              offset: musicInfo.offset,
-              maxCombo: musicInfo.maxCombo,
-              maxScore: musicInfo.maxScore
-            }
-          });
-          console.log("allMusicInfoList", allMusicInfoList)
-          app.ports.gotAllMusicInfoList.send(allMusicInfoList);
-        }
-      )
-      .catch(detectedError)
-  })
 
   // 過去の自分のプレイデータの取得
   app.ports.getOwnRecords.subscribe(uid => {

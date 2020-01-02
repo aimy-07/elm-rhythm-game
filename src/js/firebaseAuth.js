@@ -3,7 +3,6 @@ import 'firebase/auth';
 import 'firebase/database';
 import 'firebase/storage';
 import {detectedError} from '../index';
-const uuidv4 = require('uuid/v4');
 
 
 
@@ -19,13 +18,13 @@ const githubAuthProvider = new firebase.auth.GithubAuthProvider();
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
-export function authSetUpSubscriber (app) {
+export function firebaseAuthSetUpSubscriber (app) {
   // サインイン
   app.ports.signInWithGoogle.subscribe(() => {
     firebase.auth().signInWithPopup(googleAuthProvider)
       .then(() => {})
       .catch((err) => {
-        console.log(err)
+        console.log(err);
         app.ports.canceledSignIn.send(null);
       });
   });
@@ -34,7 +33,7 @@ export function authSetUpSubscriber (app) {
     firebase.auth().signInWithPopup(twitterAuthProvider)
       .then(() => {})
       .catch((err) => {
-        console.log(err)
+        console.log(err);
         app.ports.canceledSignIn.send(null);
       });
   });
@@ -43,7 +42,7 @@ export function authSetUpSubscriber (app) {
     firebase.auth().signInWithPopup(githubAuthProvider)
       .then(() => {})
       .catch((err) => {
-        console.log(err)
+        console.log(err);
         app.ports.canceledSignIn.send(null);
       });
   });

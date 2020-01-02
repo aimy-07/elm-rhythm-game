@@ -12,7 +12,7 @@ port module OwnRecord exposing
     , toStringScoreRank
     )
 
-import MusicInfo.CsvFileName exposing (CsvFileName)
+import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
 import Rank
 
 

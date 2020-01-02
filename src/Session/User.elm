@@ -1,4 +1,4 @@
-port module User exposing
+port module Session.User exposing
     ( User
     , UserDto
     , new
@@ -10,7 +10,7 @@ port module User exposing
     )
 
 import Json.Decode as Decode
-import User.Uid exposing (Uid)
+import Session.User.Uid exposing (Uid)
 
 
 type alias User =

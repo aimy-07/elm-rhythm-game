@@ -1,4 +1,4 @@
-module Setting.NotesSpeed exposing (NotesSpeed, fromString)
+module UserSetting.Setting.NotesSpeed exposing (NotesSpeed, fromString)
 
 
 type alias NotesSpeed =

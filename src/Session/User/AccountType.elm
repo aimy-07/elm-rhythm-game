@@ -1,4 +1,4 @@
-module User.AccountType exposing (AccountType(..), toString)
+module Session.User.AccountType exposing (AccountType(..), toString)
 
 
 type AccountType

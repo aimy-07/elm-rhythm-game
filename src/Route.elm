@@ -3,7 +3,7 @@ module Route exposing (Route(..), fromUrl, href, replaceUrl)
 import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
-import MusicInfo.CsvFileName exposing (CsvFileName)
+import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((<?>), Parser, oneOf, s, string)
 import Url.Parser.Query as Query

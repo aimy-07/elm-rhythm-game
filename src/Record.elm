@@ -6,8 +6,8 @@ port module Record exposing
     , savedRecord
     )
 
-import MusicInfo.CsvFileName exposing (CsvFileName)
-import User.Uid exposing (Uid)
+import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
+import Session.User.Uid exposing (Uid)
 
 
 type alias Record =

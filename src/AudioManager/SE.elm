@@ -1,14 +1,17 @@
-module AudioManager.SE exposing (SE(..), toAudioUrl)
-
-import AudioManager.AudioUrl exposing (AudioUrl)
+module AudioManager.SE exposing (SE(..), seKeyList, unwrap)
 
 
 type SE
-    = MusicSelect
+    = SelectPlayMusic
 
 
-toAudioUrl : SE -> AudioUrl
-toAudioUrl se =
+unwrap : SE -> String
+unwrap se =
     case se of
-        MusicSelect ->
-            "./audios/se_music_select.mp3"
+        SelectPlayMusic ->
+            "selectPlayMusic"
+
+
+seKeyList : List String
+seKeyList =
+    [ "selectPlayMusic" ]

@@ -1,35 +1,31 @@
 port module AudioManager exposing
     ( changeBgmVolume
-    , getAudioInfo
-    , gotAudioInfo
+    , getCurrentBGMTime
+    , gotCurrentBGMTime
     , pauseBGM
     , playBGM
     , playSE
-    , playTitleBgm
+    , stopBGM
     , unPauseBGM
     )
 
-import AudioManager.AudioInfo exposing (AudioInfoDto)
-import AudioManager.AudioUrl exposing (AudioUrl)
+import AudioManager.BGM as BGM exposing (BGM)
 import AudioManager.SE as SE exposing (SE)
 import Constants exposing (bgmVolumeDefault, seVolumeDefault)
-import Setting.Volume exposing (Volume)
+import UserSetting.Setting.Volume exposing (Volume)
 
 
-playBGM : Maybe AudioUrl -> Maybe Volume -> Bool -> Cmd msg
-playBGM maybeAudioUrl maybeVolume isLoop =
+playBGM : BGM -> Maybe Volume -> Cmd msg
+playBGM bgm maybeVolume =
     let
         bgmVolume =
             maybeVolume
                 |> Maybe.map identity
                 |> Maybe.withDefault bgmVolumeDefault
     in
-    case maybeAudioUrl of
-        Just audioUrl ->
-            playBGM_ { audioUrl = audioUrl, volume = bgmVolume, isLoop = isLoop }
-
-        Nothing ->
-            Cmd.none
+    BGM.unwrap bgm
+        |> Maybe.map (\bgmKey -> playBGM_ { bgmKey = bgmKey, volume = bgmVolume })
+        |> Maybe.withDefault Cmd.none
 
 
 playSE : SE -> Maybe Volume -> Cmd msg
@@ -40,28 +36,49 @@ playSE se maybeVolume =
                 |> Maybe.map identity
                 |> Maybe.withDefault seVolumeDefault
     in
-    playSE_ { audioUrl = SE.toAudioUrl se, volume = seVolume }
+    playSE_ { seKey = SE.unwrap se, volume = seVolume }
 
 
-port getAudioInfo : String -> Cmd msg
+pauseBGM : BGM -> Cmd msg
+pauseBGM bgm =
+    BGM.unwrap bgm
+        |> Maybe.map pauseBGM_
+        |> Maybe.withDefault Cmd.none
 
 
-port gotAudioInfo : (AudioInfoDto -> msg) -> Sub msg
+unPauseBGM : BGM -> Cmd msg
+unPauseBGM bgm =
+    BGM.unwrap bgm
+        |> Maybe.map unPauseBGM_
+        |> Maybe.withDefault Cmd.none
 
 
-port playBGM_ : { audioUrl : String, volume : Float, isLoop : Bool } -> Cmd msg
+getCurrentBGMTime : BGM -> Cmd msg
+getCurrentBGMTime bgm =
+    BGM.unwrap bgm
+        |> Maybe.map getCurrentBGMTime_
+        |> Maybe.withDefault Cmd.none
 
 
-port pauseBGM : () -> Cmd msg
+port playBGM_ : { bgmKey : String, volume : Float } -> Cmd msg
 
 
-port unPauseBGM : () -> Cmd msg
+port playSE_ : { seKey : String, volume : Float } -> Cmd msg
+
+
+port pauseBGM_ : String -> Cmd msg
+
+
+port unPauseBGM_ : String -> Cmd msg
+
+
+port stopBGM : () -> Cmd msg
+
+
+port getCurrentBGMTime_ : String -> Cmd msg
+
+
+port gotCurrentBGMTime : (Float -> msg) -> Sub msg
 
 
 port changeBgmVolume : Float -> Cmd msg
-
-
-port playSE_ : { audioUrl : String, volume : Float } -> Cmd msg
-
-
-port playTitleBgm : () -> Cmd msg

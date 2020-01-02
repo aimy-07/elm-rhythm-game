@@ -17,6 +17,11 @@ type Combo
     = Combo Int MaxCombo
 
 
+
+-- TODO: 名前が紛らわしいので変える
+-- 意味的には、連続した最大コンボ
+
+
 type alias MaxCombo =
     Int
 

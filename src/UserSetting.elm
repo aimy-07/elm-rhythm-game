@@ -13,11 +13,11 @@ port module UserSetting exposing
     , updateSeVolume
     )
 
-import MusicInfo.Mode exposing (Mode)
-import MusicInfo.MusicId exposing (MusicId)
-import Setting exposing (Setting, SettingDto)
-import Setting.NotesSpeed exposing (NotesSpeed)
-import Setting.Volume exposing (Volume)
+import AllMusicData.MusicData.Mode exposing (Mode)
+import AllMusicData.MusicData.MusicId exposing (MusicId)
+import UserSetting.Setting as Setting exposing (Setting, SettingDto)
+import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
+import UserSetting.Setting.Volume exposing (Volume)
 
 
 type UserSetting

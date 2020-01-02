@@ -1,67 +1,100 @@
-import firebase from 'firebase/app';
-import 'firebase/storage';
-import {detectedError} from '../index';
+import { Howl } from 'howler';
 
-const bgmAudio = new Audio();
+
+
+/* ---------------------------------
+	Audio
+---------------------------------- */
+const createBGM = (fileName, loop, onload) => new Howl({src: [`./audios/BGM/${fileName}.mp3`], loop, preload: false, onload});
+const createSE = (fileName, onload) => new Howl({src: [`./audios/SE/${fileName}.mp3`], loop: false, preload: false, onload});
+
+export const BGM = (app) => {
+  return {
+    theRoadToHeaven: createBGM('theRoadToHeaven', true, () => {app.ports.loadedAudioInitial.send(null)}),
+    sampleSound: createBGM('sampleSound', false, () => {app.ports.loadedBGM.send('sampleSound')}),
+    sampleSoundShort: createBGM('sampleSoundShort', false, () => {app.ports.loadedBGM.send('sampleSoundShort')}),
+    whiteGlow: createBGM('whiteGlow', false, () => {app.ports.loadedBGM.send('whiteGlow')}),
+    sampleSound_sample: createBGM('sampleSound_sample', true, () => {app.ports.loadedBGM.send('sampleSound_sample')}),
+    sampleSoundShort_sample: createBGM('sampleSoundShort_sample', true, () => {app.ports.loadedBGM.send('sampleSoundShort_sample')}),
+    whiteGlow_sample: createBGM('whiteGlow_sample', true, () => {app.ports.loadedBGM.send('whiteGlow_sample')}),
+  }
+}
+
+export const SE = (app) => {
+  return {
+    selectPlayMusic: createSE('selectPlayMusic', () => {app.ports.loadedSE.send('selectPlayMusic')}),
+  }
+}
 
 
 
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
-export function audioSetUpSubscriber (app) {
-  // BGMのUrlを取得する（共通）
-  app.ports.getAudioInfo.subscribe(audioFileName => {
-    bgmAudio.pause();
-    firebase.storage().ref(`audio/${audioFileName}.mp3`).getDownloadURL()
-      .then((audioUrl) => {
-        console.log({audioFileName, audioUrl});
-        app.ports.gotAudioInfo.send({audioFileName, audioUrl});
-      })
-      .catch(detectedError)
+export function audioSetUpSubscriber (app, BGM, SE) {
+  // タイトルのBGMだけ読み込む
+  app.ports.loadAudioInitial.subscribe(() => {
+    BGM.theRoadToHeaven.load();
   })
 
-  // BGMを再生する（共通）
-  app.ports.playBGM_.subscribe(({audioUrl, volume, isLoop}) => {
-    bgmAudio.pause();
-    bgmAudio.src = audioUrl;
-    bgmAudio.volume = volume;
-    bgmAudio.loop = isLoop;
-    bgmAudio.currentMusicTime = 0;
-    bgmAudio.play();
+  // すべてのBGMを読み込む
+  app.ports.loadBGM.subscribe(() => {
+    for (let key in BGM) {
+      if (key == 'theRoadToHeaven') continue;
+      BGM[key].load();
+    }
   })
 
-  // BGMを一時停止する（共通）
-  app.ports.pauseBGM.subscribe(() => {
-    bgmAudio.pause();
+  // すべてのSEを読み込む
+  app.ports.loadSE.subscribe(() => {
+    Object.keys(SE).forEach(key => {SE[key].load()});
   })
 
-  // BGMを一時停止から再生する（共通）
-  app.ports.unPauseBGM.subscribe(() => {
-    bgmAudio.play();
+  // BGMを再生する
+  app.ports.playBGM_.subscribe(({bgmKey, volume}) => {
+    // 同じBGMがすでに再生されていたら再生しない
+    if (BGM[bgmKey].seek() !== 0) return;
+    // 再生中の音を止める
+    for (let key in BGM) {
+      if (BGM[key].playing()) BGM[key].stop();
+    }
+    BGM[bgmKey].volume(volume);
+    BGM[bgmKey].play();
   })
 
-  // 曲の現在の再生時間を取得する（Play）
-  app.ports.getCurrentMusicTime.subscribe(() => {
-    const currentMusicTime = bgmAudio.currentTime * 1000;
-    app.ports.gotCurrentMusicTime.send(currentMusicTime);
+  // SEを再生する
+  app.ports.playSE_.subscribe(({seKey, volume}) => {
+    SE[seKey].volume(volume);
+    SE[seKey].play();
+  })
+
+  // BGMを一時停止する
+  app.ports.pauseBGM_.subscribe(bgmKey => {
+    BGM[bgmKey].pause();
+  })
+
+  // BGMを一時停止から再生する
+  app.ports.unPauseBGM_.subscribe(bgmKey => {
+    BGM[bgmKey].play();
+  })
+
+  // BGMを止める
+  app.ports.stopBGM.subscribe(() => {
+    for (let key in BGM) {
+      BGM[key].stop();
+    }
+  })
+
+  // BGMの現在の再生時間を取得する
+  app.ports.getCurrentBGMTime_.subscribe(bgmKey => {
+    const currentTime = BGM[bgmKey].seek();
+    app.ports.gotCurrentBGMTime.send(currentTime);
   })
 
   // BGMの音量を変更する（Home）
   app.ports.changeBgmVolume.subscribe(volume => {
-    bgmAudio.volume = volume;
-  })
-
-  // FIXME: TitleページのBgmを再生する(仮)（Title）
-  app.ports.playTitleBgm.subscribe(() => {
-    bgmAudio.pause();
-  })
-
-  // SEを再生する
-  app.ports.playSE_.subscribe(({audioUrl, volume}) => {
-    const seAudio = new Audio();
-    seAudio.src = audioUrl;
-    seAudio.volume = volume;
-    seAudio.play();
+    for (let key in BGM) {
+      BGM[key].volume(volume);
+    }
   })
 }

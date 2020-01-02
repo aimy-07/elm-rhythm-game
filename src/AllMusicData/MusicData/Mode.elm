@@ -1,4 +1,4 @@
-module MusicInfo.Mode exposing (Mode, hard, invalid, master, new, normal, toString, unwrap)
+module AllMusicData.MusicData.Mode exposing (Mode(..), new, toString, unwrap)
 
 import String.Extra as ExString
 
@@ -7,7 +7,6 @@ type Mode
     = Normal
     | Hard
     | Master
-    | Invalid
 
 
 new : String -> Mode
@@ -23,7 +22,8 @@ new rawMode =
             Master
 
         _ ->
-            Invalid
+            -- ここに入ることは仕様上ないので考慮しない。型合わせのためNormalにしておく。
+            Normal
 
 
 unwrap : Mode -> String
@@ -38,31 +38,8 @@ unwrap mode =
         Master ->
             "master"
 
-        Invalid ->
-            ""
-
 
 toString : Mode -> String
 toString mode =
     unwrap mode
         |> ExString.toTitleCase
-
-
-normal : Mode
-normal =
-    Normal
-
-
-hard : Mode
-hard =
-    Hard
-
-
-master : Mode
-master =
-    Master
-
-
-invalid : Mode
-invalid =
-    Invalid

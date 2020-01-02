@@ -3,39 +3,39 @@ module Page.Play exposing
     , Msg
     , init
     , subscriptions
-    , toAllMusicInfoList
+    , toAllMusicData
+    , toAudioLoadingS
     , toSession
     , update
     , view
     )
 
-import AllMusicInfoList exposing (AllMusicInfoList)
+import AllMusicData exposing (AllMusicData)
+import AllMusicData.MusicData as MusicData exposing (MusicData)
+import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
+import AllMusicData.MusicData.Level as Level
+import AllMusicData.MusicData.Mode as Mode
 import AudioManager
-import AudioManager.AudioInfo as AudioInfo exposing (AudioInfoDto)
-import Constants exposing (allKeyStr, notesSpeedDefault, tweetText)
+import AudioManager.AudioLoadingS exposing (AudioLoadingS)
+import AudioManager.BGM as BGM
+import Constants exposing (allKeyStrList, notesSpeedDefault, tweetText)
 import Html exposing (Html, a, div, span, text)
 import Html.Attributes exposing (class, href, id, style, target)
 import Keyboard exposing (Key(..))
-import MusicInfo exposing (MusicInfo)
-import MusicInfo.CsvFileName as CsvFileName exposing (CsvFileName)
-import MusicInfo.Level as Level
-import MusicInfo.Mode as Mode
 import Page
-import Page.Play.AudioLoadingS as AudioLoadingS exposing (AudioLoadingS)
 import Page.Play.Combo as Combo exposing (Combo)
-import Page.Play.CurrentMusicTime as CurrentMusicTime exposing (CurrentMusicTime)
+import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.Lane as Lane exposing (Lane)
-import Page.Play.Note as Note exposing (Note, NoteDto)
+import Page.Play.Note as Note exposing (Note)
 import Page.Play.Score as Score exposing (Score)
 import Process
 import Rank
-import Record exposing (RecordDto)
+import Record
 import Route
 import Session exposing (Session)
 import Set
-import Setting exposing (Setting, SettingDto)
-import Setting.NotesSpeed exposing (NotesSpeed)
+import  UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
 import Task
 import Time
 import UserSetting exposing (UserSetting)
@@ -48,12 +48,12 @@ import Utils exposing (cmdIf, viewIf)
 
 type alias Model =
     { session : Session
-    , allMusicInfoList : AllMusicInfoList
-    , currentMusicInfo : MusicInfo
+    , allMusicData : AllMusicData
+    , audioLoadingS : AudioLoadingS
+    , currentMusicData : MusicData
+    , userSetting : UserSetting
     , playStatus : PlayStatus
     , allNotes : List Note
-    , userSetting : UserSetting
-    , audioLoadingS : AudioLoadingS
     , currentMusicTime : CurrentMusicTime
     , score : Score
     , combo : Combo
@@ -61,9 +61,12 @@ type alias Model =
     }
 
 
+
+-- TODO: 切り出せない？
+
+
 type PlayStatus
-    = Loading
-    | Ready
+    = Ready
     | Playing
     | Pause
     | PreFinish
@@ -72,63 +75,47 @@ type PlayStatus
     | PauseCountdown
 
 
-init : Session -> AllMusicInfoList -> CsvFileName -> ( Model, Cmd Msg )
-init session allMusicInfoList csvFileName =
+init : Session -> AllMusicData -> AudioLoadingS -> Maybe CsvFileName -> Maybe UserSetting -> ( Model, Cmd Msg )
+init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
     let
-        maybeCurrentMusicInfo =
-            AllMusicInfoList.toMusicInfoFindByCsvFileName csvFileName allMusicInfoList
-    in
-    case Session.toUser session of
-        Just user ->
-            case maybeCurrentMusicInfo of
-                Just currentMusicInfo ->
-                    ( initModel session allMusicInfoList currentMusicInfo
-                    , Cmd.batch
-                        [ UserSetting.getUserSetting user.uid
-                        , MusicInfo.getAllNotes
-                            { csvFileName = csvFileName
-                            , bpm = currentMusicInfo.bpm
-                            , beatsCountPerMeasure = currentMusicInfo.beatsCountPerMeasure
-                            , offset = currentMusicInfo.offset
-                            }
-                        , AudioManager.getAudioInfo (CsvFileName.toMusicId csvFileName)
-                        ]
-                    )
+        maybeCurrentMusicData =
+            case maybeCsvFileName of
+                Just csvFileName ->
+                    AllMusicData.findByCsvFileName csvFileName allMusicData
 
                 Nothing ->
-                    -- 存在しないcsvFileNameを指定した場合、Homeに戻す
-                    let
-                        navKey =
-                            Session.toNavKey session
-                    in
-                    ( initModel session allMusicInfoList MusicInfo.empty
-                    , Route.replaceUrl navKey Route.Home
-                    )
+                    Nothing
+    in
+    case ( maybeCurrentMusicData, maybeUserSetting ) of
+        ( Just currentMusicData, Just userSetting ) ->
+            ( initModel session allMusicData audioLoadingS currentMusicData userSetting
+            , AudioManager.stopBGM ()
+            )
 
-        Nothing ->
-            -- Playで user == Nothing にはまずならないが、念のためエラー画面に飛ばす処理を入れておく
+        _ ->
+            -- 存在しないcsvFileNameを指定した or UserSettingが読み込めなかった場合、Homeに戻す
             let
                 navKey =
                     Session.toNavKey session
             in
-            ( initModel (Session.init navKey) allMusicInfoList MusicInfo.empty
-            , Route.replaceUrl navKey Route.Error
+            ( initModel session allMusicData audioLoadingS MusicData.empty UserSetting.init
+            , Route.replaceUrl navKey Route.Home
             )
 
 
-initModel : Session -> AllMusicInfoList -> MusicInfo -> Model
-initModel session allMusicInfoList currentMusicInfo =
+initModel : Session -> AllMusicData -> AudioLoadingS -> MusicData -> UserSetting -> Model
+initModel session allMusicData audioLoadingS currentMusicData userSetting =
     { session = session
-    , allMusicInfoList = allMusicInfoList
-    , currentMusicInfo = currentMusicInfo
-    , playStatus = Loading
-    , allNotes = []
-    , userSetting = UserSetting.init
-    , audioLoadingS = AudioLoadingS.init
+    , allMusicData = allMusicData
+    , audioLoadingS = audioLoadingS
+    , currentMusicData = currentMusicData
+    , userSetting = userSetting
+    , playStatus = Ready
+    , allNotes = currentMusicData.allNotes
     , currentMusicTime = 0
     , score = Score.init
     , combo = Combo.init
-    , lanes = List.map Lane.new allKeyStr
+    , lanes = List.map Lane.new allKeyStrList
     }
 
 
@@ -137,10 +124,7 @@ initModel session allMusicInfoList currentMusicInfo =
 
 
 type Msg
-    = GotAllNotes (List NoteDto)
-    | GotUserSetting SettingDto
-    | GotAudioInfo AudioInfoDto
-    | FinishedCountdown ()
+    = FinishedCountdown ()
     | KeyDown Keyboard.RawKey
     | KeyUp Keyboard.RawKey
     | Tick Time.Posix
@@ -148,65 +132,22 @@ type Msg
     | SavedRecord Bool
 
 
-toReady : Model -> Model
-toReady model =
-    if (not <| List.isEmpty model.allNotes) && UserSetting.isLoaded model.userSetting && AudioLoadingS.isLoaded model.audioLoadingS then
-        { model | playStatus = Ready }
-
-    else
-        model
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        bgm =
+            BGM.fromMusicId model.currentMusicData.musicId
+    in
     case msg of
-        GotAllNotes noteDtos ->
-            let
-                allNotes =
-                    noteDtos
-                        -- ここで無効なノーツをはじいておく
-                        |> List.filter (\noteDto -> noteDto.longTime >= 0)
-                        |> List.map Note.new
-
-                updatedModel =
-                    { model | allNotes = allNotes }
-            in
-            ( toReady updatedModel, Cmd.none )
-
-        GotUserSetting settingDto ->
-            let
-                userSetting =
-                    UserSetting.new settingDto
-
-                updatedModel =
-                    { model | userSetting = userSetting }
-            in
-            ( toReady updatedModel, Cmd.none )
-
-        GotAudioInfo audioInfoDto ->
-            let
-                audioLoadingS =
-                    AudioLoadingS.loaded (AudioInfo.new audioInfoDto).audioUrl
-
-                updatedModel =
-                    { model | audioLoadingS = audioLoadingS }
-            in
-            ( toReady updatedModel, Cmd.none )
-
         FinishedCountdown () ->
             case model.playStatus of
                 StartCountdown ->
                     let
-                        audioUrl =
-                            AudioLoadingS.toAudioUrl model.audioLoadingS
-
                         bgmVolume =
                             UserSetting.toSetting model.userSetting
                                 |> Maybe.map .bgmVolume
                     in
-                    ( { model | playStatus = Playing }
-                    , AudioManager.playBGM audioUrl bgmVolume False
-                    )
+                    ( { model | playStatus = Playing }, AudioManager.playBGM bgm bgmVolume )
 
                 PauseCountdown ->
                     let
@@ -223,7 +164,7 @@ update msg model =
                         , allNotes = nextAllNotes
                         , lanes = nextLanes
                       }
-                    , AudioManager.unPauseBGM ()
+                    , AudioManager.unPauseBGM bgm
                     )
 
                 _ ->
@@ -245,7 +186,7 @@ update msg model =
 
                         Playing ->
                             ( { model | playStatus = Pause }
-                            , AudioManager.pauseBGM ()
+                            , AudioManager.pauseBGM bgm
                             )
 
                         Pause ->
@@ -383,10 +324,13 @@ update msg model =
                     ( model, Cmd.none )
 
         Tick _ ->
-            ( model, CurrentMusicTime.getCurrentMusicTime () )
+            ( model, AudioManager.getCurrentBGMTime bgm )
 
-        GotCurrentMusicTime updatedTime ->
+        GotCurrentMusicTime time ->
             let
+                updatedTime =
+                    time * 1000
+
                 nextAllNotes =
                     model.allNotes
                         |> List.map (Note.update updatedTime)
@@ -432,7 +376,7 @@ update msg model =
                     Combo.comboEffectCmd model.combo nextCombo
 
                 nextPlayStatus =
-                    if model.currentMusicInfo.fullTime * 1000 <= model.currentMusicTime then
+                    if model.currentMusicData.fullTime * 1000 <= model.currentMusicTime then
                         PreFinish
 
                     else
@@ -451,7 +395,7 @@ update msg model =
                             (\user ->
                                 Record.saveRecord
                                     { uid = user.uid
-                                    , csvFileName = model.currentMusicInfo.csvFileName
+                                    , csvFileName = model.currentMusicData.csvFileName
                                     , combo = Combo.toMaxCombo model.combo
                                     , score = Score.unwrap model.score
                                     }
@@ -486,15 +430,6 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.playStatus of
-        Loading ->
-            Sub.batch
-                [ UserSetting.gotUserSetting GotUserSetting
-                , MusicInfo.gotAllNotes GotAllNotes
-                , AudioManager.gotAudioInfo GotAudioInfo
-                , Keyboard.downs KeyDown
-                , Keyboard.ups KeyUp
-                ]
-
         Ready ->
             Sub.batch
                 [ Keyboard.downs KeyDown
@@ -504,7 +439,7 @@ subscriptions model =
         Playing ->
             Sub.batch
                 [ Time.every 30 Tick -- ほぼ30fps
-                , CurrentMusicTime.gotCurrentMusicTime GotCurrentMusicTime
+                , AudioManager.gotCurrentBGMTime GotCurrentMusicTime
                 , Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
                 ]
@@ -547,35 +482,28 @@ view model =
 
 viewContents : Model -> Html Msg
 viewContents model =
-    if not <| model.playStatus == Loading then
-        let
-            notesSpeed =
-                UserSetting.toSetting model.userSetting
-                    |> Maybe.map .notesSpeed
-                    |> Maybe.withDefault notesSpeedDefault
-        in
-        div [ class "play_contentsContainer" ]
-            [ div
-                [ class "play_contents" ]
-                [ viewLanes model
-                , viewNotes model notesSpeed
-                , viewMusicInfo model.currentMusicInfo
-                , viewDisplayCircle model.currentMusicInfo model
-                ]
-            , viewOverView model.currentMusicInfo model
-            , div [] [ Page.viewLoaded ]
+    let
+        notesSpeed =
+            UserSetting.toSetting model.userSetting
+                |> Maybe.map .notesSpeed
+                |> Maybe.withDefault notesSpeedDefault
+    in
+    div [ class "play_contentsContainer" ]
+        [ div
+            [ class "play_contents" ]
+            [ viewLanes model
+            , viewNotes model notesSpeed
+            , viewMusicInfo model.currentMusicData
+            , viewDisplayCircle model.currentMusicData model
             ]
+        , viewOverView model.currentMusicData model
+        , div [] [ Page.viewLoaded ]
+        ]
 
-    else
-        div [ class "play_contentsContainer" ] [ Page.viewLoading ]
 
-
-viewOverView : MusicInfo -> Model -> Html msg
-viewOverView musicInfo model =
+viewOverView : MusicData -> Model -> Html msg
+viewOverView musicData model =
     case model.playStatus of
-        Loading ->
-            text ""
-
         Ready ->
             viewReady
 
@@ -590,7 +518,7 @@ viewOverView musicInfo model =
 
         Finish isHighScore ->
             div []
-                [ viewResult musicInfo isHighScore model
+                [ viewResult musicData isHighScore model
                 , Page.viewLoaded
                 ]
 
@@ -617,25 +545,25 @@ viewNotes model notesSpeed =
         (List.map (Note.view model.currentMusicTime notesSpeed) model.allNotes)
 
 
-viewMusicInfo : MusicInfo -> Html msg
-viewMusicInfo musicInfo =
+viewMusicInfo : MusicData -> Html msg
+viewMusicInfo musicData =
     div [ class "playTextArea_container" ]
-        [ div [ class "playTextArea_bigText" ] [ text musicInfo.musicName ]
-        , div [ class "playTextArea_smallText" ] [ text musicInfo.composer ]
+        [ div [ class "playTextArea_bigText" ] [ text musicData.musicName ]
+        , div [ class "playTextArea_smallText" ] [ text musicData.composer ]
         , div
             [ class "playTextArea_smallText" ]
-            [ span [] [ text <| Mode.toString musicInfo.mode ]
+            [ span [] [ text <| Mode.toString musicData.mode ]
             , span [] [ text "\u{3000}" ]
-            , span [] [ text <| Level.toString musicInfo.level ]
+            , span [] [ text <| Level.toString musicData.level ]
             ]
         ]
 
 
-viewDisplayCircle : MusicInfo -> Model -> Html msg
-viewDisplayCircle musicInfo model =
+viewDisplayCircle : MusicData -> Model -> Html msg
+viewDisplayCircle musicData model =
     let
         rate =
-            model.currentMusicTime / (musicInfo.fullTime * 1000)
+            model.currentMusicTime / (musicData.fullTime * 1000)
 
         half1Rotate =
             if rate <= 0.5 then
@@ -712,22 +640,22 @@ viewCountdown =
         ]
 
 
-viewResult : MusicInfo -> Bool -> Model -> Html msg
-viewResult musicInfo isHighScore model =
+viewResult : MusicData -> Bool -> Model -> Html msg
+viewResult musicData isHighScore model =
     let
         isFullCombo =
-            Combo.unwrap model.combo == musicInfo.maxCombo
+            Combo.unwrap model.combo == musicData.maxCombo
 
         comboRank =
-            Rank.newComboRank (Combo.toMaxCombo model.combo) musicInfo.maxCombo
+            Rank.newComboRank (Combo.toMaxCombo model.combo) musicData.maxCombo
 
         scoreRank =
-            Rank.newScoreRank (Score.unwrap model.score) musicInfo.maxScore
+            Rank.newScoreRank (Score.unwrap model.score) musicData.maxScore
 
         tweetTextContent =
             tweetText
-                musicInfo.musicName
-                musicInfo.mode
+                musicData.musicName
+                musicData.mode
                 (Score.unwrap model.score)
                 (Combo.unwrap model.combo)
     in
@@ -739,13 +667,13 @@ viewResult musicInfo isHighScore model =
                 [ div [ class "playOverview_back" ] []
                 , div [ class "playOverview_backInner" ] []
                 , div [ class "playOverview_titleText" ] [ text "RESULT" ]
-                , div [ class "playOverview_bigText" ] [ text musicInfo.musicName ]
-                , div [ class "playOverview_smallText" ] [ text musicInfo.composer ]
+                , div [ class "playOverview_bigText" ] [ text musicData.musicName ]
+                , div [ class "playOverview_smallText" ] [ text musicData.composer ]
                 , div
                     [ class "playOverview_smallText" ]
-                    [ span [] [ text <| Mode.toString musicInfo.mode ]
+                    [ span [] [ text <| Mode.toString musicData.mode ]
                     , span [] [ text "\u{3000}" ]
-                    , span [] [ text <| Level.toString musicInfo.level ]
+                    , span [] [ text <| Level.toString musicData.level ]
                     ]
                 , div
                     [ class "playOverviewResultItem_container" ]
@@ -761,7 +689,7 @@ viewResult musicInfo isHighScore model =
                             [ text <| String.fromInt (Combo.toMaxCombo model.combo) ]
                         , span
                             [ class "playOverviewResultItem_maxText" ]
-                            [ text <| " / " ++ String.fromInt musicInfo.maxCombo ]
+                            [ text <| " / " ++ String.fromInt musicData.maxCombo ]
                         ]
                     , div [ class "playOverviewResultItem_line" ] []
                     ]
@@ -779,7 +707,7 @@ viewResult musicInfo isHighScore model =
                             [ text <| String.fromInt (Score.unwrap model.score) ]
                         , span
                             [ class "playOverviewResultItem_maxText" ]
-                            [ text <| " / " ++ String.fromInt musicInfo.maxScore ]
+                            [ text <| " / " ++ String.fromInt musicData.maxScore ]
                         ]
                     , div [ class "playOverviewResultItem_line" ] []
                     ]
@@ -808,6 +736,11 @@ toSession model =
     model.session
 
 
-toAllMusicInfoList : Model -> AllMusicInfoList
-toAllMusicInfoList model =
-    model.allMusicInfoList
+toAllMusicData : Model -> AllMusicData
+toAllMusicData model =
+    model.allMusicData
+
+
+toAudioLoadingS : Model -> AudioLoadingS
+toAudioLoadingS model =
+    model.audioLoadingS

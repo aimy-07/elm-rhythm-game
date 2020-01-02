@@ -14,8 +14,8 @@ port module PublicRecord exposing
     , toThirdScoreRecord
     )
 
-import MusicInfo.CsvFileName exposing (CsvFileName)
-import User.Uid exposing (Uid)
+import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
+import Session.User.Uid exposing (Uid)
 
 
 type alias PublicRecord =

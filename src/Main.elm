@@ -1,54 +1,63 @@
 port module Main exposing (main)
 
-import AllMusicInfoList exposing (AllMusicInfoList)
+import AllMusicData exposing (AllMusicData)
+import AudioManager.AudioLoadingS as AudioLoadingS exposing (AudioLoadingS)
 import Browser exposing (Document)
 import Browser.Navigation as Nav
 import Html
-import MusicInfo.CsvFileName exposing (CsvFileName)
 import Page
 import Page.Blank as Blank
+import Page.DataLoading as DataLoading
 import Page.Error as Error
 import Page.Home as Home
-import Page.NotFound as NotFound
+import Page.Init as Init
 import Page.Play as Play
 import Page.Title as Title
 import Route exposing (Route)
 import Session exposing (Session)
+import Session.User exposing (UserDto)
 import Url exposing (Url)
-import User exposing (UserDto)
 
 
 
 ---- MODEL ----
 
 
+{-|
+
+    InitとDataLoadingは起動時のみ通過する。
+
+    起動時の処理の流れ
+    1. Init
+    2. FirebaseのonAuthStateChangedの結果を受け取った(user == nullでもOK)ら、DataLoadingへ
+    3. すべてのaudioと楽曲データを読み込み終わったらTitleへ
+    4. 以降、TiTle, Home, Play, Errorをループする
+
+-}
 type Model
-    = Init Session AllMusicInfoList
-    | Redirect Session AllMusicInfoList
-    | NotFound Session AllMusicInfoList
+    = Init Session
+    | DataLoading DataLoading.Model
     | Title Title.Model
     | Home Home.Model
-    | Play CsvFileName Play.Model
+    | Play Play.Model
     | Error Error.Model
+    | Redirect Session AllMusicData AudioLoadingS
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ _ navKey =
-    -- onAuthChangedのレスポンスを受け取るまでInit
-    ( Init (Session.init navKey) AllMusicInfoList.init, Cmd.none )
+    -- FirebaseのonAuthStateChangedのレスポンスを受け取るまでInit
+    ( Init (Session.init navKey), Cmd.none )
 
 
 toSession : Model -> Session
 toSession model =
     case model of
-        Init session _ ->
+        Init session ->
             session
 
-        Redirect session _ ->
-            session
-
-        NotFound session _ ->
-            session
+        DataLoading dataLoading ->
+            DataLoading.toSession dataLoading
 
         Title title ->
             Title.toSession title
@@ -56,36 +65,64 @@ toSession model =
         Home home ->
             Home.toSession home
 
-        Play _ play ->
+        Play play ->
             Play.toSession play
 
         Error error ->
             Error.toSession error
 
+        Redirect session _ _ ->
+            session
 
-toAllMusicInfoList : Model -> AllMusicInfoList
-toAllMusicInfoList model =
+
+toAllMusicData : Model -> AllMusicData
+toAllMusicData model =
     case model of
-        Init _ allMusicInfoList ->
-            allMusicInfoList
+        Init _ ->
+            AllMusicData.init
 
-        Redirect _ allMusicInfoList ->
-            allMusicInfoList
-
-        NotFound _ allMusicInfoList ->
-            allMusicInfoList
+        DataLoading dataLoading ->
+            DataLoading.toAllMusicData dataLoading
 
         Title title ->
-            Title.toAllMusicInfoList title
+            Title.toAllMusicData title
 
         Home home ->
-            Home.toAllMusicInfoList home
+            Home.toAllMusicData home
 
-        Play _ play ->
-            Play.toAllMusicInfoList play
+        Play play ->
+            Play.toAllMusicData play
 
         Error error ->
-            Error.toAllMusicInfoList error
+            Error.toAllMusicData error
+
+        Redirect _ allMusicData _ ->
+            allMusicData
+
+
+toAudioLoadingS : Model -> AudioLoadingS
+toAudioLoadingS model =
+    case model of
+        Init _ ->
+            AudioLoadingS.init
+
+        DataLoading dataLoading ->
+            DataLoading.toAudioLoadingS dataLoading
+
+        Title title ->
+            Title.toAudioLoadingS title
+
+        Home home ->
+            Home.toAudioLoadingS home
+
+        Play play ->
+            Play.toAudioLoadingS play
+
+        Error error ->
+            Error.toAudioLoadingS error
+
+        Redirect _ _ audioLoadingS ->
+            audioLoadingS
 
 
 
@@ -96,6 +133,7 @@ type Msg
     = ChangedRoute (Maybe Route)
     | ChangedUrl Url
     | ClickedLink Browser.UrlRequest
+    | GotDataLoadingMsg DataLoading.Msg
     | GotTitleMsg Title.Msg
     | GotHomeMsg Home.Msg
     | GotPlayMsg Play.Msg
@@ -110,11 +148,7 @@ update msg model =
         ( ClickedLink urlRequest, _ ) ->
             case urlRequest of
                 Browser.Internal url ->
-                    let
-                        navKey =
-                            Session.toNavKey (toSession model)
-                    in
-                    ( model, Nav.pushUrl navKey (Url.toString url) )
+                    ( model, Nav.pushUrl (Session.toNavKey <| toSession model) (Url.toString url) )
 
                 Browser.External href ->
                     ( model, Nav.load href )
@@ -125,6 +159,22 @@ update msg model =
         ( ChangedRoute route, _ ) ->
             changeRouteTo route model
 
+        ( GotDataLoadingMsg subMsg, DataLoading subModel ) ->
+            let
+                ( updatedModel, updatedCmd ) =
+                    DataLoading.update subMsg subModel
+                        |> updateWith DataLoading GotDataLoadingMsg model
+            in
+            if isDataLoaded updatedModel then
+                -- 更新後のモデルに対して、初期データの読み込みが完了したかどうかをチェックする
+                -- 読み込みが完了していたら、Titleへ遷移させる（以降、ModelがInit, DataLoadingに戻ることはない）
+                Title.init (toSession updatedModel) (toAllMusicData updatedModel) (toAudioLoadingS updatedModel)
+                    |> updateWith Title GotTitleMsg model
+
+            else
+                -- まだ読み込みが完了していなかったら、ローディング画面でロード処理を続行する
+                ( updatedModel, updatedCmd )
+
         ( GotTitleMsg subMsg, Title subModel ) ->
             Title.update subMsg subModel
                 |> updateWith Title GotTitleMsg model
@@ -133,9 +183,9 @@ update msg model =
             Home.update subMsg subModel
                 |> updateWith Home GotHomeMsg model
 
-        ( GotPlayMsg subMsg, Play csvFileName subModel ) ->
+        ( GotPlayMsg subMsg, Play subModel ) ->
             Play.update subMsg subModel
-                |> updateWith (Play csvFileName) GotPlayMsg model
+                |> updateWith Play GotPlayMsg model
 
         ( GotErrorMsg subMsg, Error subModel ) ->
             Error.update subMsg subModel
@@ -149,28 +199,45 @@ update msg model =
                 updatedSession =
                     Session.toLoggedIn navKey maybeUserDto
 
-                nextRoute =
+                ( updatedModel, cmd ) =
                     case model of
-                        Init _ _ ->
-                            Route.Title
+                        Init _ ->
+                            -- ModelがInitの場合は、起動時のonAuthStateChangedにあたるのでDataLoadingへ遷移させる
+                            DataLoading.init updatedSession
+                                |> updateWith DataLoading GotDataLoadingMsg model
+
+                        DataLoading dataLoading ->
+                            -- DataLoadingの間にonAuthStateChangedが起きた場合は、セッションのみ更新し初期データの読み込みを続行する
+                            -- 初期データの読み込みはauthと関係がなく、あとのタイトル画面でログイン処理を行うことになるので考慮する必要がない
+                            ( DataLoading { dataLoading | session = updatedSession }, Cmd.none )
 
                         _ ->
-                            if Session.isLoggedIn updatedSession then
-                                Route.Home
+                            -- それ以外の場合はタイトル画面に強制的に戻すので、Redirectに一度通す
+                            ( Redirect updatedSession (toAllMusicData model) (toAudioLoadingS model), Cmd.none )
+
+                routeChangeCmd =
+                    case model of
+                        Init _ ->
+                            -- InitはタイトルページのRouteと同じなので、ルートの変更を行わない
+                            Cmd.none
+
+                        DataLoading _ ->
+                            -- DataLoadingはタイトルページのRouteと同じなので、ルートの変更を行わない
+                            Cmd.none
+
+                        _ ->
+                            if Session.isLoggedIn <| updatedSession then
+                                -- NotLogin -> LoggedIn or LoggedIn -> LoggedInであれば、userが存在するので直接Homeへ遷移させる
+                                Route.replaceUrl navKey Route.Home
 
                             else
-                                Route.Title
+                                -- LoggedIn -> NotLogin or NotLogin -> NotLoginであれば、userが存在しないので強制的にTitleへ戻す
+                                Route.replaceUrl navKey Route.Title
             in
-            ( Redirect updatedSession (toAllMusicInfoList model)
-            , Route.replaceUrl navKey nextRoute
-            )
+            ( updatedModel, Cmd.batch [ cmd, routeChangeCmd ] )
 
         ( DetectedError (), _ ) ->
-            let
-                navKey =
-                    Session.toNavKey <| toSession model
-            in
-            ( model, Route.replaceUrl navKey Route.Error )
+            ( model, Route.replaceUrl (Session.toNavKey <| toSession model) Route.Error )
 
         ( _, _ ) ->
             ( model, Cmd.none )
@@ -189,39 +256,53 @@ changeRouteTo maybeRoute model =
         session =
             toSession model
 
-        allMusicInfoList =
-            toAllMusicInfoList model
+        allMusicData =
+            toAllMusicData model
+
+        audioLoadingS =
+            toAudioLoadingS model
+
+        maybeUserSetting =
+            case model of
+                Home home ->
+                    Just (Home.toUserSetting home)
+
+                _ ->
+                    Nothing
     in
     case model of
-        Init _ _ ->
+        Init _ ->
+            ( model, Cmd.none )
+
+        DataLoading _ ->
             ( model, Cmd.none )
 
         _ ->
             case maybeRoute of
-                Nothing ->
-                    ( NotFound session allMusicInfoList, Cmd.none )
-
                 Just Route.Title ->
-                    Title.init session allMusicInfoList
+                    Title.init session allMusicData audioLoadingS
                         |> updateWith Title GotTitleMsg model
 
                 Just Route.Home ->
-                    Home.init session allMusicInfoList
+                    Home.init session allMusicData audioLoadingS
                         |> updateWith Home GotHomeMsg model
 
                 Just (Route.Play maybeCsvFileName) ->
-                    case maybeCsvFileName of
-                        Just csvFileName ->
-                            Play.init session allMusicInfoList csvFileName
-                                |> updateWith (Play csvFileName) GotPlayMsg model
-
-                        Nothing ->
-                            Home.init session allMusicInfoList
-                                |> updateWith Home GotHomeMsg model
+                    Play.init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting
+                        |> updateWith Play GotPlayMsg model
 
                 Just Route.Error ->
-                    Error.init session allMusicInfoList
+                    Error.init session allMusicData audioLoadingS
                         |> updateWith Error GotErrorMsg model
+
+                Nothing ->
+                    Title.init session allMusicData audioLoadingS
+                        |> updateWith Title GotTitleMsg model
+
+
+isDataLoaded : Model -> Bool
+isDataLoaded model =
+    AllMusicData.isLoaded (toAllMusicData model) && AudioLoadingS.isLoaded (toAudioLoadingS model)
 
 
 
@@ -240,14 +321,11 @@ subscriptions model =
     let
         subSubscriptions =
             case model of
-                Init _ _ ->
+                Init _ ->
                     Sub.none
 
-                Redirect _ _ ->
-                    Sub.none
-
-                NotFound _ _ ->
-                    Sub.none
+                DataLoading dataLoading ->
+                    Sub.map GotDataLoadingMsg (DataLoading.subscriptions dataLoading)
 
                 Title title ->
                     Sub.map GotTitleMsg (Title.subscriptions title)
@@ -255,11 +333,14 @@ subscriptions model =
                 Home home ->
                     Sub.map GotHomeMsg (Home.subscriptions home)
 
-                Play _ play ->
+                Play play ->
                     Sub.map GotPlayMsg (Play.subscriptions play)
 
                 Error error ->
                     Sub.map GotErrorMsg (Error.subscriptions error)
+
+                Redirect _ _ _ ->
+                    Sub.none
     in
     Sub.batch
         [ subSubscriptions
@@ -285,14 +366,11 @@ view model =
             }
     in
     case model of
-        Init _ _ ->
-            Page.view Page.Other Blank.view
+        Init _ ->
+            Page.view Page.Init Init.view
 
-        Redirect _ _ ->
-            Page.view Page.Other Blank.view
-
-        NotFound _ _ ->
-            Page.view Page.Other NotFound.view
+        DataLoading dataLoading ->
+            viewPage Page.DataLoading GotDataLoadingMsg (DataLoading.view dataLoading)
 
         Title title ->
             viewPage Page.Title GotTitleMsg (Title.view title)
@@ -300,11 +378,14 @@ view model =
         Home home ->
             viewPage Page.Home GotHomeMsg (Home.view home)
 
-        Play _ play ->
+        Play play ->
             viewPage Page.Play GotPlayMsg (Play.view play)
 
         Error error ->
             viewPage Page.Error GotErrorMsg (Error.view error)
+
+        Redirect _ _ _ ->
+            Page.view Page.Blank Blank.view
 
 
 

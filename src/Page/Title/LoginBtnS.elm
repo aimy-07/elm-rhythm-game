@@ -8,7 +8,7 @@ module Page.Title.LoginBtnS exposing
     , toShow
     )
 
-import User.AccountType exposing (AccountType(..))
+import Session.User.AccountType exposing (AccountType(..))
 
 
 type LoginBtnS

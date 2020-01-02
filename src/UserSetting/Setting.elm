@@ -1,4 +1,4 @@
-port module Setting exposing
+port module UserSetting.Setting exposing
     ( Setting
     , SettingDto
     , empty
@@ -10,6 +10,8 @@ port module Setting exposing
     , saveSeVolume
     )
 
+import AllMusicData.MusicData.Mode as Mode exposing (Mode)
+import AllMusicData.MusicData.MusicId exposing (MusicId)
 import Constants
     exposing
         ( bgmVolumeDefault
@@ -18,10 +20,8 @@ import Constants
         , notesSpeedDefault
         , seVolumeDefault
         )
-import MusicInfo.Mode as Mode exposing (Mode)
-import MusicInfo.MusicId exposing (MusicId)
-import Setting.NotesSpeed exposing (NotesSpeed)
-import Setting.Volume exposing (Volume)
+import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
+import UserSetting.Setting.Volume exposing (Volume)
 
 
 type alias Setting =

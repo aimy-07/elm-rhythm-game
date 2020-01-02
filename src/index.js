@@ -1,12 +1,11 @@
 import './main.css';
 import { Elm } from './Main.elm';
 import registerServiceWorker from './registerServiceWorker';
-import {authSetUpSubscriber} from './js/firebaseAuth';
-import {databaseSetUpSubscriber} from './js/firebaseDB';
-import {csvSetUpSubscriber} from './js/csv';
-import {audioSetUpSubscriber} from './js/audio';
+import {firebaseAuthSetUpSubscriber} from './js/firebaseAuth';
+import {firebaseDBSetUpSubscriber} from './js/firebaseDB';
+import {dataSetUpSubscriber} from './js/data';
+import {audioSetUpSubscriber, BGM, SE} from './js/audio';
 import {animationSetUpSubscriber} from './js/animation';
-
 import firebase from 'firebase/app';
 import 'firebase/auth';
 import 'firebase/database';
@@ -69,10 +68,10 @@ const twitterClient = new twitter(twitterConfig);
 /* ---------------------------------
   Subscriber
 ---------------------------------- */
-authSetUpSubscriber(app);
-databaseSetUpSubscriber(app);
-csvSetUpSubscriber(app);
-audioSetUpSubscriber(app);
+firebaseAuthSetUpSubscriber(app);
+firebaseDBSetUpSubscriber(app);
+dataSetUpSubscriber(app);
+audioSetUpSubscriber(app, BGM(app), SE(app));
 animationSetUpSubscriber(app);
 
 

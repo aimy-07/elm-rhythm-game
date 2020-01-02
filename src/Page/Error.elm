@@ -3,13 +3,15 @@ module Page.Error exposing
     , Msg
     , init
     , subscriptions
-    , toAllMusicInfoList
+    , toAllMusicData
+    , toAudioLoadingS
     , toSession
     , update
     , view
     )
 
-import AllMusicInfoList exposing (AllMusicInfoList)
+import AllMusicData exposing (AllMusicData)
+import AudioManager.AudioLoadingS exposing (AudioLoadingS)
 import Html exposing (Html, a, div, text)
 import Html.Attributes exposing (class, href, target)
 import Html.Events exposing (onClick)
@@ -23,14 +25,16 @@ import Session exposing (Session)
 
 type alias Model =
     { session : Session
-    , allMusicInfoList : AllMusicInfoList
+    , allMusicData : AllMusicData
+    , audioLoadingS : AudioLoadingS
     }
 
 
-init : Session -> AllMusicInfoList -> ( Model, Cmd Msg )
-init session allMusicInfoList =
+init : Session -> AllMusicData -> AudioLoadingS -> ( Model, Cmd Msg )
+init session audioMusicData audioLoadingS =
     ( { session = session
-      , allMusicInfoList = allMusicInfoList
+      , allMusicData = audioMusicData
+      , audioLoadingS = audioLoadingS
       }
     , Cmd.none
     )
@@ -101,6 +105,11 @@ toSession model =
     model.session
 
 
-toAllMusicInfoList : Model -> AllMusicInfoList
-toAllMusicInfoList model =
-    model.allMusicInfoList
+toAllMusicData : Model -> AllMusicData
+toAllMusicData model =
+    model.allMusicData
+
+
+toAudioLoadingS : Model -> AudioLoadingS
+toAudioLoadingS model =
+    model.audioLoadingS
