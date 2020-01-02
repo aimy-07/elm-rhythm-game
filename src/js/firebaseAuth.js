@@ -3,6 +3,7 @@ import 'firebase/auth';
 import 'firebase/database';
 import 'firebase/storage';
 import {detectedError} from '../index';
+const uuidv4 = require('uuid/v4');
 
 
 
@@ -76,7 +77,8 @@ export function firebaseAuthSetUpSubscriber (app) {
       detectedError('fileType in not JPG or PNG');
       return;
     }
-    const filePath = `userIcons/icon_${uid}.${fileType}`
+    const pictureId = uuidv4();
+    const filePath = `userIcons/${uid}/${pictureId}.${fileType}`;
     const uploadFile = () => firebase.storage().ref().child(filePath).put(file);
     const getNewPictureUrl = () => firebase.storage().ref(filePath).getDownloadURL()
 
