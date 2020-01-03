@@ -1,5 +1,6 @@
 port module UserSetting exposing
     ( UserSetting
+    , UserSettingDto
     , getUserSetting
     , gotUserSetting
     , init
@@ -25,14 +26,21 @@ type UserSetting
     | NotLoaded
 
 
+type alias UserSettingDto =
+    Maybe SettingDto
+
+
 init : UserSetting
 init =
     NotLoaded
 
 
-new : SettingDto -> UserSetting
-new settingDto =
-    Loaded <| Setting.new settingDto
+new : UserSettingDto -> UserSetting
+new userSettingDto =
+    userSettingDto
+        |> Maybe.map Setting.new
+        |> Maybe.withDefault Setting.empty
+        |> Loaded
 
 
 isLoaded : UserSetting -> Bool
@@ -113,4 +121,4 @@ updateSeVolume seVolume userSetting =
 port getUserSetting : String -> Cmd msg
 
 
-port gotUserSetting : (SettingDto -> msg) -> Sub msg
+port gotUserSetting : (UserSettingDto -> msg) -> Sub msg

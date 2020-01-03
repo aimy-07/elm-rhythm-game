@@ -193,9 +193,9 @@
 .playOverviewResultItem_effectText {
   position: absolute;
   top: 50px;
-  right: 10px;
+  right: 0px;
   color: var(--color-elm-orange);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   text-shadow: 0 0 2px var(--color-elm-orange);
 }

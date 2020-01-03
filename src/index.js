@@ -9,8 +9,7 @@ import {animationSetUpSubscriber} from './js/animation';
 import firebase from 'firebase/app';
 import 'firebase/auth';
 import 'firebase/database';
-import {firebaseConfig, twitterConfig} from './config';
-import twitter from 'twitter'
+import {firebaseConfig} from './config';
 
 
 
@@ -46,22 +45,13 @@ firebase.auth().onAuthStateChanged((user) => {
       userName: user.displayName,
       pictureUrl: user.photoURL
     }
-    const saveUser = firebase.database().ref(`/users/${user.uid}`).set(userInfo, detectedError);
-    saveUser
+    firebase.database().ref(`/users/${user.uid}`).set(userInfo, detectedError)
       .then(() => {
         app.ports.onAuthStateChanged.send(userInfo);
       })
       .catch(detectedError)
   }
 });
-
-
-
-/* ---------------------------------
-  twitter
----------------------------------- */
-const twitterClient = new twitter(twitterConfig);
-// twitterClient.post('statuses/update', {status: 'ツイートしたい内容'}, detectedError);
 
 
 

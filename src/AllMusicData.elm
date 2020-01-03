@@ -51,7 +51,7 @@ isLoaded allMusicData =
 
 isLoadedJson : AllMusicData -> Bool
 isLoadedJson allMusicData =
-    Dict.size (toMusicDataDict allMusicData) == List.length allMusicIdList * 3
+    Dict.size (toMusicDataDict allMusicData) == List.length allMusicIdList * List.length allModeList
 
 
 isLoadedCsv : AllMusicData -> Bool

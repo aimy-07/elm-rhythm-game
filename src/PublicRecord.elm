@@ -1,109 +1,128 @@
 port module PublicRecord exposing
-    ( BestScoreRecord
+    ( BestRecord
     , PublicRecord
     , PublicRecordDto
-    , findByCsvFileName
-    , getPublicRecords
-    , gotPublicRecords
-    , isOwnRecord
+    , getPublicRecord
+    , gotPublicRecord
     , new
-    , toFirstScoreRecord
-    , toSecondScoreRecord
-    , toStringScore
-    , toStringUserName
-    , toThirdScoreRecord
+    , savePublicRecord
+    , savedPublicRecord
+    , sortBestRecords
+    , update
     )
 
 import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
+import CreatedAt exposing (CreatedAt)
+import Record exposing (Record)
 import Session.User.Uid exposing (Uid)
 
 
 type alias PublicRecord =
     { csvFileName : CsvFileName
-    , bestScores : List BestScoreRecord
+    , bestRecords : List BestRecord
     }
 
 
-type alias BestScoreRecord =
+type alias BestRecord =
     { uid : Uid
-    , userName : String
     , score : Int
+    , createdAt : CreatedAt
     }
 
 
 type alias PublicRecordDto =
     { csvFileName : String
-    , bestScores : List BestScoreRecordDto
+    , bestRecords : Maybe (List BestRecordDto)
     }
 
 
-type alias BestScoreRecordDto =
+type alias BestRecordDto =
     { uid : String
-    , userName : String
     , score : Int
+    , createdAt : Float
     }
 
 
 new : PublicRecordDto -> PublicRecord
-new { csvFileName, bestScores } =
+new { csvFileName, bestRecords } =
     { csvFileName = csvFileName
-    , bestScores = bestScores
+    , bestRecords =
+        bestRecords
+            |> Maybe.map (List.map newBestRecord)
+            |> Maybe.withDefault []
     }
 
 
-findByCsvFileName : CsvFileName -> List PublicRecord -> Maybe PublicRecord
-findByCsvFileName csvFileName publicRecords =
-    publicRecords
-        |> List.filter (.csvFileName >> (==) csvFileName)
-        |> List.head
+newBestRecord : BestRecordDto -> BestRecord
+newBestRecord { uid, score, createdAt } =
+    { uid = uid
+    , score = score
+    , createdAt = createdAt
+    }
 
 
-toFirstScoreRecord : Maybe PublicRecord -> Maybe BestScoreRecord
-toFirstScoreRecord maybePublicRecord =
-    maybePublicRecord
-        |> Maybe.map (.bestScores >> List.sortBy .score >> List.reverse)
-        |> Maybe.withDefault []
-        |> List.head
+{-| プレイが終了した時に、リザルトを元にランキングデータを更新する
+-}
+update : Record -> PublicRecord -> PublicRecord
+update record currentPublicRecord =
+    let
+        newRecord =
+            { uid = record.uid
+            , score = record.score
+            , createdAt = record.createdAt
+            }
+    in
+    if record.score > 0 then
+        let
+            nextBestRecords =
+                (newRecord :: currentPublicRecord.bestRecords)
+                    |> sortBestRecords
+                    |> List.take 3
+        in
+        { currentPublicRecord | bestRecords = nextBestRecords }
+
+    else
+        currentPublicRecord
 
 
-toSecondScoreRecord : Maybe PublicRecord -> Maybe BestScoreRecord
-toSecondScoreRecord maybePublicRecord =
-    maybePublicRecord
-        |> Maybe.map (.bestScores >> List.sortBy .score >> List.reverse >> List.drop 1)
-        |> Maybe.withDefault []
-        |> List.head
+{-| scoreでソートし、同scoreだった場合はcreatedAtが新しいものを上位に持ってくる
+-}
+sortBestRecords : List BestRecord -> List BestRecord
+sortBestRecords bestRecords =
+    bestRecords
+        |> List.sortWith comparison
+        |> List.reverse
 
 
-toThirdScoreRecord : Maybe PublicRecord -> Maybe BestScoreRecord
-toThirdScoreRecord maybePublicRecord =
-    maybePublicRecord
-        |> Maybe.map (.bestScores >> List.sortBy .score >> List.reverse >> List.drop 2)
-        |> Maybe.withDefault []
-        |> List.head
+comparison : BestRecord -> BestRecord -> Order
+comparison a b =
+    if Basics.compare a.score b.score == EQ then
+        Basics.compare a.createdAt b.createdAt
+
+    else
+        Basics.compare a.score b.score
 
 
-isOwnRecord : Maybe BestScoreRecord -> Uid -> Bool
-isOwnRecord maybeRecord uid =
-    maybeRecord
-        |> Maybe.map (.uid >> (==) uid)
-        |> Maybe.withDefault False
+savePublicRecord : PublicRecord -> Cmd msg
+savePublicRecord publicRecord =
+    savePublicRecord_
+        { csvFileName = publicRecord.csvFileName
+        , bestRecords =
+            if List.isEmpty publicRecord.bestRecords then
+                Nothing
+
+            else
+                Just publicRecord.bestRecords
+        }
 
 
-toStringUserName : Maybe BestScoreRecord -> String
-toStringUserName maybeRecord =
-    maybeRecord
-        |> Maybe.map .userName
-        |> Maybe.withDefault "---"
+port getPublicRecord : String -> Cmd msg
 
 
-toStringScore : Maybe BestScoreRecord -> String
-toStringScore maybeRecord =
-    maybeRecord
-        |> Maybe.map (.score >> String.fromInt)
-        |> Maybe.withDefault "---"
+port gotPublicRecord : (PublicRecordDto -> msg) -> Sub msg
 
 
-port getPublicRecords : () -> Cmd msg
+port savePublicRecord_ : PublicRecordDto -> Cmd msg
 
 
-port gotPublicRecords : (List PublicRecordDto -> msg) -> Sub msg
+port savedPublicRecord : (() -> msg) -> Sub msg

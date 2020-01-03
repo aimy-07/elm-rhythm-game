@@ -49,11 +49,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ClickedBackTitleButton ->
-            let
-                navKey =
-                    Session.toNavKey model.session
-            in
-            ( model, Route.replaceUrl navKey Route.Title )
+            ( model, Route.replaceUrl (Session.toNavKey model.session) Route.Title )
 
 
 

@@ -22,14 +22,17 @@ import Constants exposing (allKeyStrList, notesSpeedDefault, tweetText)
 import Html exposing (Html, a, div, span, text)
 import Html.Attributes exposing (class, href, id, style, target)
 import Keyboard exposing (Key(..))
+import OwnRecord exposing (OwnRecordDto)
 import Page
 import Page.Play.Combo as Combo exposing (Combo)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note as Note exposing (Note)
-import Page.Play.PlayStatus as PlayStatus exposing (PlayStatus)
+import Page.Play.PlayingS as PlayingS exposing (PlayingS)
+import Page.Play.ResultSavingS as ResultSavingS exposing (ResultSavingS)
 import Page.Play.Score as Score exposing (Score)
+import PublicRecord exposing (PublicRecordDto)
 import Rank
 import Record
 import Route
@@ -51,12 +54,13 @@ type alias Model =
     , audioLoadingS : AudioLoadingS
     , currentMusicData : MusicData
     , userSetting : UserSetting
-    , playStatus : PlayStatus
+    , playingS : PlayingS
     , allNotes : List Note
     , currentMusicTime : CurrentMusicTime
     , score : Score
     , combo : Combo
     , lanes : List Lane
+    , resultSavingS : ResultSavingS
     }
 
 
@@ -72,35 +76,39 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
     in
     case ( maybeCurrentMusicData, maybeUserSetting ) of
         ( Just currentMusicData, Just userSetting ) ->
-            ( initModel session allMusicData audioLoadingS currentMusicData userSetting
+            ( { session = session
+              , allMusicData = allMusicData
+              , audioLoadingS = audioLoadingS
+              , currentMusicData = currentMusicData
+              , userSetting = userSetting
+              , playingS = PlayingS.init
+              , allNotes = currentMusicData.allNotes
+              , currentMusicTime = 0
+              , score = Score.init
+              , combo = Combo.init
+              , lanes = List.map Lane.new allKeyStrList
+              , resultSavingS = ResultSavingS.init
+              }
             , AudioManager.stopBGM ()
             )
 
         _ ->
             -- 存在しないcsvFileNameを指定した or UserSettingが読み込めなかった場合、Homeに戻す
-            let
-                navKey =
-                    Session.toNavKey session
-            in
-            ( initModel session allMusicData audioLoadingS MusicData.empty UserSetting.init
-            , Route.replaceUrl navKey Route.Home
+            ( { session = session
+              , allMusicData = allMusicData
+              , audioLoadingS = audioLoadingS
+              , currentMusicData = MusicData.empty
+              , userSetting = UserSetting.init
+              , playingS = PlayingS.init
+              , allNotes = []
+              , currentMusicTime = 0
+              , score = Score.init
+              , combo = Combo.init
+              , lanes = List.map Lane.new allKeyStrList
+              , resultSavingS = ResultSavingS.init
+              }
+            , Route.replaceUrl (Session.toNavKey session) Route.Home
             )
-
-
-initModel : Session -> AllMusicData -> AudioLoadingS -> MusicData -> UserSetting -> Model
-initModel session allMusicData audioLoadingS currentMusicData userSetting =
-    { session = session
-    , allMusicData = allMusicData
-    , audioLoadingS = audioLoadingS
-    , currentMusicData = currentMusicData
-    , userSetting = userSetting
-    , playStatus = PlayStatus.init
-    , allNotes = currentMusicData.allNotes
-    , currentMusicTime = 0
-    , score = Score.init
-    , combo = Combo.init
-    , lanes = List.map Lane.new allKeyStrList
-    }
 
 
 
@@ -113,8 +121,12 @@ type Msg
     | KeyDown Keyboard.RawKey
     | KeyUp Keyboard.RawKey
     | FinishedCountdown ()
-    | FinishedMusic ()
-    | SavedRecord Bool
+    | FinishedMusic Float
+    | GotCurrentOwnRecord OwnRecordDto
+    | GotCurrentPublicRecord PublicRecordDto
+    | SavedRecord ()
+    | SavedUpdatedOwnRecord ()
+    | SavedUpdatedPublicRecord ()
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -203,17 +215,17 @@ update msg model =
             case maybeKey of
                 Just Keyboard.Spacebar ->
                     let
-                        ( nextPlayStatus, cmd ) =
-                            PlayStatus.pressSpaceKey bgm (FinishedCountdown ()) model.playStatus
+                        ( nextPlayingS, playingSCmd ) =
+                            PlayingS.pressSpaceKey bgm (FinishedCountdown ()) model.playingS
                     in
-                    ( { model | playStatus = nextPlayStatus }, cmd )
+                    ( { model | playingS = nextPlayingS }, playingSCmd )
 
                 Just (Keyboard.Character keyStr) ->
                     let
                         nextLanes =
                             List.map (Lane.press keyStr) model.lanes
                     in
-                    if not <| PlayStatus.isPlaying model.playStatus then
+                    if not <| PlayingS.isPlaying model.playingS then
                         -- Playingの時しか判定しない
                         -- LaneのisPressingの更新のみ行う
                         ( { model | lanes = nextLanes }, Cmd.none )
@@ -277,7 +289,7 @@ update msg model =
                         nextLanes =
                             List.map (Lane.unPress keyStr) model.lanes
                     in
-                    if not <| PlayStatus.isPlaying model.playStatus then
+                    if not <| PlayingS.isPlaying model.playingS then
                         -- Playingの時しか判定しない
                         -- LaneのisPressingの更新のみ行う
                         ( { model | lanes = nextLanes }, Cmd.none )
@@ -310,35 +322,67 @@ update msg model =
 
         FinishedCountdown () ->
             let
-                ( nextPlayStatus, cmd ) =
-                    PlayStatus.finishedCountdown bgm bgmVolume model.playStatus
+                ( nextPlayingS, playingSCmd ) =
+                    PlayingS.finishedCountdown bgm bgmVolume model.playingS
             in
-            ( { model | playStatus = nextPlayStatus }, cmd )
+            ( { model | playingS = nextPlayingS }, playingSCmd )
 
-        FinishedMusic _ ->
+        FinishedMusic time ->
+            case Session.toUser model.session of
+                Just user ->
+                    let
+                        record =
+                            Record.new
+                                { uid = user.uid
+                                , csvFileName = model.currentMusicData.csvFileName
+                                , combo = Combo.toResultCombo model.combo
+                                , score = Score.unwrap model.score
+                                , createdAt = time
+                                }
+
+                        ( nextResultSavingS, resultSavingSCmd ) =
+                            ResultSavingS.startSaving record model.resultSavingS
+                    in
+                    ( { model
+                        | playingS = PlayingS.finish
+                        , lanes = List.map Lane.allUnPress model.lanes
+                        , resultSavingS = nextResultSavingS
+                      }
+                    , resultSavingSCmd
+                    )
+
+                Nothing ->
+                    -- リザルト保存時にuserがなかったらエラー画面に飛ばす
+                    ( model, Route.replaceUrl (Session.toNavKey model.session) Route.Error )
+
+        GotCurrentOwnRecord ownRecordDto ->
             let
-                saveRecordCmd =
-                    Session.toUser model.session
-                        |> Maybe.map
-                            (\user ->
-                                Record.saveRecord
-                                    { uid = user.uid
-                                    , csvFileName = model.currentMusicData.csvFileName
-                                    , combo = Combo.toResultCombo model.combo
-                                    , score = Score.unwrap model.score
-                                    }
-                            )
-                        |> Maybe.withDefault Cmd.none
+                ( nextResultSavingS, resultSavingSCmd ) =
+                    ResultSavingS.gotCurrentOwnRecord ownRecordDto model.resultSavingS
             in
-            ( { model
-                | playStatus = PlayStatus.preFinish
-                , lanes = List.map Lane.allUnPress model.lanes
-              }
-            , saveRecordCmd
-            )
+            ( { model | resultSavingS = nextResultSavingS }, resultSavingSCmd )
+
+        GotCurrentPublicRecord publicRecordDto ->
+            let
+                ( nextResultSavingS, resultSavingSCmd ) =
+                    ResultSavingS.gotCurrentPublicRecord publicRecordDto model.resultSavingS
+            in
+            ( { model | resultSavingS = nextResultSavingS }, resultSavingSCmd )
 
         SavedRecord _ ->
-            ( { model | playStatus = PlayStatus.finish }, Cmd.none )
+            ( { model | resultSavingS = ResultSavingS.savedRecord model.resultSavingS }
+            , Cmd.none
+            )
+
+        SavedUpdatedOwnRecord _ ->
+            ( { model | resultSavingS = ResultSavingS.savedUpdatedOwnRecord model.resultSavingS }
+            , Cmd.none
+            )
+
+        SavedUpdatedPublicRecord _ ->
+            ( { model | resultSavingS = ResultSavingS.savedUpdatedPublicRecord model.resultSavingS }
+            , Cmd.none
+            )
 
 
 
@@ -359,15 +403,24 @@ subscriptions model =
                 [ Keyboard.downs KeyDown
                 , Keyboard.ups KeyUp
                 ]
+
+        saveResultSub =
+            Sub.batch
+                [ Record.savedRecord SavedRecord
+                , OwnRecord.gotOwnRecord GotCurrentOwnRecord
+                , OwnRecord.savedOwnRecord SavedUpdatedOwnRecord
+                , PublicRecord.gotPublicRecord GotCurrentPublicRecord
+                , PublicRecord.savedPublicRecord SavedUpdatedPublicRecord
+                ]
     in
     Sub.batch
-        [ updateCurrentMusicTimeSub
-            |> subIf (PlayStatus.isPlaying model.playStatus)
+        [ AudioManager.onEndBGM FinishedMusic
+        , updateCurrentMusicTimeSub
+            |> subIf (PlayingS.isPlaying model.playingS)
         , keyboardSub
-            |> subIf (not (PlayStatus.isPreFinish model.playStatus || PlayStatus.isFinish model.playStatus))
-        , AudioManager.onEndBGM FinishedMusic
-        , Record.savedRecord SavedRecord
-            |> subIf (PlayStatus.isPreFinish model.playStatus)
+            |> subIf (not <| PlayingS.isFinish model.playingS)
+        , saveResultSub
+            |> subIf (PlayingS.isFinish model.playingS)
         ]
 
 
@@ -386,42 +439,37 @@ view model =
     div [ class "play_back" ]
         [ div
             [ class "play_contents" ]
-            [ viewLanes model
-            , viewNotes model notesSpeed
+            [ viewLanes model.lanes
+            , viewNotes model.currentMusicTime notesSpeed model.allNotes
             , viewMusicInfo model.currentMusicData
-            , viewDisplayCircle model.currentMusicData model
+            , viewDisplayCircle model.currentMusicData model.currentMusicTime model.combo model.score
             ]
         , viewReady
-            |> viewIf (PlayStatus.isReady model.playStatus)
+            |> viewIf (PlayingS.isReady model.playingS)
         , viewPause
-            |> viewIf (PlayStatus.isPause model.playStatus)
+            |> viewIf (PlayingS.isPause model.playingS)
         , viewCountdown
-            |> viewIf (PlayStatus.isCountdown model.playStatus)
-        , Page.viewLoading
-            |> viewIf (PlayStatus.isPreFinish model.playStatus)
-        , div []
-            [ viewResult model.currentMusicData False model -- TODO: isHighScore
-            , Page.viewLoaded
-            ]
-            |> viewIf (PlayStatus.isFinish model.playStatus)
+            |> viewIf (PlayingS.isCountdown model.playingS)
+        , viewResult model.currentMusicData model.resultSavingS
+            |> viewIf (PlayingS.isFinish model.playingS)
         , div [] [ Page.viewLoaded ]
         ]
 
 
-viewLanes : Model -> Html msg
-viewLanes model =
+viewLanes : List Lane -> Html msg
+viewLanes lanes =
     div []
         [ div [ class "playCenterLine_judgeAreaLine outer center" ] []
         , div [ class "playCenterLine_judgeAreaLine outer left" ] []
         , div [ class "playCenterLine_judgeAreaLine outer right" ] []
-        , div [] (List.map Lane.view model.lanes)
+        , div [] (List.map Lane.view lanes)
         ]
 
 
-viewNotes : Model -> NotesSpeed -> Html msg
-viewNotes model notesSpeed =
+viewNotes : CurrentMusicTime -> NotesSpeed -> List Note -> Html msg
+viewNotes currentMusicTime notesSpeed allNotes =
     div [ class "playCenterLine_judgeLine", id "judge_area" ]
-        (List.map (Note.view model.currentMusicTime notesSpeed) model.allNotes)
+        (List.map (Note.view currentMusicTime notesSpeed) allNotes)
 
 
 viewMusicInfo : MusicData -> Html msg
@@ -438,11 +486,11 @@ viewMusicInfo musicData =
         ]
 
 
-viewDisplayCircle : MusicData -> Model -> Html msg
-viewDisplayCircle musicData model =
+viewDisplayCircle : MusicData -> CurrentMusicTime -> Combo -> Score -> Html msg
+viewDisplayCircle musicData currentMusicTime combo score =
     let
         rate =
-            model.currentMusicTime / (musicData.fullTime * 1000)
+            currentMusicTime / (musicData.fullTime * 1000)
 
         half1Rotate =
             if rate <= 0.5 then
@@ -478,9 +526,9 @@ viewDisplayCircle musicData model =
         , div
             [ class "playDisplay_centerTextArea" ]
             [ div [ class "playDisplay_scoreLabelText" ] [ text "- SCORE -" ]
-            , div [ class "playDisplay_scoreText" ] [ text <| String.fromInt (Score.unwrap model.score) ]
+            , div [ class "playDisplay_scoreText" ] [ text <| String.fromInt (Score.unwrap score) ]
             , div [ class "playDisplay_comboLabelText" ] [ text "- COMBO -" ]
-            , div [ class "playDisplay_comboText", id "comboText" ] [ text <| String.fromInt (Combo.unwrap model.combo) ]
+            , div [ class "playDisplay_comboText", id "comboText" ] [ text <| String.fromInt (Combo.unwrap combo) ]
             ]
         ]
 
@@ -519,91 +567,98 @@ viewCountdown =
         ]
 
 
-viewResult : MusicData -> Bool -> Model -> Html msg
-viewResult musicData isHighScore model =
-    let
-        isFullCombo =
-            Combo.unwrap model.combo == musicData.maxCombo
+viewResult : MusicData -> ResultSavingS -> Html msg
+viewResult musicData resultSavingS =
+    case ResultSavingS.toResult resultSavingS of
+        Just { record, isBestCombo, isBestScore } ->
+            let
+                isFullCombo =
+                    record.combo == musicData.maxCombo
 
-        comboRank =
-            Rank.newComboRank (Combo.toResultCombo model.combo) musicData.maxCombo
+                comboRank =
+                    Rank.new record.combo musicData.maxCombo
 
-        scoreRank =
-            Rank.newScoreRank (Score.unwrap model.score) musicData.maxScore
+                scoreRank =
+                    Rank.new record.score musicData.maxScore
 
-        tweetTextContent =
-            tweetText
-                musicData.musicName
-                musicData.mode
-                (Score.unwrap model.score)
-                (Combo.unwrap model.combo)
-    in
-    div [ class "play_overview" ]
-        [ div
-            [ class "playOverview_container" ]
-            [ div
-                [ class "playOverview_contentsContainer" ]
-                [ div [ class "playOverview_back" ] []
-                , div [ class "playOverview_backInner" ] []
-                , div [ class "playOverview_titleText" ] [ text "RESULT" ]
-                , div [ class "playOverview_bigText" ] [ text musicData.musicName ]
-                , div [ class "playOverview_smallText" ] [ text musicData.composer ]
-                , div
-                    [ class "playOverview_smallText" ]
-                    [ span [] [ text <| Mode.toString musicData.mode ]
-                    , span [] [ text "\u{3000}" ]
-                    , span [] [ text <| Level.toString musicData.level ]
-                    ]
-                , div
-                    [ class "playOverviewResultItem_container" ]
-                    [ div [ class "playOverviewResultItem_box" ] []
-                    , div [ class "playOverviewResultItem_labelText" ] [ text "COMBO" ]
-                    , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString comboRank ]
-                    , div [ class "playOverviewResultItem_effectText" ] [ text "Full Combo!!" ]
-                        |> viewIf isFullCombo
-                    , div
-                        [ class "playOverviewResultItem_textContainer" ]
-                        [ span
-                            [ class "playOverviewResultItem_resultText" ]
-                            [ text <| String.fromInt (Combo.toResultCombo model.combo) ]
-                        , span
-                            [ class "playOverviewResultItem_maxText" ]
-                            [ text <| " / " ++ String.fromInt musicData.maxCombo ]
+                tweetTextContent =
+                    tweetText musicData.musicName musicData.mode record.combo record.score
+            in
+            div [ class "play_overview" ]
+                [ div
+                    [ class "playOverview_container" ]
+                    [ div
+                        [ class "playOverview_contentsContainer" ]
+                        [ div [ class "playOverview_back" ] []
+                        , div [ class "playOverview_backInner" ] []
+                        , div [ class "playOverview_titleText" ] [ text "RESULT" ]
+                        , div [ class "playOverview_bigText" ] [ text musicData.musicName ]
+                        , div [ class "playOverview_smallText" ] [ text musicData.composer ]
+                        , div
+                            [ class "playOverview_smallText" ]
+                            [ span [] [ text <| Mode.toString musicData.mode ]
+                            , span [] [ text "\u{3000}" ]
+                            , span [] [ text <| Level.toString musicData.level ]
+                            ]
+                        , div
+                            [ class "playOverviewResultItem_container" ]
+                            [ div [ class "playOverviewResultItem_box" ] []
+                            , div [ class "playOverviewResultItem_labelText" ] [ text "COMBO" ]
+                            , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString comboRank ]
+                            , div [ class "playOverviewResultItem_effectText" ]
+                                [ text "自己ベスト更新！"
+                                    |> viewIf isBestCombo
+                                , text "フルコンボ！"
+                                    |> viewIf isFullCombo
+                                ]
+                            , div
+                                [ class "playOverviewResultItem_textContainer" ]
+                                [ span
+                                    [ class "playOverviewResultItem_resultText" ]
+                                    [ text <| String.fromInt record.combo ]
+                                , span
+                                    [ class "playOverviewResultItem_maxText" ]
+                                    [ text <| " / " ++ String.fromInt musicData.maxCombo ]
+                                ]
+                            , div [ class "playOverviewResultItem_line" ] []
+                            ]
+                        , div
+                            [ class "playOverviewResultItem_container" ]
+                            [ div [ class "playOverviewResultItem_box" ] []
+                            , div [ class "playOverviewResultItem_labelText" ] [ text "SCORE" ]
+                            , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString scoreRank ]
+                            , div [ class "playOverviewResultItem_effectText" ]
+                                [ text "自己ベスト更新！"
+                                    |> viewIf isBestScore
+                                ]
+                            , div
+                                [ class "playOverviewResultItem_textContainer" ]
+                                [ span
+                                    [ class "playOverviewResultItem_resultText" ]
+                                    [ text <| String.fromInt record.score ]
+                                , span
+                                    [ class "playOverviewResultItem_maxText" ]
+                                    [ text <| " / " ++ String.fromInt musicData.maxScore ]
+                                ]
+                            , div [ class "playOverviewResultItem_line" ] []
+                            ]
+                        , a
+                            [ class "playOverviewResultItem_tweetBtn"
+                            , href <| "http://twitter.com/intent/tweet?text=" ++ tweetTextContent
+                            , target "_blank"
+                            ]
+                            [ text "- Tweet the Result -" ]
+
+                        -- 戻るボタンでプレイ画面に戻ることを許容する
+                        , a
+                            [ class "playOverviewResultItem_backBtn", Route.href Route.Home ]
+                            [ text "- Back to Home -" ]
                         ]
-                    , div [ class "playOverviewResultItem_line" ] []
                     ]
-                , div
-                    [ class "playOverviewResultItem_container" ]
-                    [ div [ class "playOverviewResultItem_box" ] []
-                    , div [ class "playOverviewResultItem_labelText" ] [ text "SCORE" ]
-                    , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString scoreRank ]
-                    , div [ class "playOverviewResultItem_effectText" ] [ text "High Score!!" ]
-                        |> viewIf isHighScore
-                    , div
-                        [ class "playOverviewResultItem_textContainer" ]
-                        [ span
-                            [ class "playOverviewResultItem_resultText" ]
-                            [ text <| String.fromInt (Score.unwrap model.score) ]
-                        , span
-                            [ class "playOverviewResultItem_maxText" ]
-                            [ text <| " / " ++ String.fromInt musicData.maxScore ]
-                        ]
-                    , div [ class "playOverviewResultItem_line" ] []
-                    ]
-                , a
-                    [ class "playOverviewResultItem_tweetBtn"
-                    , href <| "http://twitter.com/intent/tweet?text=" ++ tweetTextContent
-                    , target "_blank"
-                    ]
-                    [ text "- Tweet the Result -" ]
-
-                -- 戻るボタンでプレイ画面に戻ることを許容する
-                , a
-                    [ class "playOverviewResultItem_backBtn", Route.href Route.Home ]
-                    [ text "- Back to Home -" ]
                 ]
-            ]
-        ]
+
+        Nothing ->
+            div [ class "play_overview" ] [ Page.viewLoading ]
 
 
 

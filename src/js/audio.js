@@ -15,9 +15,15 @@ const createSE = (fileName, onload) =>
   new Howl({src: [`./audios/SE/${fileName}.mp3`] , loop: false, preload: false, onload});
 
 export const BGM = (app) => {
-  const loadedAudioInitial = () => {app.ports.loadedAudioInitial.send(null)};
-  const loadedBGM = (fileName) => (() => {app.ports.loadedBGM.send(fileName)});
-  const onEndBGM = () => {app.ports.onEndBGM.send(null)};
+  const loadedAudioInitial = () => {
+    app.ports.loadedAudioInitial.send(null);
+  };
+  const loadedBGM = (fileName) => {
+    return () => {app.ports.loadedBGM.send(fileName)};
+  };
+  const onEndBGM = () => {
+    app.ports.onEndBGM.send(Date.now());
+  };
 
   return {
     theRoadToHeaven        : createLoopBGM  ('theRoadToHeaven', loadedAudioInitial),

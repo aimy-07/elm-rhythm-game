@@ -1,92 +1,109 @@
 port module OwnRecord exposing
     ( OwnRecord
     , OwnRecordDto
-    , findByCsvFileName
-    , getOwnRecords
-    , gotOwnRecords
+    , getOwnRecord
+    , gotOwnRecord
     , new
-    , toPlayCount
-    , toStringCombo
-    , toStringComboRank
-    , toStringScore
-    , toStringScoreRank
+    , saveOwnRecord
+    , savedOwnRecord
+    , update
     )
 
 import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
-import Rank
+import Record exposing (Record)
+import Session.User.Uid exposing (Uid)
 
 
 type alias OwnRecord =
-    { csvFileName : CsvFileName
-    , bestCombo : Int
-    , bestScore : Int
+    { uid : Uid
+    , csvFileName : CsvFileName
+    , bestCombo : Maybe Int
+    , bestScore : Maybe Int
     , playCount : Int
     }
 
 
 type alias OwnRecordDto =
-    { csvFileName : String
-    , bestCombo : Int
+    { uid : String
+    , csvFileName : String
+    , playRecord : Maybe PlayRecordDto
+    }
+
+
+type alias PlayRecordDto =
+    { bestCombo : Int
     , bestScore : Int
     , playCount : Int
     }
 
 
 new : OwnRecordDto -> OwnRecord
-new { csvFileName, bestCombo, bestScore, playCount } =
-    { csvFileName = csvFileName
-    , bestCombo = bestCombo
-    , bestScore = bestScore
-    , playCount = playCount
+new { uid, csvFileName, playRecord } =
+    { uid = uid
+    , csvFileName = csvFileName
+    , bestCombo =
+        playRecord
+            |> Maybe.map .bestCombo
+    , bestScore =
+        playRecord
+            |> Maybe.map .bestScore
+    , playCount =
+        playRecord
+            |> Maybe.map .playCount
+            |> Maybe.withDefault 0
     }
 
 
-findByCsvFileName : CsvFileName -> List OwnRecord -> Maybe OwnRecord
-findByCsvFileName csvFileName ownRecords =
-    ownRecords
-        |> List.filter (.csvFileName >> (==) csvFileName)
-        |> List.head
+{-| プレイが終了した時に、リザルトを元に個人のプレイデータを更新する
+-}
+update : Record -> OwnRecord -> OwnRecord
+update record pastOwnRecord =
+    case ( pastOwnRecord.bestCombo, pastOwnRecord.bestScore ) of
+        ( Just bestCombo, Just bestScore ) ->
+            { pastOwnRecord
+                | bestCombo = Just <| Basics.max record.combo bestCombo
+                , bestScore = Just <| Basics.max record.score bestScore
+                , playCount = pastOwnRecord.playCount + 1
+            }
+
+        _ ->
+            { pastOwnRecord
+                | bestCombo = Just record.combo
+                , bestScore = Just record.score
+                , playCount = 1
+            }
 
 
-toStringComboRank : Maybe OwnRecord -> Int -> String
-toStringComboRank maybeOwnRecord maxCombo =
-    maybeOwnRecord
-        |> Maybe.map (\record -> Rank.newComboRank record.bestCombo maxCombo)
-        |> Maybe.map Rank.toString
-        |> Maybe.withDefault "---"
+saveOwnRecord : OwnRecord -> Cmd msg
+saveOwnRecord ownRecord =
+    let
+        bestCombo =
+            ownRecord.bestCombo
+                |> Maybe.withDefault 0
+
+        bestScore =
+            ownRecord.bestScore
+                |> Maybe.withDefault 0
+    in
+    saveOwnRecord_
+        { uid = ownRecord.uid
+        , csvFileName = ownRecord.csvFileName
+        , playRecord =
+            Just
+                { bestCombo = bestCombo
+                , bestScore = bestScore
+                , playCount = ownRecord.playCount
+                }
+        }
 
 
-toStringCombo : Maybe OwnRecord -> String
-toStringCombo maybeOwnRecord =
-    maybeOwnRecord
-        |> Maybe.map (.bestCombo >> String.fromInt)
-        |> Maybe.withDefault "---"
+port getOwnRecord : { uid : String, csvFileName : String } -> Cmd msg
 
 
-toStringScoreRank : Maybe OwnRecord -> Int -> String
-toStringScoreRank maybeOwnRecord maxScore =
-    maybeOwnRecord
-        |> Maybe.map (\record -> Rank.newScoreRank record.bestScore maxScore)
-        |> Maybe.map Rank.toString
-        |> Maybe.withDefault "---"
+port gotOwnRecord : (OwnRecordDto -> msg) -> Sub msg
 
 
-toStringScore : Maybe OwnRecord -> String
-toStringScore maybeOwnRecord =
-    maybeOwnRecord
-        |> Maybe.map (.bestScore >> String.fromInt)
-        |> Maybe.withDefault "---"
+port saveOwnRecord_ : OwnRecordDto -> Cmd msg
 
 
-toPlayCount : Maybe OwnRecord -> String
-toPlayCount maybeOwnRecord =
-    maybeOwnRecord
-        |> Maybe.map .playCount
-        |> Maybe.withDefault 0
-        |> String.fromInt
-
-
-port getOwnRecords : String -> Cmd msg
-
-
-port gotOwnRecords : (List OwnRecordDto -> msg) -> Sub msg
+port savedOwnRecord : (() -> msg) -> Sub msg

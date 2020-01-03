@@ -82,7 +82,7 @@ port getCurrentBGMTime_ : String -> Cmd msg
 port gotCurrentBGMTime : (Float -> msg) -> Sub msg
 
 
-port onEndBGM : (() -> msg) -> Sub msg
+port onEndBGM : (Float -> msg) -> Sub msg
 
 
 port changeBgmVolume : Float -> Cmd msg

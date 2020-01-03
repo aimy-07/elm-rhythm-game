@@ -1,6 +1,8 @@
 port module Session.User exposing
     ( User
     , UserDto
+    , getUsers
+    , gotUsers
     , new
     , saveUserName
     , saveUserPicture
@@ -43,6 +45,12 @@ updateUserName userName user =
 updatePictureUrl : String -> User -> User
 updatePictureUrl pictureUrl user =
     { user | pictureUrl = pictureUrl }
+
+
+port getUsers : List String -> Cmd msg
+
+
+port gotUsers : (List UserDto -> msg) -> Sub msg
 
 
 port saveUserName : { uid : String, userName : String } -> Cmd msg

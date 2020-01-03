@@ -1,150 +1,112 @@
 module Rank exposing
     ( Rank
     , allRankList
-    , boundaryCombo
-    , boundaryScore
-    , invalidRankStr
-    , newComboRank
-    , newScoreRank
+    , border
+    , invalid
+    , new
     , toString
     )
 
 
 type Rank
-    = Rank String
+    = SSS
+    | SS
+    | S
+    | A
+    | B
+    | C
+    | D
+    | Invalid
+
+
+new : Int -> Int -> Rank
+new num max =
+    if num >= border max SSS then
+        SSS
+
+    else if num >= border max SS then
+        SS
+
+    else if num >= border max S then
+        S
+
+    else if num >= border max A then
+        A
+
+    else if num >= border max B then
+        B
+
+    else if num >= border max C then
+        C
+
+    else if num >= border max D then
+        D
+
+    else
+        Invalid
+
+
+border : Int -> Rank -> Int
+border max rank =
+    case rank of
+        SSS ->
+            max
+
+        SS ->
+            Basics.round (Basics.toFloat max * 0.95)
+
+        S ->
+            Basics.round (Basics.toFloat max * 0.9)
+
+        A ->
+            Basics.round (Basics.toFloat max * 0.8)
+
+        B ->
+            Basics.round (Basics.toFloat max * 0.7)
+
+        C ->
+            Basics.round (Basics.toFloat max * 0.5)
+
+        D ->
+            0
+
+        Invalid ->
+            0
 
 
 toString : Rank -> String
-toString (Rank rank) =
-    rank
+toString rank =
+    case rank of
+        SSS ->
+            "SSS"
+
+        SS ->
+            "SS"
+
+        S ->
+            "S"
+
+        A ->
+            "A"
+
+        B ->
+            "B"
+
+        C ->
+            "C"
+
+        D ->
+            "D"
+
+        Invalid ->
+            "---"
 
 
-invalidRankStr : String
-invalidRankStr =
-    "---"
+invalid : Rank
+invalid =
+    Invalid
 
 
 allRankList : List Rank
 allRankList =
-    [ Rank "SSS"
-    , Rank "SS"
-    , Rank "S"
-    , Rank "A"
-    , Rank "B"
-    , Rank "C"
-    , Rank "D"
-    ]
-
-
-newScoreRank : Int -> Int -> Rank
-newScoreRank score maxScore =
-    Rank
-        (if score >= boundaryScore maxScore (Rank "SSS") then
-            "SSS"
-
-         else if score >= boundaryScore maxScore (Rank "SS") then
-            "SS"
-
-         else if score >= boundaryScore maxScore (Rank "S") then
-            "S"
-
-         else if score >= boundaryScore maxScore (Rank "A") then
-            "A"
-
-         else if score >= boundaryScore maxScore (Rank "B") then
-            "B"
-
-         else if score >= boundaryScore maxScore (Rank "C") then
-            "C"
-
-         else if score >= boundaryScore maxScore (Rank "D") then
-            "D"
-
-         else
-            "---"
-        )
-
-
-boundaryScore : Int -> Rank -> Int
-boundaryScore maxScore (Rank rank) =
-    case rank of
-        "SSS" ->
-            maxScore
-
-        "SS" ->
-            Basics.round (Basics.toFloat maxScore * 0.95)
-
-        "S" ->
-            Basics.round (Basics.toFloat maxScore * 0.9)
-
-        "A" ->
-            Basics.round (Basics.toFloat maxScore * 0.8)
-
-        "B" ->
-            Basics.round (Basics.toFloat maxScore * 0.7)
-
-        "C" ->
-            Basics.round (Basics.toFloat maxScore * 0.5)
-
-        "D" ->
-            0
-
-        _ ->
-            0
-
-
-newComboRank : Int -> Int -> Rank
-newComboRank combo maxCombo =
-    Rank
-        (if combo >= boundaryScore maxCombo (Rank "SSS") then
-            "SSS"
-
-         else if combo >= boundaryScore maxCombo (Rank "SS") then
-            "SS"
-
-         else if combo >= boundaryScore maxCombo (Rank "S") then
-            "S"
-
-         else if combo >= boundaryScore maxCombo (Rank "A") then
-            "A"
-
-         else if combo >= boundaryScore maxCombo (Rank "B") then
-            "B"
-
-         else if combo >= boundaryScore maxCombo (Rank "C") then
-            "C"
-
-         else if combo >= boundaryScore maxCombo (Rank "D") then
-            "D"
-
-         else
-            "---"
-        )
-
-
-boundaryCombo : Int -> Rank -> Int
-boundaryCombo maxCombo (Rank rank) =
-    case rank of
-        "SSS" ->
-            maxCombo
-
-        "SS" ->
-            Basics.round (Basics.toFloat maxCombo * 0.95)
-
-        "S" ->
-            Basics.round (Basics.toFloat maxCombo * 0.9)
-
-        "A" ->
-            Basics.round (Basics.toFloat maxCombo * 0.8)
-
-        "B" ->
-            Basics.round (Basics.toFloat maxCombo * 0.7)
-
-        "C" ->
-            Basics.round (Basics.toFloat maxCombo * 0.5)
-
-        "D" ->
-            0
-
-        _ ->
-            0
+    [ SSS, SS, S, A, B, C, D ]
