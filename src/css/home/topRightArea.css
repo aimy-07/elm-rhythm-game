@@ -24,7 +24,6 @@
 
 .homeTopRight_userNameText {
   position: absolute;
-  right: -120px;
   color: white;
   text-align: end;
   overflow: hidden;
@@ -32,16 +31,15 @@
   text-overflow: ellipsis;
 }
 
+.homeTopRight_userNameText.is-Me {
+  color: var(--color-elm-darkblue);
+}
+
 .homeTopRight_scoreText {
   position: absolute;
-  right: -120px;
   color: white;
   text-align: end;
   font-family: "droidSansMono";
-}
-
-.homeTopRight_userNameText.is-Me {
-  color: var(--color-elm-darkblue);
 }
 
 .homeTopRight_line {
@@ -51,76 +49,97 @@
   right: -120px;
 }
 
-.homeTopRight_userNameText.first {
-  top: -80px;
-  width: 140px;
-  font-size: 16px;
-}
-
-.homeTopRight_scoreText.first {
-  top: -60px;
-  font-size: 14px;
-}
-
-.homeTopRight_line.first {
-  top: -40px;
-  width: 140px;
-}
-
 .homeTopRight_rankIcon.first {
   position: absolute;
-  top: -80px;
-  right: 20px;
+  top: -82px;
+  right: 18px;
   width: 32px;
   height: 32px;
+  border-radius: 50%;
 }
 
-.homeTopRight_userNameText.second {
-  top: -30px;
-  width: 98px;
-  font-size: 14px;
+.homeTopRight_rankIcon.first.user {
+  right: -120px;
 }
 
-.homeTopRight_scoreText.second {
-  top: -13px;
+.homeTopRight_userNameText.first {
+  top: -82px;
+  right: -86px;
+  width: 102px;
   font-size: 12px;
 }
 
-.homeTopRight_line.second {
-  top: 5px;
-  width: 98px;
+.homeTopRight_scoreText.first {
+  top: -70px;
+  right: -86px;
+  font-size: 18px;
+}
+
+.homeTopRight_line.first {
+  top: -46px;
+  width: 154px;
 }
 
 .homeTopRight_rankIcon.second {
   position: absolute;
-  top: -30px;
-  right: -22px;
-  width: 28px;
-  height: 28px;
+  top: -34px;
+  right: -19px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
 }
 
-.homeTopRight_userNameText.third {
-  top: 17px;
-  width: 60px;
-  font-size: 12px;
+.homeTopRight_rankIcon.second.user {
+  right: -120px;
 }
 
-.homeTopRight_scoreText.third {
-  top: 34px;
-  font-size: 10px;
+.homeTopRight_userNameText.second {
+  top: -34px;
+  right: -92px;
+  width: 72px;
+  font-size: 11px;
 }
 
-.homeTopRight_line.third {
-  top: 50px;
-  width: 60px;
+.homeTopRight_scoreText.second {
+  top: -24px;
+  right: -92px;
+  font-size: 14px;
+}
+
+.homeTopRight_line.second {
+  top: -5px;
+  width: 114px;
 }
 
 .homeTopRight_rankIcon.third {
   position: absolute;
-  top: 17px;
-  right: -60px;
+  top: 6px;
+  right: -50px;
   width: 22px;
   height: 22px;
+  border-radius: 50%;
+}
+
+.homeTopRight_rankIcon.third.user {
+  right: -120px;
+}
+
+.homeTopRight_userNameText.third {
+  top: 5px;
+  right: -98px;
+  width: 48px;
+  font-size: 10px;
+}
+
+.homeTopRight_scoreText.third {
+  top: 15px;
+  right: -98px;
+  font-size: 11px;
+}
+
+.homeTopRight_line.third {
+  top: 31px;
+  width: 80px;
 }
 
 .home_topRightArea.playAnim {

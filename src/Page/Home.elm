@@ -683,13 +683,18 @@ viewTopRightArea rankingData user =
                     maybeRecord
                         |> Maybe.map (.score >> String.fromInt)
                         |> Maybe.withDefault "---"
+
+                viewUserIcon =
+                    maybeRecord
+                        |> Maybe.map (.user >> .pictureUrl)
+                        |> Maybe.map (\url -> img [ class "homeTopRight_rankIcon user", class clsRank, src url ] [])
+                        |> Maybe.withDefault (text "")
+
+                rankIconSrc =
+                    "./img/icon_rank_" ++ clsRank ++ ".png"
             in
-            [ img
-                [ class "homeTopRight_rankIcon"
-                , class clsRank
-                , src <| "./img/icon_rank_" ++ clsRank ++ ".png"
-                ]
-                []
+            [ img [ class "homeTopRight_rankIcon", class clsRank, src rankIconSrc ] []
+            , viewUserIcon
             , div [ class "homeTopRight_userNameText", class clsRank, class clsIsMe ] [ text userName ]
             , div [ class "homeTopRight_scoreText", class clsRank ] [ text score ]
             , div [ class "homeTopRight_line", class clsRank ] []

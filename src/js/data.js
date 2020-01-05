@@ -28,7 +28,6 @@ export function dataSetUpSubscriber (app) {
             return isValidValue ? parseFloat(value) : null
           })
         );
-        console.log(csvData);
         app.ports.loadedMusicDataByCsv.send({csvFileName, csvData});
       }),
       detectedError
