@@ -444,35 +444,38 @@ viewSetting : Setting -> Html Msg
 viewSetting setting =
     div [ class "homeUserSettingPanel" ]
         [ div [ class "homeUserSettingPanel_title" ] [ text "Setting" ]
-        , viewRangeSlider "ノーツ速度" setting.notesSpeed ChangeNotesSpeed
-        , viewRangeSlider "BGM音量" setting.bgmVolume ChangeBgmVolume
-        , viewRangeSlider "システム音量" setting.seVolume ChangeSeVolume
+        , viewRangeSlider "ノーツ速度" setting.notesSpeed 0.2 0.8 ChangeNotesSpeed
+        , viewRangeSlider "BGM音量" setting.bgmVolume 0 1 ChangeBgmVolume
+        , viewRangeSlider "システム音量" setting.seVolume 0 1 ChangeSeVolume
         ]
 
 
-viewRangeSlider : String -> Float -> (String -> Msg) -> Html Msg
-viewRangeSlider label value_ msg =
+viewRangeSlider : String -> Float -> Float -> Float -> (String -> Msg) -> Html Msg
+viewRangeSlider label value_ min max msg =
     div []
         [ div [ class "homeUserSetting_rangeSliderLabel" ] [ text label ]
         , input
             [ class "homeUserSetting_rangeSlider"
             , type_ "range"
-            , Html.Attributes.min "0"
-            , Html.Attributes.max "1"
+            , Html.Attributes.min <| String.fromFloat min
+            , Html.Attributes.max <| String.fromFloat max
             , step "0.1"
             , value <| String.fromFloat value_
-            , sliderStyle value_
+            , sliderStyle value_ min max
             , onInput msg
             ]
             []
         ]
 
 
-sliderStyle : Float -> Html.Attribute msg
-sliderStyle value =
+sliderStyle : Float -> Float -> Float -> Html.Attribute msg
+sliderStyle value min max =
     let
+        rate =
+            (value - min) / (max - min)
+
         percentStr =
-            String.fromFloat (value * 100) ++ "%"
+            String.fromFloat (rate * 100) ++ "%"
     in
     Html.Attributes.style
         "background-image"
