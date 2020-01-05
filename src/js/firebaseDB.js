@@ -37,9 +37,11 @@ export function firebaseDBSetUpSubscriber (app) {
     const getUsers = uidList.map(uid => firebaseDBGet(`/users/${uid}`));
     Promise.all(getUsers)
       .then(snapshots => {
-        // 不正なuserは除く
         const users = snapshots.map(snapshot => snapshot.val());
-        const userDtos = users.filter(user => user && user.uid && user.userName && user.pictureUrl);
+        // 不正なuserは除く
+        const userDtos = users.filter(user =>
+          isValid(user) && isValid(user.uid) && isValid(user.userName) && isValid(user.pictureUrl)
+        );
         app.ports.gotUsers.send(userDtos);
       })
       .catch(detectedError)
@@ -53,11 +55,11 @@ export function firebaseDBSetUpSubscriber (app) {
           return;
         }
         const userSettingDto = {
-          currentMusicId: snapshot.val().currentMusicId ? snapshot.val().currentMusicId : null,
-          currentMode: snapshot.val().currentMode ? snapshot.val().currentMode : null,
-          notesSpeed: snapshot.val().notesSpeed ? snapshot.val().notesSpeed : null,
-          bgmVolume: snapshot.val().bgmVolume ? snapshot.val().bgmVolume : null,
-          seVolume: snapshot.val().seVolume ? snapshot.val().seVolume : null
+          currentMusicId: isValid(snapshot.val().currentMusicId) ? snapshot.val().currentMusicId : null,
+          currentMode: isValid(snapshot.val().currentMode) ? snapshot.val().currentMode : null,
+          notesSpeed: isValid(snapshot.val().notesSpeed) ? snapshot.val().notesSpeed : null,
+          bgmVolume: isValid(snapshot.val().bgmVolume) ? snapshot.val().bgmVolume : null,
+          seVolume: isValid(snapshot.val().seVolume) ? snapshot.val().seVolume : null
         }
         app.ports.gotUserSetting.send(userSettingDto);
       })
@@ -121,4 +123,12 @@ export function firebaseDBSetUpSubscriber (app) {
       .then(() => {})
       .catch(detectedError)
   });
+}
+
+const isValid = (data) => {
+  if (data !== false && data !== null && data !== undefined && data !== NaN && data !== '' ) {
+    return true;
+  } else {
+    return false;
+  }
 }
