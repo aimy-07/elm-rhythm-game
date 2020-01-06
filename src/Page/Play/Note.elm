@@ -18,12 +18,12 @@ module Page.Play.Note exposing
     , view
     )
 
-import Constants exposing (allKeyStrList, longTimeDuration, longTimeOffset, perfectScore)
+import Constants exposing (allKeyList, longTimeDuration, longTimeOffset, perfectScore)
 import Html exposing (Html, div)
 import Html.Attributes exposing (class, style)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..), JudgeEffect)
-import Page.Play.KeyStr exposing (KeyStr)
+import Page.Play.Key exposing (Key)
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note.JustTime exposing (JustTime)
 import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
@@ -32,12 +32,12 @@ import Utils exposing (viewIf)
 
 type Note
     = SingleNote
-        { keyStr : KeyStr
+        { key : Key
         , justTime : JustTime
         , noteStatus : NoteStatus
         }
     | LongNote
-        { keyStr : KeyStr
+        { key : Key
         , justTime : JustTime
         , longTime : LongTime
         , longSubNotes : List LongSubNote
@@ -64,17 +64,17 @@ type NoteStatus
 
 
 type alias NoteDto =
-    { keyStr : String
+    { key : Key
     , justTime : Float
     , longTime : Float
     }
 
 
 new : NoteDto -> Note
-new { keyStr, justTime, longTime } =
+new { key, justTime, longTime } =
     if longTime < longTimeDuration + longTimeOffset then
         SingleNote
-            { keyStr = keyStr
+            { key = key
             , justTime = justTime
             , noteStatus = NotJudged
             }
@@ -92,7 +92,7 @@ new { keyStr, justTime, longTime } =
                         )
         in
         LongNote
-            { keyStr = keyStr
+            { key = key
             , justTime = justTime
             , longTime = longTime
             , longSubNotes = longSubNotes
@@ -115,14 +115,14 @@ computeMaxCombo notes =
         |> List.sum
 
 
-toKeyStr : Note -> KeyStr
-toKeyStr note =
+toKey : Note -> Key
+toKey note =
     case note of
-        SingleNote { keyStr } ->
-            keyStr
+        SingleNote { key } ->
+            key
 
-        LongNote { keyStr } ->
-            keyStr
+        LongNote { key } ->
+            key
 
 
 toJustTime : Note -> JustTime
@@ -192,24 +192,24 @@ isDisabled note =
 
 isSameNote : Note -> Note -> Bool
 isSameNote a b =
-    (not << isDisabled) a && (not << isDisabled) b && (toKeyStr a == toKeyStr b) && (toJustTime a == toJustTime b)
+    (not << isDisabled) a && (not << isDisabled) b && (toKey a == toKey b) && (toJustTime a == toJustTime b)
 
 
 {-| 同じレーンのノーツの中で、現在先頭にあるノーツを取得する
 -}
-maybeHeadNote : KeyStr -> List Note -> Maybe Note
-maybeHeadNote keyStr allNotes =
+maybeHeadNote : Key -> List Note -> Maybe Note
+maybeHeadNote key allNotes =
     allNotes
-        |> List.filter (toKeyStr >> (==) keyStr)
+        |> List.filter (toKey >> (==) key)
         |> List.sortBy toJustTime
         |> List.head
 
 
 {-| 同じレーンのノーツの中で、現在先頭にあるノーツのみを更新する
 -}
-updateHeadNote : KeyStr -> (Note -> Note) -> List Note -> List Note
-updateHeadNote keyStr updateNote allNotes =
-    maybeHeadNote keyStr allNotes
+updateHeadNote : Key -> (Note -> Note) -> List Note -> List Note
+updateHeadNote key updateNote allNotes =
+    maybeHeadNote key allNotes
         |> Maybe.map
             (\headNote ->
                 allNotes
@@ -229,8 +229,8 @@ updateHeadNote keyStr updateNote allNotes =
 -}
 headNotes : List Note -> List Note
 headNotes allNotes =
-    allKeyStrList
-        |> List.map (\keyStr -> maybeHeadNote keyStr allNotes)
+    allKeyList
+        |> List.map (\key -> maybeHeadNote key allNotes)
         |> List.filterMap identity
 
 
@@ -267,7 +267,7 @@ headNoteJudge headNote =
 -}
 headNoteJudgeEffect : Note -> JudgeEffect
 headNoteJudgeEffect headNote =
-    { keyStr = toKeyStr headNote
+    { key = toKey headNote
     , judge = headNoteJudge headNote
     , isLongNote = isLongNote headNote
     }
@@ -309,8 +309,8 @@ update currentMusicTime lanes note =
                     toJustTime note + toLongTime note
 
                 isPressing =
-                    Lane.pressingKeyStrs (toKeyStr note) lanes
-                        |> List.member (toKeyStr note)
+                    Lane.pressingKeys (toKey note) lanes
+                        |> List.member (toKey note)
             in
             case longNote.noteStatus of
                 NotJudged ->
@@ -387,7 +387,7 @@ view : CurrentMusicTime -> NotesSpeed -> Note -> Html msg
 view currentMusicTime notesSpeed note =
     let
         left =
-            Lane.leftFromKeyStr <| toKeyStr note
+            Lane.leftFromKey <| toKey note
 
         bottom =
             if isLongJudging note then

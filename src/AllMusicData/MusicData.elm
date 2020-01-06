@@ -12,7 +12,7 @@ import AllMusicData.MusicData.CsvFileName as CsvFileName exposing (CsvFileName)
 import AllMusicData.MusicData.Level exposing (Level)
 import AllMusicData.MusicData.Mode as Mode exposing (Mode)
 import AllMusicData.MusicData.MusicId exposing (MusicId)
-import Constants exposing (allKeyStrList)
+import Constants exposing (allKeyList)
 import Page.Play.Note as Note exposing (Note)
 
 
@@ -157,8 +157,8 @@ createNotesFromCsvRow { beatsCountPerMeasure, timePerBeat, offset } csvRow =
         |> List.indexedMap
             (\index maybeValue ->
                 let
-                    maybeKeyStr =
-                        allKeyStrList
+                    maybeKey =
+                        allKeyList
                             |> List.drop index
                             |> List.head
 
@@ -174,11 +174,11 @@ createNotesFromCsvRow { beatsCountPerMeasure, timePerBeat, offset } csvRow =
                             Nothing ->
                                 maybeValue
                 in
-                case ( maybeKeyStr, maybeJustTime, maybeLongTime ) of
-                    ( Just keyStr, Just justTime, Just longTime ) ->
+                case ( maybeKey, maybeJustTime, maybeLongTime ) of
+                    ( Just key, Just justTime, Just longTime ) ->
                         Just <|
                             Note.new
-                                { keyStr = keyStr
+                                { key = key
                                 , justTime = justTime
                                 , longTime = longTime
                                 }

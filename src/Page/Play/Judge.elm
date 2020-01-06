@@ -12,7 +12,7 @@ module Page.Play.Judge exposing
 import AnimationManager
 import Constants exposing (goodRange, greatRange, perfectRange)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
-import Page.Play.KeyStr exposing (KeyStr)
+import Page.Play.Key as Key exposing (Key)
 import Page.Play.Note.JustTime exposing (JustTime)
 import Utils exposing (cmdIf)
 
@@ -74,7 +74,7 @@ isOverJustTime currentMusicTime justTime =
 
 
 type alias JudgeEffect =
-    { keyStr : KeyStr
+    { key : Key
     , judge : Judge
     , isLongNote : Bool
     }
@@ -84,12 +84,12 @@ judgeEffectCmd : JudgeEffect -> Cmd msg
 judgeEffectCmd judgeEffect =
     Cmd.batch
         [ AnimationManager.playJudgeEffectAnim
-            { keyStr = judgeEffect.keyStr
+            { key = Key.unwrap judgeEffect.key
             , isLongNote = judgeEffect.isLongNote
             }
             |> cmdIf (judgeEffect.judge == Perfect || judgeEffect.judge == Great || judgeEffect.judge == Good)
         , AnimationManager.playJudgeEffectTextAnim
-            { keyStr = judgeEffect.keyStr
+            { key = Key.unwrap judgeEffect.key
             , judgeText = toString judgeEffect.judge
             }
         ]

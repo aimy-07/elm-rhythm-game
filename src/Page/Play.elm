@@ -18,7 +18,7 @@ import AllMusicData.MusicData.Mode as Mode
 import AudioManager
 import AudioManager.AudioLoadingS exposing (AudioLoadingS)
 import AudioManager.BGM as BGM
-import Constants exposing (allKeyStrList, notesSpeedDefault, tweetText)
+import Constants exposing (allKeyList, notesSpeedDefault, tweetText)
 import Html exposing (Html, a, div, img, span, text)
 import Html.Attributes exposing (class, href, id, src, style, target)
 import Keyboard exposing (Key(..))
@@ -28,6 +28,7 @@ import Page.Play.Combo as Combo exposing (Combo)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.JudgeCounter as JudgeCounter exposing (JudgeCounter)
+import Page.Play.Key as Key
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note as Note exposing (Note)
 import Page.Play.PlayingS as PlayingS exposing (PlayingS)
@@ -88,7 +89,7 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , score = Score.init
               , combo = Combo.init
               , judgeCounter = JudgeCounter.init
-              , lanes = List.map Lane.new allKeyStrList
+              , lanes = List.map Lane.new allKeyList
               , resultSavingS = ResultSavingS.init
               }
             , AudioManager.stopBGM ()
@@ -107,7 +108,7 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , score = Score.init
               , combo = Combo.init
               , judgeCounter = JudgeCounter.init
-              , lanes = List.map Lane.new allKeyStrList
+              , lanes = List.map Lane.new allKeyList
               , resultSavingS = ResultSavingS.init
               }
             , Route.replaceUrl (Session.toNavKey session) Route.Home
@@ -190,36 +191,25 @@ update msg model =
             )
 
         KeyDown rawKey ->
-            let
-                maybeKey =
-                    Keyboard.anyKeyUpper rawKey
-            in
-            case maybeKey of
-                Just Keyboard.Spacebar ->
-                    let
-                        ( nextPlayingS, playingSCmd ) =
-                            PlayingS.pressSpaceKey bgm (FinishedCountdown ()) model.playingS
-                    in
-                    ( { model | playingS = nextPlayingS }, playingSCmd )
-
-                Just (Keyboard.Character keyStr) ->
+            case Key.new rawKey of
+                Key.Character key ->
                     let
                         nextLanes =
-                            List.map (Lane.press keyStr) model.lanes
+                            List.map (Lane.press key) model.lanes
                     in
                     if not <| PlayingS.isPlaying model.playingS then
                         -- Playingの時しか判定しない
                         -- LaneのisPressingの更新のみ行う
                         ( { model | lanes = nextLanes }, Cmd.none )
 
-                    else if List.any (Lane.isPressing keyStr) model.lanes then
+                    else if List.any (Lane.isPressing key) model.lanes then
                         -- すでにそのレーンのキーが押されている状態ではKeyDown判定しない
                         ( model, Cmd.none )
 
                     else
                         let
                             maybeHeadNote =
-                                Note.maybeHeadNote keyStr model.allNotes
+                                Note.maybeHeadNote key model.allNotes
                         in
                         case maybeHeadNote of
                             Just headNote ->
@@ -229,7 +219,7 @@ update msg model =
 
                                     nextAllNotes =
                                         model.allNotes
-                                            |> Note.updateHeadNote keyStr (Note.updateKeyDown judge)
+                                            |> Note.updateHeadNote key (Note.updateKeyDown judge)
                                             |> List.filter (not << Note.isDisabled)
 
                                     nextScore =
@@ -250,7 +240,7 @@ update msg model =
                                   }
                                 , Cmd.batch
                                     [ Judge.judgeEffectCmd
-                                        { keyStr = keyStr
+                                        { key = key
                                         , judge = judge
                                         , isLongNote = Note.isLongNote headNote
                                         }
@@ -262,40 +252,43 @@ update msg model =
                                 -- このレーンのノーツはもうない
                                 ( { model | lanes = nextLanes }, Cmd.none )
 
-                _ ->
+                Key.Space ->
+                    let
+                        ( nextPlayingS, playingSCmd ) =
+                            PlayingS.pressSpaceKey bgm (FinishedCountdown ()) model.playingS
+                    in
+                    ( { model | playingS = nextPlayingS }, playingSCmd )
+
+                Key.Invalid ->
                     ( model, Cmd.none )
 
         KeyUp rawKey ->
-            let
-                maybeKey =
-                    Keyboard.anyKeyUpper rawKey
-            in
-            case maybeKey of
-                Just (Keyboard.Character keyStr) ->
+            case Key.new rawKey of
+                Key.Character key ->
                     let
                         nextLanes =
-                            List.map (Lane.unPress keyStr) model.lanes
+                            List.map (Lane.unPress key) model.lanes
                     in
                     if not <| PlayingS.isPlaying model.playingS then
                         -- Playingの時しか判定しない
                         -- LaneのisPressingの更新のみ行う
                         ( { model | lanes = nextLanes }, Cmd.none )
 
-                    else if not <| List.any (Lane.isPressing keyStr) model.lanes then
+                    else if not <| List.any (Lane.isPressing key) model.lanes then
                         -- もうそのレーンのキーが押されていない状態ではKeyUp判定しない
                         ( model, Cmd.none )
 
                     else
                         let
                             maybeHeadNote =
-                                Note.maybeHeadNote keyStr model.allNotes
+                                Note.maybeHeadNote key model.allNotes
                         in
                         case maybeHeadNote of
                             Just _ ->
                                 let
                                     nextAllNotes =
                                         model.allNotes
-                                            |> Note.updateHeadNote keyStr Note.updateKeyUp
+                                            |> Note.updateHeadNote key Note.updateKeyUp
                                             |> List.filter (not << Note.isDisabled)
                                 in
                                 ( { model | allNotes = nextAllNotes, lanes = nextLanes }, Cmd.none )
@@ -304,7 +297,10 @@ update msg model =
                                 -- このレーンのノーツはもうない
                                 ( { model | lanes = nextLanes }, Cmd.none )
 
-                _ ->
+                Key.Space ->
+                    ( model, Cmd.none )
+
+                Key.Invalid ->
                     ( model, Cmd.none )
 
         FinishedCountdown () ->
@@ -612,7 +608,15 @@ viewResult musicData resultSavingS judgeCounter =
                     [ class "playOverview_container" ]
                     [ div
                         [ class "playResult_contentsContainer" ]
-                        [ div [ class "playResult_back" ] []
+                        [ a
+                            [ class "playResult_tweetBtnContainer"
+                            , href <| "http://twitter.com/intent/tweet?text=" ++ tweetTextContent
+                            , target "_blank"
+                            ]
+                            [ img [ class "playResult_tweetBtnBack", src "./img/icon_fukidashi2.png" ] []
+                            , img [ class "playResult_tweetBtnIcon", src "./img/icon_twitter_blue.png" ] []
+                            ]
+                        , div [ class "playResult_back" ] []
                         , div [ class "playResult_backInner" ] []
                         , div [ class "playResult_titleText" ] [ text "RESULT" ]
                         , div [ class "playResult_bigText" ] [ text musicData.musicName ]
@@ -638,14 +642,6 @@ viewResult musicData resultSavingS judgeCounter =
                         , a
                             [ class "playResult_backBtn", Route.href Route.Home ]
                             [ text "- Back to Home -" ]
-                        ]
-                    , a
-                        [ class "playResult_tweetBtnContainer"
-                        , href <| "http://twitter.com/intent/tweet?text=" ++ tweetTextContent
-                        , target "_blank"
-                        ]
-                        [ img [ class "playResult_tweetBtnBack", src "./img/icon_fukidashi2.png" ] []
-                        , img [ class "playResult_tweetBtnIcon", src "./img/icon_twitter_blue.png" ] []
                         ]
                     ]
                 ]

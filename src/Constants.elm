@@ -1,5 +1,5 @@
 module Constants exposing
-    ( allKeyStrList
+    ( allKeyList
     , allModeList
     , allMusicIdList
     , bgmVolumeDefault
@@ -21,7 +21,7 @@ module Constants exposing
 
 import AllMusicData.MusicData.Mode as Mode exposing (Mode)
 import AllMusicData.MusicData.MusicId exposing (MusicId)
-import Page.Play.KeyStr exposing (KeyStr)
+import Page.Play.Key as Key exposing (Key)
 import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
 import UserSetting.Setting.Volume exposing (Volume)
 
@@ -39,9 +39,9 @@ allModeList =
     [ Mode.Normal, Mode.Hard, Mode.Master ]
 
 
-allKeyStrList : List KeyStr
-allKeyStrList =
-    [ "S", "D", "F", "J", "K", "L" ]
+allKeyList : List Key
+allKeyList =
+    [ Key.S, Key.D, Key.F, Key.J, Key.K, Key.L ]
 
 
 longTimeDuration : Float

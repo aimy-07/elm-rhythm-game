@@ -2,83 +2,80 @@ module Page.Play.Lane exposing
     ( Lane
     , allUnPress
     , isPressing
-    , leftFromKeyStr
+    , leftFromKey
     , new
     , press
-    , pressingKeyStrs
-    , toKeyStr
+    , pressingKeys
+    , toKey
     , unPress
     , view
     )
 
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, id, style)
-import Page.Play.KeyStr exposing (KeyStr)
+import Page.Play.Key as Key exposing (Key)
 
 
 type Lane
     = Lane
-        { keyStr : KeyStr
+        { key : Key
         , left : Int
         , isPressing : Bool
         }
 
 
-new : KeyStr -> Lane
-new keyStr =
+new : Key -> Lane
+new key =
     Lane
-        { keyStr = keyStr
-        , left = leftFromKeyStr keyStr
+        { key = key
+        , left = leftFromKey key
         , isPressing = False
         }
 
 
-leftFromKeyStr : KeyStr -> Int
-leftFromKeyStr keyStr =
-    case keyStr of
-        "S" ->
+leftFromKey : Key -> Int
+leftFromKey key =
+    case key of
+        Key.S ->
             50
 
-        "D" ->
+        Key.D ->
             150
 
-        "F" ->
+        Key.F ->
             250
 
-        "J" ->
+        Key.J ->
             650
 
-        "K" ->
+        Key.K ->
             750
 
-        "L" ->
+        Key.L ->
             850
 
-        _ ->
-            -1000
+
+toKey : Lane -> Key
+toKey (Lane { key }) =
+    key
 
 
-toKeyStr : Lane -> KeyStr
-toKeyStr (Lane { keyStr }) =
-    keyStr
-
-
-isPressing : KeyStr -> Lane -> Bool
-isPressing keyStr (Lane lane) =
-    if lane.keyStr == keyStr then
+isPressing : Key -> Lane -> Bool
+isPressing key (Lane lane) =
+    if lane.key == key then
         lane.isPressing
 
     else
         False
 
 
-pressingKeyStrs : KeyStr -> List Lane -> List KeyStr
-pressingKeyStrs keyStr lanes =
+pressingKeys : Key -> List Lane -> List Key
+pressingKeys key lanes =
     lanes
         |> List.map
             (\lane ->
-                if isPressing keyStr lane then
-                    Just keyStr
+                if isPressing key lane then
+                    Just key
 
                 else
                     Nothing
@@ -86,18 +83,18 @@ pressingKeyStrs keyStr lanes =
         |> List.filterMap identity
 
 
-press : KeyStr -> Lane -> Lane
-press keyStr (Lane lane) =
-    if lane.keyStr == keyStr then
+press : Key -> Lane -> Lane
+press key (Lane lane) =
+    if lane.key == key then
         Lane { lane | isPressing = True }
 
     else
         Lane lane
 
 
-unPress : KeyStr -> Lane -> Lane
-unPress keyStr (Lane lane) =
-    if lane.keyStr == keyStr then
+unPress : Key -> Lane -> Lane
+unPress key (Lane lane) =
+    if lane.key == key then
         Lane { lane | isPressing = False }
 
     else
@@ -127,7 +124,7 @@ view (Lane lane) =
         [ div [ class "playCenterLine_judgeArea" ] []
         , div [ class "playCenterLine_judgeAreaLine left" ] []
         , div [ class "playCenterLine_judgeAreaLine right" ] []
-        , div [ class "playLane_keyText", class clsIsPressing ] [ text lane.keyStr ]
-        , div [ class "playJudgeEffect_effect", id <| "judgeEffect_" ++ lane.keyStr ] []
-        , div [ class "playJudgeEffect_text", id <| "judgeEffectText_" ++ lane.keyStr ] []
+        , div [ class "playLane_keyText", class clsIsPressing ] [ text <| Key.unwrap lane.key ]
+        , div [ class "playJudgeEffect_effect", id <| "judgeEffect_" ++ Key.unwrap lane.key ] []
+        , div [ class "playJudgeEffect_text", id <| "judgeEffectText_" ++ Key.unwrap lane.key ] []
         ]

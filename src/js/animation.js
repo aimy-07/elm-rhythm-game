@@ -3,8 +3,8 @@
 ---------------------------------- */
 export function animationSetUpSubscriber (app) {
   // 判定時の◇エフェクトアニメーションを再生する
-  app.ports.playJudgeEffectAnim.subscribe(({keyStr, isLongNote}) => {
-    const judgeEffect = document.getElementById("judgeEffect_" + keyStr);
+  app.ports.playJudgeEffectAnim.subscribe(({key, isLongNote}) => {
+    const judgeEffect = document.getElementById("judgeEffect_" + key);
     if (!judgeEffect) return;
     judgeEffect.classList.remove("long");
     if (isLongNote) {
@@ -14,8 +14,8 @@ export function animationSetUpSubscriber (app) {
   })
 
   // 判定文字のエフェクトアニメーションを再生する
-  app.ports.playJudgeEffectTextAnim.subscribe(({keyStr, judgeText}) => {
-    const judgeEffectText = document.getElementById("judgeEffectText_" + keyStr);
+  app.ports.playJudgeEffectTextAnim.subscribe(({key, judgeText}) => {
+    const judgeEffectText = document.getElementById("judgeEffectText_" + key);
     if (!judgeEffectText) return;
     judgeEffectText.textContent = judgeText;
     replayAnim(judgeEffectText);
