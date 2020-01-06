@@ -9,10 +9,9 @@ module Constants exposing
     , goodScore
     , greatRange
     , greatScore
-    , longScore
     , longTimeDuration
     , longTimeOffset
-    , missRange
+    , lostScore
     , notesSpeedDefault
     , perfectRange
     , perfectScore
@@ -45,14 +44,14 @@ allKeyStrList =
     [ "S", "D", "F", "J", "K", "L" ]
 
 
-longTimeOffset : Float
-longTimeOffset =
-    150
-
-
 longTimeDuration : Float
 longTimeDuration =
     200
+
+
+longTimeOffset : Float
+longTimeOffset =
+    30
 
 
 perfectRange : Float
@@ -70,11 +69,6 @@ goodRange =
     130
 
 
-missRange : Float
-missRange =
-    200
-
-
 perfectScore : Int
 perfectScore =
     2000
@@ -90,9 +84,9 @@ goodScore =
     1000
 
 
-longScore : Int
-longScore =
-    100
+lostScore : Int
+lostScore =
+    200
 
 
 currentMusicIdDefault : MusicId

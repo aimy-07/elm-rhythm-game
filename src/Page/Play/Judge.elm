@@ -1,16 +1,16 @@
 module Page.Play.Judge exposing
     ( Judge(..)
+    , JudgeEffect
     , isOverJustTime
     , isOverMiss
+    , judgeEffectCmd
     , judgeKeyDown
-    , keyDownEffectCmd
-    , longEffectCmd
-    , missEffectCmd
+    , playMissEffectAnimCmd
     , toStringJudge
     )
 
 import AnimationManager
-import Constants exposing (goodRange, greatRange, missRange, perfectRange)
+import Constants exposing (goodRange, greatRange, perfectRange)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.KeyStr exposing (KeyStr)
 import Page.Play.Note.JustTime exposing (JustTime)
@@ -21,6 +21,7 @@ type Judge
     = Perfect
     | Great
     | Good
+    | Lost
     | Miss
     | Invalid
 
@@ -36,6 +37,9 @@ toStringJudge judge =
 
         Good ->
             "Good"
+
+        Lost ->
+            "Lost"
 
         Miss ->
             "Miss"
@@ -55,9 +59,6 @@ judgeKeyDown currentMusicTime justTime =
     else if Basics.abs (justTime - currentMusicTime) < goodRange then
         Good
 
-    else if justTime - currentMusicTime < missRange then
-        Miss
-
     else
         Invalid
 
@@ -72,32 +73,30 @@ isOverJustTime currentMusicTime justTime =
     justTime < currentMusicTime
 
 
-keyDownEffectCmd : KeyStr -> Judge -> Bool -> Cmd msg
-keyDownEffectCmd keyStr judge isLongNote =
+type alias JudgeEffect =
+    { keyStr : KeyStr
+    , judge : Judge
+    , isLongNote : Bool
+    }
+
+
+judgeEffectCmd : JudgeEffect -> Cmd msg
+judgeEffectCmd judgeEffect =
     Cmd.batch
         [ AnimationManager.playJudgeEffectAnim
-            { keyStr = keyStr
-            , isLongNote = isLongNote
+            { keyStr = judgeEffect.keyStr
+            , isLongNote = judgeEffect.isLongNote
             }
+            |> cmdIf (judgeEffect.judge == Perfect || judgeEffect.judge == Great || judgeEffect.judge == Good)
         , AnimationManager.playJudgeEffectTextAnim
-            { keyStr = keyStr
-            , judgeText = toStringJudge judge
+            { keyStr = judgeEffect.keyStr
+            , judgeText = toStringJudge judgeEffect.judge
             }
         ]
-        |> cmdIf (judge /= Invalid)
+        |> cmdIf (judgeEffect.judge /= Invalid)
 
 
-missEffectCmd : KeyStr -> Cmd msg
-missEffectCmd keyStr =
-    AnimationManager.playJudgeEffectTextAnim
-        { keyStr = keyStr
-        , judgeText = toStringJudge Miss
-        }
-
-
-longEffectCmd : KeyStr -> Cmd msg
-longEffectCmd keyStr =
-    AnimationManager.playJudgeEffectAnim
-        { keyStr = keyStr
-        , isLongNote = True
-        }
+playMissEffectAnimCmd : List Judge -> Cmd msg
+playMissEffectAnimCmd headNoteJudges =
+    AnimationManager.playMissEffectAnim ()
+        |> cmdIf (List.member Miss headNoteJudges)

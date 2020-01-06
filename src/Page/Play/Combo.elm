@@ -10,6 +10,7 @@ module Page.Play.Combo exposing
 
 import AnimationManager
 import Page.Play.Judge exposing (Judge(..))
+import Page.Play.Note as Note exposing (Note)
 import Utils exposing (cmdIf)
 
 
@@ -36,16 +37,44 @@ toResultCombo (Combo _ resultCombo) =
     resultCombo
 
 
-update : Bool -> Int -> Combo -> Combo
-update hasDisabledNotes judgedLongNoteCount (Combo combo resultCombo) =
+update : List Note -> Combo -> Combo
+update headNotes (Combo combo resultCombo) =
     let
-        -- Disabledノーツがあったら先にCombo = 0を実行する
+        headNoteJudges =
+            List.map Note.headNoteJudge headNotes
+
+        increment =
+            headNoteJudges
+                |> List.map
+                    (\judge ->
+                        case judge of
+                            Perfect ->
+                                1
+
+                            Great ->
+                                1
+
+                            Good ->
+                                1
+
+                            Lost ->
+                                0
+
+                            Miss ->
+                                0
+
+                            Invalid ->
+                                0
+                    )
+                |> List.sum
+
         nextCombo =
-            if hasDisabledNotes then
-                1 * judgedLongNoteCount
+            if List.member Miss headNoteJudges then
+                -- Missがあったらそれまでのcomboは無効にする
+                increment
 
             else
-                combo + judgedLongNoteCount
+                combo + increment
     in
     Combo nextCombo (updateResultCombo nextCombo resultCombo)
 
@@ -53,7 +82,6 @@ update hasDisabledNotes judgedLongNoteCount (Combo combo resultCombo) =
 updateKeyDown : Judge -> Combo -> Combo
 updateKeyDown judge (Combo combo resultCombo) =
     let
-        -- Disabledノーツがあったら先にCombo = 0を実行する
         nextCombo =
             case judge of
                 Perfect ->
@@ -64,6 +92,10 @@ updateKeyDown judge (Combo combo resultCombo) =
 
                 Good ->
                     combo + 1
+
+                Lost ->
+                    -- KeyDownでLost判定が出ることはない
+                    combo
 
                 Miss ->
                     0

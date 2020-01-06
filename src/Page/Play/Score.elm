@@ -6,8 +6,9 @@ module Page.Play.Score exposing
     , updateKeyDown
     )
 
-import Constants exposing (goodScore, greatScore, longScore, perfectScore)
+import Constants exposing (goodScore, greatScore, lostScore, perfectScore)
 import Page.Play.Judge exposing (Judge(..))
+import Page.Play.Note as Note exposing (Note)
 
 
 type Score
@@ -24,9 +25,38 @@ unwrap (Score score) =
     score
 
 
-update : Int -> Score -> Score
-update judgedLongNoteCount (Score score) =
-    Score (score + judgedLongNoteCount * longScore)
+update : List Note -> Score -> Score
+update headNotes (Score score) =
+    let
+        headNoteJudges =
+            List.map Note.headNoteJudge headNotes
+
+        increment =
+            headNoteJudges
+                |> List.map
+                    (\judge ->
+                        case judge of
+                            Perfect ->
+                                perfectScore
+
+                            Great ->
+                                greatScore
+
+                            Good ->
+                                goodScore
+
+                            Lost ->
+                                lostScore
+
+                            Miss ->
+                                0
+
+                            Invalid ->
+                                0
+                    )
+                |> List.sum
+    in
+    Score (score + increment)
 
 
 updateKeyDown : Judge -> Score -> Score
@@ -40,6 +70,10 @@ updateKeyDown judge (Score score) =
 
         Good ->
             Score (score + goodScore)
+
+        Lost ->
+            -- KeyDownでLost判定が出ることはない
+            Score score
 
         Miss ->
             Score score

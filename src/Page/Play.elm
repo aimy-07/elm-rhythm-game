@@ -27,6 +27,7 @@ import Page
 import Page.Play.Combo as Combo exposing (Combo)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge as Judge exposing (Judge(..))
+import Page.Play.JudgeCounter as JudgeCounter exposing (JudgeCounter)
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note as Note exposing (Note)
 import Page.Play.PlayingS as PlayingS exposing (PlayingS)
@@ -37,7 +38,6 @@ import Rank
 import Record
 import Route
 import Session exposing (Session)
-import Set
 import Time
 import UserSetting exposing (UserSetting)
 import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
@@ -59,6 +59,7 @@ type alias Model =
     , currentMusicTime : CurrentMusicTime
     , score : Score
     , combo : Combo
+    , judgeCounter : JudgeCounter
     , lanes : List Lane
     , resultSavingS : ResultSavingS
     }
@@ -86,6 +87,7 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , currentMusicTime = 0
               , score = Score.init
               , combo = Combo.init
+              , judgeCounter = JudgeCounter.init
               , lanes = List.map Lane.new allKeyStrList
               , resultSavingS = ResultSavingS.init
               }
@@ -104,6 +106,7 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , currentMusicTime = 0
               , score = Score.init
               , combo = Combo.init
+              , judgeCounter = JudgeCounter.init
               , lanes = List.map Lane.new allKeyStrList
               , resultSavingS = ResultSavingS.init
               }
@@ -154,56 +157,35 @@ update msg model =
 
                 nextAllNotes =
                     updatedNotes
-                        |> List.filter Note.isNotDisabled
+                        |> List.filter (not << Note.isDisabled)
 
-                missDisabledNoteKeys =
-                    updatedNotes
-                        |> List.filter Note.isMissDisabled
-                        |> List.map Note.toKeyStr
-
-                judgedLongNoteKeys =
-                    model.allNotes
-                        |> List.concatMap (Note.judgedLongNoteKeys updatedTime model.lanes)
+                headNotes =
+                    Note.headNotes updatedNotes
 
                 nextScore =
-                    Score.update (List.length judgedLongNoteKeys) model.score
+                    Score.update headNotes model.score
 
                 nextCombo =
-                    let
-                        hasDisabledNotes =
-                            not <| List.isEmpty missDisabledNoteKeys
-                    in
-                    Combo.update hasDisabledNotes (List.length judgedLongNoteKeys) model.combo
+                    Combo.update headNotes model.combo
 
-                missEffectCmds =
-                    missDisabledNoteKeys
-                        -- 重複を削除するために一度Setに変換する
-                        |> Set.fromList
-                        |> Set.toList
-                        |> List.map Judge.missEffectCmd
-                        |> Cmd.batch
-
-                longEffectCmds =
-                    judgedLongNoteKeys
-                        -- 重複を削除するために一度Setに変換する
-                        |> Set.fromList
-                        |> Set.toList
-                        |> List.map Judge.longEffectCmd
-                        |> Cmd.batch
-
-                comboEffectCmd =
-                    Combo.comboEffectCmd model.combo nextCombo
+                nextJudgeCounter =
+                    JudgeCounter.update headNotes model.judgeCounter
             in
             ( { model
                 | currentMusicTime = updatedTime
                 , allNotes = nextAllNotes
                 , score = nextScore
                 , combo = nextCombo
+                , judgeCounter = nextJudgeCounter
               }
             , Cmd.batch
-                [ missEffectCmds
-                , longEffectCmds
-                , comboEffectCmd
+                [ headNotes
+                    |> List.map (Note.headNoteJudgeEffect >> Judge.judgeEffectCmd)
+                    |> Cmd.batch
+                , headNotes
+                    |> List.map Note.headNoteJudge
+                    |> Judge.playMissEffectAnimCmd
+                , Combo.comboEffectCmd model.combo nextCombo
                 ]
             )
 
@@ -247,8 +229,8 @@ update msg model =
 
                                     nextAllNotes =
                                         model.allNotes
-                                            |> Note.updateHeadNote keyStr (Note.updateOnKeyDown judge)
-                                            |> List.filter Note.isNotDisabled
+                                            |> Note.updateHeadNote keyStr (Note.updateKeyDown judge)
+                                            |> List.filter (not << Note.isDisabled)
 
                                     nextScore =
                                         Score.updateKeyDown judge model.score
@@ -256,18 +238,23 @@ update msg model =
                                     nextCombo =
                                         Combo.updateKeyDown judge model.combo
 
-                                    comboEffectCmd =
-                                        Combo.comboEffectCmd model.combo nextCombo
+                                    nextJudgeCounter =
+                                        JudgeCounter.updateKeyDown judge model.judgeCounter
                                 in
                                 ( { model
                                     | allNotes = nextAllNotes
                                     , lanes = nextLanes
                                     , score = nextScore
                                     , combo = nextCombo
+                                    , judgeCounter = nextJudgeCounter
                                   }
                                 , Cmd.batch
-                                    [ Judge.keyDownEffectCmd keyStr judge (Note.isLongNote headNote)
-                                    , comboEffectCmd
+                                    [ Judge.judgeEffectCmd
+                                        { keyStr = keyStr
+                                        , judge = judge
+                                        , isLongNote = Note.isLongNote headNote
+                                        }
+                                    , Combo.comboEffectCmd model.combo nextCombo
                                     ]
                                 )
 
@@ -308,8 +295,8 @@ update msg model =
                                 let
                                     nextAllNotes =
                                         model.allNotes
-                                            |> Note.updateHeadNote keyStr Note.updateOnKeyUp
-                                            |> List.filter Note.isNotDisabled
+                                            |> Note.updateHeadNote keyStr Note.updateKeyUp
+                                            |> List.filter (not << Note.isDisabled)
                                 in
                                 ( { model | allNotes = nextAllNotes, lanes = nextLanes }, Cmd.none )
 
@@ -444,6 +431,7 @@ view model =
             , viewMusicInfo model.currentMusicData
             , viewDisplayCircle model.currentMusicData model.currentMusicTime model.combo model.score
             ]
+        , div [ class "playJudgeEffect_missEffect", id "missEffect" ] []
         , viewReady
             |> viewIf (PlayingS.isReady model.playingS)
         , viewPause
