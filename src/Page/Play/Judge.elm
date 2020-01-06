@@ -6,7 +6,7 @@ module Page.Play.Judge exposing
     , judgeEffectCmd
     , judgeKeyDown
     , playMissEffectAnimCmd
-    , toStringJudge
+    , toString
     )
 
 import AnimationManager
@@ -26,8 +26,8 @@ type Judge
     | Invalid
 
 
-toStringJudge : Judge -> String
-toStringJudge judge =
+toString : Judge -> String
+toString judge =
     case judge of
         Perfect ->
             "Perfect"
@@ -90,7 +90,7 @@ judgeEffectCmd judgeEffect =
             |> cmdIf (judgeEffect.judge == Perfect || judgeEffect.judge == Great || judgeEffect.judge == Good)
         , AnimationManager.playJudgeEffectTextAnim
             { keyStr = judgeEffect.keyStr
-            , judgeText = toStringJudge judgeEffect.judge
+            , judgeText = toString judgeEffect.judge
             }
         ]
         |> cmdIf (judgeEffect.judge /= Invalid)

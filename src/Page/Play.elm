@@ -19,8 +19,8 @@ import AudioManager
 import AudioManager.AudioLoadingS exposing (AudioLoadingS)
 import AudioManager.BGM as BGM
 import Constants exposing (allKeyStrList, notesSpeedDefault, tweetText)
-import Html exposing (Html, a, div, span, text)
-import Html.Attributes exposing (class, href, id, style, target)
+import Html exposing (Html, a, div, img, span, text)
+import Html.Attributes exposing (class, href, id, src, style, target)
 import Keyboard exposing (Key(..))
 import OwnRecord exposing (OwnRecordDto)
 import Page
@@ -438,7 +438,7 @@ view model =
             |> viewIf (PlayingS.isPause model.playingS)
         , viewCountdown
             |> viewIf (PlayingS.isCountdown model.playingS)
-        , viewResult model.currentMusicData model.resultSavingS
+        , viewResult model.currentMusicData model.resultSavingS model.judgeCounter
             |> viewIf (PlayingS.isFinish model.playingS)
         , div [] [ Page.viewLoaded ]
         ]
@@ -555,8 +555,8 @@ viewCountdown =
         ]
 
 
-viewResult : MusicData -> ResultSavingS -> Html msg
-viewResult musicData resultSavingS =
+viewResult : MusicData -> ResultSavingS -> JudgeCounter -> Html msg
+viewResult musicData resultSavingS judgeCounter =
     case ResultSavingS.toResult resultSavingS of
         Just { record, isBestCombo, isBestScore } ->
             let
@@ -571,76 +571,81 @@ viewResult musicData resultSavingS =
 
                 tweetTextContent =
                     tweetText musicData.musicName musicData.mode record.combo record.score
+
+                viewNotesDetail judge count =
+                    div [ class "playResultNotesDetail_container" ]
+                        [ div [ class "playResultNotesDetail_box" ] []
+                        , div [ class "playResultNotesDetail_labelText" ] [ text <| Judge.toString judge ]
+                        , div [ class "playResultNotesDetail_numText" ] [ text <| String.fromInt count ]
+                        ]
+
+                viewComboEffectText =
+                    div [ class "playResultItem_effectText" ]
+                        [ text "自己ベスト更新！"
+                            |> viewIf isBestCombo
+                        , text "フルコンボ！"
+                            |> viewIf isFullCombo
+                        ]
+
+                viewScoreEffectText =
+                    div [ class "playResultItem_effectText" ]
+                        [ text "自己ベスト更新！"
+                            |> viewIf isBestScore
+                        ]
+
+                viewResultItem labelText rank viewEffectText result max =
+                    div [ class "playResultItem_container" ]
+                        [ div [ class "playResultItem_box" ] []
+                        , div [ class "playResultItem_labelText" ] [ text labelText ]
+                        , div [ class "playResultItem_rankText" ] [ text <| Rank.toString rank ]
+                        , viewEffectText
+                        , div
+                            [ class "playResultItem_textContainer" ]
+                            [ span [ class "playResultItem_resultText" ] [ text <| String.fromInt result ]
+                            , span [ class "playResultItem_maxText" ] [ text <| " / " ++ String.fromInt max ]
+                            ]
+                        , div [ class "playResultItem_line" ] []
+                        ]
             in
             div [ class "play_overview" ]
                 [ div
                     [ class "playOverview_container" ]
                     [ div
-                        [ class "playOverview_contentsContainer" ]
-                        [ div [ class "playOverview_back" ] []
-                        , div [ class "playOverview_backInner" ] []
-                        , div [ class "playOverview_titleText" ] [ text "RESULT" ]
-                        , div [ class "playOverview_bigText" ] [ text musicData.musicName ]
-                        , div [ class "playOverview_smallText" ] [ text musicData.composer ]
+                        [ class "playResult_contentsContainer" ]
+                        [ div [ class "playResult_back" ] []
+                        , div [ class "playResult_backInner" ] []
+                        , div [ class "playResult_titleText" ] [ text "RESULT" ]
+                        , div [ class "playResult_bigText" ] [ text musicData.musicName ]
+                        , div [ class "playResult_smallText" ] [ text musicData.composer ]
                         , div
-                            [ class "playOverview_smallText" ]
+                            [ class "playResult_smallText" ]
                             [ span [] [ text <| Mode.toString musicData.mode ]
                             , span [] [ text "\u{3000}" ]
                             , span [] [ text <| Level.toString musicData.level ]
                             ]
                         , div
-                            [ class "playOverviewResultItem_container" ]
-                            [ div [ class "playOverviewResultItem_box" ] []
-                            , div [ class "playOverviewResultItem_labelText" ] [ text "COMBO" ]
-                            , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString comboRank ]
-                            , div [ class "playOverviewResultItem_effectText" ]
-                                [ text "自己ベスト更新！"
-                                    |> viewIf isBestCombo
-                                , text "フルコンボ！"
-                                    |> viewIf isFullCombo
-                                ]
-                            , div
-                                [ class "playOverviewResultItem_textContainer" ]
-                                [ span
-                                    [ class "playOverviewResultItem_resultText" ]
-                                    [ text <| String.fromInt record.combo ]
-                                , span
-                                    [ class "playOverviewResultItem_maxText" ]
-                                    [ text <| " / " ++ String.fromInt musicData.maxCombo ]
-                                ]
-                            , div [ class "playOverviewResultItem_line" ] []
+                            [ class "playResultNotesDetails_container" ]
+                            [ viewNotesDetail Perfect (JudgeCounter.toPerfect judgeCounter)
+                            , viewNotesDetail Great (JudgeCounter.toGreat judgeCounter)
+                            , viewNotesDetail Good (JudgeCounter.toGood judgeCounter)
+                            , viewNotesDetail Lost (JudgeCounter.toLost judgeCounter)
+                            , viewNotesDetail Miss (JudgeCounter.toMiss judgeCounter)
                             ]
-                        , div
-                            [ class "playOverviewResultItem_container" ]
-                            [ div [ class "playOverviewResultItem_box" ] []
-                            , div [ class "playOverviewResultItem_labelText" ] [ text "SCORE" ]
-                            , div [ class "playOverviewResultItem_rankText" ] [ text <| Rank.toString scoreRank ]
-                            , div [ class "playOverviewResultItem_effectText" ]
-                                [ text "自己ベスト更新！"
-                                    |> viewIf isBestScore
-                                ]
-                            , div
-                                [ class "playOverviewResultItem_textContainer" ]
-                                [ span
-                                    [ class "playOverviewResultItem_resultText" ]
-                                    [ text <| String.fromInt record.score ]
-                                , span
-                                    [ class "playOverviewResultItem_maxText" ]
-                                    [ text <| " / " ++ String.fromInt musicData.maxScore ]
-                                ]
-                            , div [ class "playOverviewResultItem_line" ] []
-                            ]
-                        , a
-                            [ class "playOverviewResultItem_tweetBtn"
-                            , href <| "http://twitter.com/intent/tweet?text=" ++ tweetTextContent
-                            , target "_blank"
-                            ]
-                            [ text "- Tweet the Result -" ]
+                        , viewResultItem "COMBO" comboRank viewComboEffectText record.combo musicData.maxCombo
+                        , viewResultItem "SCORE" scoreRank viewScoreEffectText record.score musicData.maxScore
 
                         -- 戻るボタンでプレイ画面に戻ることを許容する
                         , a
-                            [ class "playOverviewResultItem_backBtn", Route.href Route.Home ]
+                            [ class "playResult_backBtn", Route.href Route.Home ]
                             [ text "- Back to Home -" ]
+                        ]
+                    , a
+                        [ class "playResult_tweetBtnContainer"
+                        , href <| "http://twitter.com/intent/tweet?text=" ++ tweetTextContent
+                        , target "_blank"
+                        ]
+                        [ img [ class "playResult_tweetBtnBack", src "./img/icon_fukidashi2.png" ] []
+                        , img [ class "playResult_tweetBtnIcon", src "./img/icon_twitter_blue.png" ] []
                         ]
                     ]
                 ]
