@@ -272,7 +272,7 @@
 
 .playResultItem_effectText {
   position: absolute;
-  top: 56px;
+  top: 60px;
   right: 0px;
   color: var(--color-elm-orange);
   font-size: 10px;
@@ -281,13 +281,13 @@
 
 .playResultItem_textContainer {
   position: absolute;
-  top: 65px;
-  right: 10px;
+  top: 70px;
+  right: 5px;
 }
 
 .playResultItem_resultText {
   color: white;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   text-shadow: 0 0 3px white;
   font-family: "droidSansMono";
@@ -295,7 +295,7 @@
 
 .playResultItem_maxText {
   color: white;
-  font-size: 16px;
+  font-size: 15px;
   font-family: "droidSansMono";
 }
 

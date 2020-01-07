@@ -1,9 +1,11 @@
 module Rank exposing
     ( Rank
     , allRankList
-    , border
+    , comboBorder
     , invalid
-    , new
+    , newComboRank
+    , newScoreRank
+    , scoreBorder
     , toString
     )
 
@@ -19,35 +21,35 @@ type Rank
     | Invalid
 
 
-new : Int -> Int -> Rank
-new num max =
-    if num >= border max SSS then
+newComboRank : Int -> Int -> Rank
+newComboRank num max =
+    if num >= comboBorder max SSS then
         SSS
 
-    else if num >= border max SS then
+    else if num >= comboBorder max SS then
         SS
 
-    else if num >= border max S then
+    else if num >= comboBorder max S then
         S
 
-    else if num >= border max A then
+    else if num >= comboBorder max A then
         A
 
-    else if num >= border max B then
+    else if num >= comboBorder max B then
         B
 
-    else if num >= border max C then
+    else if num >= comboBorder max C then
         C
 
-    else if num >= border max D then
+    else if num >= comboBorder max D then
         D
 
     else
         Invalid
 
 
-border : Int -> Rank -> Int
-border max rank =
+comboBorder : Int -> Rank -> Int
+comboBorder max rank =
     case rank of
         SSS ->
             max
@@ -62,10 +64,65 @@ border max rank =
             Basics.round (Basics.toFloat max * 0.8)
 
         B ->
-            Basics.round (Basics.toFloat max * 0.7)
+            Basics.round (Basics.toFloat max * 0.6)
 
         C ->
-            Basics.round (Basics.toFloat max * 0.5)
+            Basics.round (Basics.toFloat max * 0.3)
+
+        D ->
+            0
+
+        Invalid ->
+            0
+
+
+newScoreRank : Int -> Int -> Rank
+newScoreRank num max =
+    if num >= scoreBorder max SSS then
+        SSS
+
+    else if num >= scoreBorder max SS then
+        SS
+
+    else if num >= scoreBorder max S then
+        S
+
+    else if num >= scoreBorder max A then
+        A
+
+    else if num >= scoreBorder max B then
+        B
+
+    else if num >= scoreBorder max C then
+        C
+
+    else if num >= scoreBorder max D then
+        D
+
+    else
+        Invalid
+
+
+scoreBorder : Int -> Rank -> Int
+scoreBorder max rank =
+    case rank of
+        SSS ->
+            Basics.round (Basics.toFloat max * 0.98)
+
+        SS ->
+            Basics.round (Basics.toFloat max * 0.95)
+
+        S ->
+            Basics.round (Basics.toFloat max * 0.9)
+
+        A ->
+            Basics.round (Basics.toFloat max * 0.8)
+
+        B ->
+            Basics.round (Basics.toFloat max * 0.6)
+
+        C ->
+            Basics.round (Basics.toFloat max * 0.3)
 
         D ->
             0

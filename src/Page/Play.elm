@@ -560,10 +560,10 @@ viewResult musicData resultSavingS judgeCounter =
                     record.combo == musicData.maxCombo
 
                 comboRank =
-                    Rank.new record.combo musicData.maxCombo
+                    Rank.newComboRank record.combo musicData.maxCombo
 
                 scoreRank =
-                    Rank.new record.score musicData.maxScore
+                    Rank.newScoreRank record.score musicData.maxScore
 
                 tweetTextContent =
                     tweetText musicData.musicName musicData.mode record.combo record.score
@@ -613,7 +613,7 @@ viewResult musicData resultSavingS judgeCounter =
                             , href <| "http://twitter.com/intent/tweet?text=" ++ tweetTextContent
                             , target "_blank"
                             ]
-                            [ img [ class "playResult_tweetBtnBack", src "./img/icon_fukidashi2.png" ] []
+                            [ img [ class "playResult_tweetBtnBack", src "./img/icon_fukidashi.png" ] []
                             , img [ class "playResult_tweetBtnIcon", src "./img/icon_twitter_blue.png" ] []
                             ]
                         , div [ class "playResult_back" ] []

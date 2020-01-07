@@ -56,7 +56,7 @@ longTimeOffset =
 
 perfectRange : Float
 perfectRange =
-    70
+    60
 
 
 greatRange : Float
@@ -66,17 +66,17 @@ greatRange =
 
 goodRange : Float
 goodRange =
-    130
+    150
 
 
 perfectScore : Int
 perfectScore =
-    2000
+    5000
 
 
 greatScore : Int
 greatScore =
-    1500
+    2500
 
 
 goodScore : Int
@@ -86,7 +86,7 @@ goodScore =
 
 lostScore : Int
 lostScore =
-    200
+    500
 
 
 currentMusicIdDefault : MusicId

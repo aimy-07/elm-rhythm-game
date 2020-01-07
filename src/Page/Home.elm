@@ -24,7 +24,7 @@ import AudioManager.BGM as BGM
 import AudioManager.SE as SE
 import Constants exposing (allModeList, currentMusicIdDefault)
 import Html exposing (Html, a, div, img, input, label, text)
-import Html.Attributes exposing (class, disabled, href, id, max, min, name, src, step, target, type_, value)
+import Html.Attributes exposing (class, disabled, href, id, name, src, step, target, type_, value)
 import Html.Events exposing (on, onClick, onInput)
 import Json.Decode as Decode
 import OwnRecord exposing (OwnRecordDto)
@@ -551,7 +551,7 @@ viewMusicListItem currentMusicData musicData maybeUserPlayRecordData =
                 |> Maybe.map
                     (\record ->
                         record.bestCombo
-                            |> Maybe.map (\combo -> Rank.new combo musicData.maxCombo)
+                            |> Maybe.map (\combo -> Rank.newComboRank combo musicData.maxCombo)
                             |> Maybe.withDefault Rank.invalid
                     )
                 |> Maybe.withDefault Rank.invalid
@@ -561,7 +561,7 @@ viewMusicListItem currentMusicData musicData maybeUserPlayRecordData =
                 |> Maybe.map
                     (\record ->
                         record.bestScore
-                            |> Maybe.map (\score -> Rank.new score musicData.maxScore)
+                            |> Maybe.map (\score -> Rank.newScoreRank score musicData.maxScore)
                             |> Maybe.withDefault Rank.invalid
                     )
                 |> Maybe.withDefault Rank.invalid
@@ -648,10 +648,10 @@ viewCenterAreaRankDetail currentMusicData rank =
         [ text <| Rank.toString rank
         , div
             [ class "homeCenterArea_rankDetailText score" ]
-            [ text <| String.fromInt (Rank.border currentMusicData.maxScore rank) ]
+            [ text <| String.fromInt (Rank.scoreBorder currentMusicData.maxScore rank) ]
         , div
             [ class "homeCenterArea_rankDetailText combo" ]
-            [ text <| String.fromInt (Rank.border currentMusicData.maxCombo rank) ]
+            [ text <| String.fromInt (Rank.comboBorder currentMusicData.maxCombo rank) ]
         , div
             [ class "homeCenterArea_rankLine", class clsRankNum ]
             []
@@ -719,7 +719,7 @@ viewBottomLeftArea1 currentMusicData userPlayRecordData =
     let
         comboRank =
             userPlayRecordData.bestCombo
-                |> Maybe.map (\combo -> Rank.new combo currentMusicData.maxCombo)
+                |> Maybe.map (\combo -> Rank.newComboRank combo currentMusicData.maxCombo)
                 |> Maybe.withDefault Rank.invalid
 
         comboStr =
@@ -746,7 +746,7 @@ viewBottomLeftArea2 currentMusicData userPlayRecordData =
     let
         scoreRank =
             userPlayRecordData.bestScore
-                |> Maybe.map (\score -> Rank.new score currentMusicData.maxScore)
+                |> Maybe.map (\score -> Rank.newScoreRank score currentMusicData.maxScore)
                 |> Maybe.withDefault Rank.invalid
 
         scoreStr =
