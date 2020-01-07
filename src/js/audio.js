@@ -40,7 +40,15 @@ export const SE = (app) => {
   const loadedSE = (fileName) => (() => {app.ports.loadedSE.send(fileName)});
 
   return {
+    select: createSE('select', loadedSE('select')),
+    cancel: createSE('cancel', loadedSE('cancel')),
+    decision: createSE('decision', loadedSE('decision')),
+    cursor: createSE('cursor', loadedSE('cursor')),
+    succeed: createSE('succeed', loadedSE('succeed')),
     selectPlayMusic: createSE('selectPlayMusic', loadedSE('selectPlayMusic')),
+    countdown: createSE('countdown', loadedSE('countdown')),
+    result: createSE('result', loadedSE('result')),
+    attention: createSE('attention', loadedSE('attention')),
   }
 }
 

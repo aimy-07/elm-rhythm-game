@@ -13,9 +13,10 @@ module Page.Error exposing
 import AllMusicData exposing (AllMusicData)
 import AudioManager
 import AudioManager.AudioLoadingS exposing (AudioLoadingS)
+import AudioManager.SE as SE
 import Html exposing (Html, a, div, text)
 import Html.Attributes exposing (class, href, target)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onMouseUp)
 import Route
 import Session exposing (Session)
 
@@ -37,19 +38,31 @@ init session audioMusicData audioLoadingS =
       , allMusicData = audioMusicData
       , audioLoadingS = audioLoadingS
       }
-    , AudioManager.stopBGM ()
+    , Cmd.batch
+        [ AudioManager.stopBGM ()
+        , AudioManager.playSE SE.Attention Nothing
+        ]
     )
 
 
 type Msg
     = ClickedBackTitleButton
+    | PlayReportBtnSE
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ClickedBackTitleButton ->
-            ( model, Route.replaceUrl (Session.toNavKey model.session) Route.Title )
+            ( model
+            , Cmd.batch
+                [ Route.replaceUrl (Session.toNavKey model.session) Route.Title
+                , AudioManager.playSE SE.Cancel Nothing
+                ]
+            )
+
+        PlayReportBtnSE ->
+            ( model, AudioManager.playSE SE.Select Nothing )
 
 
 
@@ -82,6 +95,7 @@ view _ =
                     [ class "error_btnText"
                     , href "https://github.com/aimy-07/elm-rhythm-game/issues"
                     , target "_blank"
+                    , onMouseUp PlayReportBtnSE
                     ]
                     [ text "- Report -" ]
                 ]

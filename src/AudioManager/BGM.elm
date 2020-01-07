@@ -82,11 +82,13 @@ unwrap bgm =
 
 bgmKeyList : List String
 bgmKeyList =
-    [ "theRoadToHeaven"
-    , "sampleSound"
-    , "sampleSoundShort"
-    , "whiteGlow"
-    , "sampleSound_sample"
-    , "sampleSoundShort_sample"
-    , "whiteGlow_sample"
+    [ TheRoadToHeaven
+    , SampleSound
+    , SampleSoundShort
+    , WhiteGlow
+    , SampleSound_Sample
+    , SampleSoundShort_Sample
+    , WhiteGlow_Sample
     ]
+        |> List.map unwrap
+        |> List.filterMap identity

@@ -111,7 +111,7 @@ bgmVolumeDefault =
 
 seVolumeDefault : Volume
 seVolumeDefault =
-    0.5
+    0.7
 
 
 tweetText : String -> Mode -> Int -> Int -> String

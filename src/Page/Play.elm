@@ -18,9 +18,11 @@ import AllMusicData.MusicData.Mode as Mode
 import AudioManager
 import AudioManager.AudioLoadingS exposing (AudioLoadingS)
 import AudioManager.BGM as BGM
+import AudioManager.SE as SE
 import Constants exposing (allKeyList, notesSpeedDefault, tweetText)
 import Html exposing (Html, a, div, img, span, text)
 import Html.Attributes exposing (class, href, id, src, style, target)
+import Html.Events exposing (onMouseUp)
 import Keyboard exposing (Key(..))
 import OwnRecord exposing (OwnRecordDto)
 import Page
@@ -131,6 +133,8 @@ type Msg
     | SavedRecord ()
     | SavedUpdatedOwnRecord ()
     | SavedUpdatedPublicRecord ()
+    | PlayTweetBtnSE
+    | PlayBackBtnSE
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -142,6 +146,10 @@ update msg model =
         bgmVolume =
             UserSetting.toSetting model.userSetting
                 |> Maybe.map .bgmVolume
+
+        seVolume =
+            UserSetting.toSetting model.userSetting
+                |> Maybe.map .seVolume
     in
     case msg of
         Tick _ ->
@@ -255,7 +263,7 @@ update msg model =
                 Key.Space ->
                     let
                         ( nextPlayingS, playingSCmd ) =
-                            PlayingS.pressSpaceKey bgm (FinishedCountdown ()) model.playingS
+                            PlayingS.pressSpaceKey bgm seVolume (FinishedCountdown ()) model.playingS
                     in
                     ( { model | playingS = nextPlayingS }, playingSCmd )
 
@@ -353,19 +361,43 @@ update msg model =
             ( { model | resultSavingS = nextResultSavingS }, resultSavingSCmd )
 
         SavedRecord _ ->
-            ( { model | resultSavingS = ResultSavingS.savedRecord model.resultSavingS }
-            , Cmd.none
+            let
+                nextResultSavingS =
+                    ResultSavingS.savedRecord model.resultSavingS
+            in
+            ( { model | resultSavingS = nextResultSavingS }
+            , ResultSavingS.toResult nextResultSavingS
+                |> Maybe.map (\_ -> AudioManager.playSE SE.Result seVolume)
+                |> Maybe.withDefault Cmd.none
             )
 
         SavedUpdatedOwnRecord _ ->
-            ( { model | resultSavingS = ResultSavingS.savedUpdatedOwnRecord model.resultSavingS }
-            , Cmd.none
+            let
+                nextResultSavingS =
+                    ResultSavingS.savedUpdatedOwnRecord model.resultSavingS
+            in
+            ( { model | resultSavingS = nextResultSavingS }
+            , ResultSavingS.toResult nextResultSavingS
+                |> Maybe.map (\_ -> AudioManager.playSE SE.Result seVolume)
+                |> Maybe.withDefault Cmd.none
             )
 
         SavedUpdatedPublicRecord _ ->
-            ( { model | resultSavingS = ResultSavingS.savedUpdatedPublicRecord model.resultSavingS }
-            , Cmd.none
+            let
+                nextResultSavingS =
+                    ResultSavingS.savedUpdatedPublicRecord model.resultSavingS
+            in
+            ( { model | resultSavingS = nextResultSavingS }
+            , ResultSavingS.toResult nextResultSavingS
+                |> Maybe.map (\_ -> AudioManager.playSE SE.Result seVolume)
+                |> Maybe.withDefault Cmd.none
             )
+
+        PlayTweetBtnSE ->
+            ( model, AudioManager.playSE SE.Select seVolume )
+
+        PlayBackBtnSE ->
+            ( model, AudioManager.playSE SE.Cancel seVolume )
 
 
 
@@ -551,7 +583,7 @@ viewCountdown =
         ]
 
 
-viewResult : MusicData -> ResultSavingS -> JudgeCounter -> Html msg
+viewResult : MusicData -> ResultSavingS -> JudgeCounter -> Html Msg
 viewResult musicData resultSavingS judgeCounter =
     case ResultSavingS.toResult resultSavingS of
         Just { record, isBestCombo, isBestScore } ->
@@ -612,6 +644,7 @@ viewResult musicData resultSavingS judgeCounter =
                             [ class "playResult_tweetBtnContainer"
                             , href <| "http://twitter.com/intent/tweet?text=" ++ tweetTextContent
                             , target "_blank"
+                            , onMouseUp PlayTweetBtnSE
                             ]
                             [ img [ class "playResult_tweetBtnBack", src "./img/icon_fukidashi.png" ] []
                             , img [ class "playResult_tweetBtnIcon", src "./img/icon_twitter_blue.png" ] []
@@ -640,7 +673,7 @@ viewResult musicData resultSavingS judgeCounter =
 
                         -- 戻るボタンでプレイ画面に戻ることを許容する
                         , a
-                            [ class "playResult_backBtn", Route.href Route.Home ]
+                            [ class "playResult_backBtn", Route.href Route.Home, onMouseUp PlayBackBtnSE ]
                             [ text "- Back to Home -" ]
                         ]
                     ]

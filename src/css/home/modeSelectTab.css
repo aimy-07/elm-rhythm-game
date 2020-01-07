@@ -25,3 +25,7 @@
   font-weight: 600;
   width: 134px;
 }
+
+.homeModeSelectTab_item:hover {
+  background-color: var(--color-elm-orange-w1);
+}

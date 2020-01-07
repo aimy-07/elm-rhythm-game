@@ -13,6 +13,7 @@ module Page.Play.PlayingS exposing
 
 import AudioManager
 import AudioManager.BGM exposing (BGM)
+import AudioManager.SE as SE
 import Process
 import Task
 import UserSetting.Setting.Volume exposing (Volume)
@@ -62,17 +63,27 @@ isFinish playingS =
     playingS == Finish
 
 
-pressSpaceKey : BGM -> msg -> PlayingS -> ( PlayingS, Cmd msg )
-pressSpaceKey bgm msg playingS =
+pressSpaceKey : BGM -> Maybe Volume -> msg -> PlayingS -> ( PlayingS, Cmd msg )
+pressSpaceKey bgm seVolume msg playingS =
     case playingS of
         Ready ->
-            ( StartCountdown, Process.sleep 1500 |> Task.perform (\_ -> msg) )
+            ( StartCountdown
+            , Cmd.batch
+                [ Process.sleep 1500 |> Task.perform (\_ -> msg)
+                , AudioManager.playSE SE.Countdown seVolume
+                ]
+            )
 
         Playing ->
             ( Pause, AudioManager.pauseBGM bgm )
 
         Pause ->
-            ( PauseCountdown, Process.sleep 1500 |> Task.perform (\_ -> msg) )
+            ( PauseCountdown
+            , Cmd.batch
+                [ Process.sleep 1500 |> Task.perform (\_ -> msg)
+                , AudioManager.playSE SE.Countdown seVolume
+                ]
+            )
 
         _ ->
             ( playingS, Cmd.none )

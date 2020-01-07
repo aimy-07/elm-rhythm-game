@@ -25,7 +25,7 @@ import AudioManager.SE as SE
 import Constants exposing (allModeList, currentMusicIdDefault)
 import Html exposing (Html, a, div, img, input, label, text)
 import Html.Attributes exposing (class, disabled, href, id, name, src, step, target, type_, value)
-import Html.Events exposing (on, onClick, onInput)
+import Html.Events exposing (on, onClick, onInput, onMouseUp)
 import Json.Decode as Decode
 import OwnRecord exposing (OwnRecordDto)
 import Page
@@ -121,12 +121,22 @@ type Msg
     | ClickedInfoPanelShowBtn
     | ClickedPanelCloseBtn
     | SignOut
+    | PlayPlayBtnSE
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Session.toUser model.session of
         Just user ->
+            let
+                bgmVolume =
+                    UserSetting.toSetting model.userSetting
+                        |> Maybe.map .bgmVolume
+
+                seVolume =
+                    UserSetting.toSetting model.userSetting
+                        |> Maybe.map .seVolume
+            in
             case msg of
                 GotUserPlayRecords ownRecordDtos ->
                     ( { model | userPlayRecords = UserPlayRecords.gotOwnRecord ownRecordDtos model.userPlayRecords }
@@ -155,26 +165,18 @@ update msg model =
                                 |> Maybe.map .currentMusicId
                                 |> Maybe.withDefault currentMusicIdDefault
 
-                        bgmVolume =
+                        updatedBgmVolume =
                             UserSetting.toSetting userSetting
                                 |> Maybe.map .bgmVolume
                     in
                     ( { model | userSetting = userSetting }
-                    , AudioManager.playBGM (BGM.sampleFromMusicId currentMusicId) bgmVolume
+                    , AudioManager.playBGM (BGM.sampleFromMusicId currentMusicId) updatedBgmVolume
                     )
 
                 ChangeMusicId musicId ->
                     let
                         updatedUserSetting =
                             UserSetting.updateCurrentMusicId musicId model.userSetting
-
-                        bgmVolume =
-                            UserSetting.toSetting updatedUserSetting
-                                |> Maybe.map .bgmVolume
-
-                        seVolume =
-                            UserSetting.toSetting updatedUserSetting
-                                |> Maybe.map .seVolume
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
@@ -189,10 +191,6 @@ update msg model =
                     let
                         updatedUserSetting =
                             UserSetting.updateCurrentMode mode model.userSetting
-
-                        seVolume =
-                            UserSetting.toSetting updatedUserSetting
-                                |> Maybe.map .seVolume
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
@@ -211,34 +209,41 @@ update msg model =
                             UserSetting.updateNotesSpeed notesSpeed model.userSetting
                     in
                     ( { model | userSetting = updatedUserSetting }
-                    , Setting.saveNotesSpeed { uid = user.uid, notesSpeed = notesSpeed }
+                    , Cmd.batch
+                        [ Setting.saveNotesSpeed { uid = user.uid, notesSpeed = notesSpeed }
+                        , AudioManager.playSE SE.Cursor seVolume
+                        ]
                     )
 
                 ChangeBgmVolume volumeValue ->
                     let
-                        bgmVolume =
+                        nextBgmVolume =
                             Volume.fromString volumeValue
 
                         updatedUserSetting =
-                            UserSetting.updateBgmVolume bgmVolume model.userSetting
+                            UserSetting.updateBgmVolume nextBgmVolume model.userSetting
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
-                        [ Setting.saveBgmVolume { uid = user.uid, bgmVolume = bgmVolume }
-                        , AudioManager.changeBgmVolume bgmVolume
+                        [ Setting.saveBgmVolume { uid = user.uid, bgmVolume = nextBgmVolume }
+                        , AudioManager.changeBgmVolume nextBgmVolume
+                        , AudioManager.playSE SE.Cursor seVolume
                         ]
                     )
 
                 ChangeSeVolume volumeValue ->
                     let
-                        seVolume =
+                        nextSeVolume =
                             Volume.fromString volumeValue
 
                         updatedUserSetting =
-                            UserSetting.updateSeVolume seVolume model.userSetting
+                            UserSetting.updateSeVolume nextSeVolume model.userSetting
                     in
                     ( { model | userSetting = updatedUserSetting }
-                    , Setting.saveSeVolume { uid = user.uid, seVolume = seVolume }
+                    , Cmd.batch
+                        [ Setting.saveSeVolume { uid = user.uid, seVolume = nextSeVolume }
+                        , AudioManager.playSE SE.Cursor seVolume
+                        ]
                     )
 
                 InputUserName nextUserName ->
@@ -247,7 +252,10 @@ update msg model =
                             Session.updateUser nextUserName User.updateUserName model.session
                     in
                     ( { model | session = updatedSession }
-                    , User.saveUserName { uid = user.uid, userName = nextUserName }
+                    , Cmd.batch
+                        [ User.saveUserName { uid = user.uid, userName = nextUserName }
+                        , AudioManager.playSE SE.Cursor seVolume
+                        ]
                     )
 
                 SelectdPicture event ->
@@ -260,19 +268,35 @@ update msg model =
                         updatedSession =
                             Session.updateUser url User.updatePictureUrl model.session
                     in
-                    ( { model | pictureUploadS = NotUploading, session = updatedSession }, Cmd.none )
+                    ( { model | pictureUploadS = NotUploading, session = updatedSession }
+                    , AudioManager.playSE SE.Succeed seVolume
+                    )
 
                 ClickedSettingPanelShowBtn ->
-                    ( { model | userSettingPanelS = SettingShow }, Cmd.none )
+                    ( { model | userSettingPanelS = SettingShow }
+                    , AudioManager.playSE SE.Select seVolume
+                    )
 
                 ClickedInfoPanelShowBtn ->
-                    ( { model | userSettingPanelS = InfoShow }, Cmd.none )
+                    ( { model | userSettingPanelS = InfoShow }
+                    , AudioManager.playSE SE.Select seVolume
+                    )
 
                 ClickedPanelCloseBtn ->
-                    ( { model | userSettingPanelS = UserSettingPanelS.close model.userSettingPanelS }, Cmd.none )
+                    ( { model | userSettingPanelS = UserSettingPanelS.close model.userSettingPanelS }
+                    , AudioManager.playSE SE.Cancel seVolume
+                    )
 
                 SignOut ->
-                    ( model, Session.signOut () )
+                    ( model
+                    , Cmd.batch
+                        [ Session.signOut ()
+                        , AudioManager.playSE SE.Select seVolume
+                        ]
+                    )
+
+                PlayPlayBtnSE ->
+                    ( model, AudioManager.playSE SE.Decision seVolume )
 
         Nothing ->
             -- Homeで user == Nothing にはまずならないが、念のためエラー画面に飛ばす処理を入れておく
@@ -768,11 +792,14 @@ viewBottomLeftArea2 currentMusicData userPlayRecordData =
         ]
 
 
-viewBottomRightArea : MusicData -> Html msg
+viewBottomRightArea : MusicData -> Html Msg
 viewBottomRightArea currentMusicData =
     div []
         -- 戻るボタンでHomeに戻ることを許容する
-        [ a [ Route.href <| Route.Play (Just <| currentMusicData.csvFileName) ]
+        [ a
+            [ Route.href <| Route.Play (Just <| currentMusicData.csvFileName)
+            , onMouseUp PlayPlayBtnSE
+            ]
             [ div
                 [ class "home_bottomRightArea", id "home_bottomRightArea" ]
                 [ div [ class "homeBottomRight_playText" ] [ text "Play" ]

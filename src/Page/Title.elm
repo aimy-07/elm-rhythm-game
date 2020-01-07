@@ -14,9 +14,10 @@ import AllMusicData exposing (AllMusicData)
 import AudioManager
 import AudioManager.AudioLoadingS exposing (AudioLoadingS)
 import AudioManager.BGM as BGM
+import AudioManager.SE as SE
 import Html exposing (Html, a, br, button, div, img, li, text)
 import Html.Attributes exposing (class, disabled, href, src)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onMouseUp)
 import Page.Title.LoginBtnS as LoginBtnS exposing (LoginBtnS)
 import Route
 import Session exposing (Session)
@@ -57,6 +58,7 @@ type Msg
     | ClickedTwitterLoginBtn
     | ClickedGithubLoginBtn
     | CanceledSignIn ()
+    | PlayStartBtnSE
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -67,21 +69,33 @@ update msg model =
 
         ClickedGoogleLoginBtn ->
             ( { model | loginBtnS = LoginBtnS.toDisabled Google model.loginBtnS }
-            , Session.signInWithGoogle ()
+            , Cmd.batch
+                [ Session.signInWithGoogle ()
+                , AudioManager.playSE SE.Select Nothing
+                ]
             )
 
         ClickedTwitterLoginBtn ->
             ( { model | loginBtnS = LoginBtnS.toDisabled Twitter model.loginBtnS }
-            , Session.signInWithTwitter ()
+            , Cmd.batch
+                [ Session.signInWithTwitter ()
+                , AudioManager.playSE SE.Select Nothing
+                ]
             )
 
         ClickedGithubLoginBtn ->
             ( { model | loginBtnS = LoginBtnS.toDisabled Github model.loginBtnS }
-            , Session.signInWithGithub ()
+            , Cmd.batch
+                [ Session.signInWithGithub ()
+                , AudioManager.playSE SE.Select Nothing
+                ]
             )
 
         CanceledSignIn _ ->
             ( { model | loginBtnS = LoginBtnS.toShow model.loginBtnS }, Cmd.none )
+
+        PlayStartBtnSE ->
+            ( model, AudioManager.playSE SE.Decision Nothing )
 
 
 
@@ -114,9 +128,19 @@ view model =
                 , div [ class "titleBox_backInner" ] []
                 , div [ class "titleBox_title" ] [ text "ELMusic" ]
                 , div [ class "titleBox_subTitle" ] [ text "- Elmで開発されたリズムゲーム -" ]
-                , a [ class "titleBox_startBtn", Route.href Route.Home ] [ text "START" ]
+                , a
+                    [ class "titleBox_startBtn"
+                    , Route.href Route.Home
+                    , onMouseUp PlayStartBtnSE
+                    ]
+                    [ text "START" ]
                     |> viewIf isLoggedIn
-                , button [ class "titleBox_startBtn is-disabled", onClick ClickedStartBtn ] [ text "START" ]
+                , button
+                    [ class "titleBox_startBtn is-disabled"
+                    , onClick ClickedStartBtn
+                    , onMouseUp PlayStartBtnSE
+                    ]
+                    [ text "START" ]
                     |> viewIf (not isLoggedIn)
                 ]
             ]
