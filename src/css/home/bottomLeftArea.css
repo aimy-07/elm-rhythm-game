@@ -120,13 +120,11 @@
 
 @keyframes bottomLeftArea1Anim {
   0% {
-    bottom: 78px;
-    left: 48px;
+    transform: translateX(50px) translateY(-40px);
   }
 
   100% {
-    bottom: 28px;
-    left: 18px;
+    transform: translateX(0px) translateY(0px);
   }
 }
 
@@ -136,12 +134,10 @@
 
 @keyframes bottomLeftArea2Anim {
   0% {
-    bottom: 68px;
-    left: 78px;
+    transform: translateX(40px) translateY(-50px);
   }
 
   100% {
-    bottom: 18px;
-    left: 28px;
+    transform: translateX(0px) translateY(0px);
   }
 }

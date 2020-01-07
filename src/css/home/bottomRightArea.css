@@ -54,12 +54,10 @@
 
 @keyframes bottomRightAreaAnim {
   0% {
-    bottom: 68px;
-    right: 68px;
+    transform: translateX(-50px) translateY(-50px);
   }
 
   100% {
-    bottom: 18px;
-    right: 18px;
+    transform: translateX(0px) translateY(0px);
   }
 }

@@ -29,12 +29,10 @@
 
 @keyframes topLeftAreaAnim {
   0% {
-    top: 68px;
-    left: 68px;
+    transform: translateX(50px) translateY(50px);
   }
 
   100% {
-    top: 18px;
-    left: 18px;
+    transform: translateX(0px) translateY(0px);
   }
 }
