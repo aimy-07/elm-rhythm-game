@@ -1,6 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/database';
-import {detectedError} from '../index';
+import {detectedError, errorEvent} from '../index';
 const uuidv4 = require('uuid/v4');
 
 
@@ -10,7 +10,7 @@ const uuidv4 = require('uuid/v4');
 ---------------------------------- */
 export function firebaseDBSetUpSubscriber (app) {
   const firebaseDBGet = (path) => firebase.database().ref(path).once('value');
-  const firebaseDBSet = (path, data) => firebase.database().ref(path).set(data, detectedError);
+  const firebaseDBSet = (path, data) => firebase.database().ref(path).set(data);
 
   /* ---------------------------------
 	  GET
@@ -21,16 +21,21 @@ export function firebaseDBSetUpSubscriber (app) {
         const ownRecordDto = {csvFileName, uid, playRecord: snapshot.val()};
         app.ports.gotOwnRecord.send(ownRecordDto);
       })
-      .catch(detectedError)
+      .catch(error => {
+        detectedError(errorEvent.getOwnRecord, error, {uid, csvFileName});
+      });
   })
 
-  app.ports.getPublicRecord.subscribe((csvFileName) => {
+  app.ports.getPublicRecord.subscribe(csvFileName => {
     firebaseDBGet(`/publicRecords/${csvFileName}/`)
       .then((snapshot) => {
         const publicRecordDto = {csvFileName, bestRecords: snapshot.val()};
         app.ports.gotPublicRecord.send(publicRecordDto);
       })
-      .catch(detectedError)
+      .catch(error => {
+        const uid = firebase.auth().currentUser.uid;
+        detectedError(errorEvent.getPublicRecord, error, {uid, csvFileName});
+      });
   })
 
   app.ports.getUsers.subscribe(uidList => {
@@ -44,7 +49,10 @@ export function firebaseDBSetUpSubscriber (app) {
         );
         app.ports.gotUsers.send(userDtos);
       })
-      .catch(detectedError)
+      .catch(error => {
+        const uid = firebase.auth().currentUser.uid;
+        detectedError(errorEvent.getUsers, error, {uid});
+      });
   })
 
   app.ports.getUserSetting.subscribe(uid => {
@@ -63,7 +71,9 @@ export function firebaseDBSetUpSubscriber (app) {
         }
         app.ports.gotUserSetting.send(userSettingDto);
       })
-      .catch(detectedError)
+      .catch(error => {
+        detectedError(errorEvent.getUserSetting, error, {uid});
+      });
   });
 
   /* ---------------------------------
@@ -75,7 +85,10 @@ export function firebaseDBSetUpSubscriber (app) {
       .then(() => {
         app.ports.savedRecord.send(null);
       })
-      .catch(detectedError)
+      .catch(error => {
+        const uid = firebase.auth().currentUser.uid;
+        detectedError(errorEvent.saveRecord, error, {uid, record});
+      });
   })
 
   app.ports.saveOwnRecord_.subscribe(({uid, csvFileName, playRecord}) => {
@@ -83,7 +96,9 @@ export function firebaseDBSetUpSubscriber (app) {
       .then(() => {
         app.ports.savedOwnRecord.send(null);
       })
-      .catch(detectedError)
+      .catch(error => {
+        detectedError(errorEvent.saveOwnRecord, error, {uid, csvFileName, playRecord});
+      });
   })
 
   app.ports.savePublicRecord_.subscribe(({csvFileName, bestRecords}) => {
@@ -91,37 +106,50 @@ export function firebaseDBSetUpSubscriber (app) {
       .then(() => {
         app.ports.savedPublicRecord.send(null);
       })
-      .catch(detectedError)
+      .catch(error => {
+        const uid = firebase.auth().currentUser.uid;
+        detectedError(errorEvent.savePublicRecord, error, {uid, csvFileName, bestRecords});
+      });
   })
 
   app.ports.saveCurrentMusicId.subscribe(({uid, currentMusicId}) => {
     firebaseDBSet(`/userDatas/${uid}/settings/currentMusicId/`, currentMusicId)
       .then(() => {})
-      .catch(detectedError)
+      .catch(error => {
+        detectedError(errorEvent.saveCurrentMusicId, error, {uid, currentMusicId});
+      });
   });
 
   app.ports.saveCurrentMode.subscribe(({uid, currentMode}) => {
     firebaseDBSet(`/userDatas/${uid}/settings/currentMode/`, currentMode)
       .then(() => {})
-      .catch(detectedError)
+      .catch(error => {
+        detectedError(errorEvent.saveCurrentMode, error, {uid, currentMode});
+      });
   });
 
   app.ports.saveNotesSpeed.subscribe(({uid, notesSpeed}) => {
     firebaseDBSet(`/userDatas/${uid}/settings/notesSpeed/`, notesSpeed)
       .then(() => {})
-      .catch(detectedError)
+      .catch(error => {
+        detectedError(errorEvent.saveNotesSpeed, error, {uid, notesSpeed});
+      });
   });
 
   app.ports.saveBgmVolume.subscribe(({uid, bgmVolume}) => {
     firebaseDBSet(`/userDatas/${uid}/settings/bgmVolume/`, bgmVolume)
       .then(() => {})
-      .catch(detectedError)
+      .catch(error => {
+        detectedError(errorEvent.saveBgmVolume, error, {uid, bgmVolume});
+      });
   });
 
   app.ports.saveSeVolume.subscribe(({uid, seVolume}) => {
     firebaseDBSet(`/userDatas/${uid}/settings/seVolume/`, seVolume)
       .then(() => {})
-      .catch(detectedError)
+      .catch(error => {
+        detectedError(errorEvent.saveSeVolume, error, {uid, seVolume});
+      });
   });
 }
 

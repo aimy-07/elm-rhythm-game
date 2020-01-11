@@ -1,4 +1,4 @@
-import {detectedError} from '../index';
+import {detectedError, errorEvent} from '../index';
 
 
 
@@ -8,29 +8,39 @@ import {detectedError} from '../index';
 export function dataSetUpSubscriber (app) {
   // Jsonファイルの読み込み
   app.ports.loadMusicDataByJson.subscribe((musicId) => {
+    const filePath = `./json/${musicId}.json`;
+
     getFile(
-      `./json/${musicId}.json`,
+      filePath,
       (data => {
-        app.ports.loadedMusicDataByJson.send(JSON.parse(data))
+        app.ports.loadedMusicDataByJson.send(JSON.parse(data));
       }),
-      detectedError
+      (error => {
+        const uid = firebase.auth().currentUser.uid;
+        detectedError(errorEvent.loadMusicDataByJson, error, {filePath, uid});
+      })
     )
   });
 
   // Csvファイルの読み込み
   app.ports.loadMusicDataByCsv.subscribe((csvFileName) => {
+    const filePath = `./csv/${csvFileName}.csv`;
+
     getFile(
-      `./csv/${csvFileName}.csv`,
+      filePath,
       (data => {
         const csvData = data.split("\n").map(csvRow =>
           csvRow.split(',').map(value => {
-            const isValidValue = value && !isNaN(parseFloat(value))
-            return isValidValue ? parseFloat(value) : null
+            const isValidValue = value && !isNaN(parseFloat(value));
+            return isValidValue ? parseFloat(value) : null;
           })
         );
         app.ports.loadedMusicDataByCsv.send({csvFileName, csvData});
       }),
-      detectedError
+      (error => {
+        const uid = firebase.auth().currentUser.uid;
+        detectedError(errorEvent.loadMusicDataByCsv, error, {filePath, uid});
+      })
     )
   });
 }
@@ -47,11 +57,11 @@ const getFile = (filePath, onload, onerror) => {
   req.onload = () => {
     if (req.status === 200) {
       onload(req.responseText);
-    } else {
-      onerror(`XMLHttpRequest error: [${req.status}]${req.statusText}, filePath: ${filePath}`);
+      return;
     }
+    onerror(`XMLHttpRequest error: [${req.status}]${req.statusText}`);
   };
   req.onerror = () => {
-    onerror(`XMLHttpRequest error: [${req.status}]${req.statusText}, filePath: ${filePath}`);
+    onerror(`XMLHttpRequest error: [${req.status}]${req.statusText}`);
   };
 }

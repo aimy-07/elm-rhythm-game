@@ -2,7 +2,7 @@ import firebase from 'firebase/app';
 import 'firebase/auth';
 import 'firebase/database';
 import 'firebase/storage';
-import {detectedError} from '../index';
+import {detectedError, errorEvent} from '../index';
 const uuidv4 = require('uuid/v4');
 
 
@@ -24,8 +24,8 @@ export function firebaseAuthSetUpSubscriber (app) {
   app.ports.signInWithGoogle.subscribe(() => {
     firebase.auth().signInWithPopup(googleAuthProvider)
       .then(() => {})
-      .catch((err) => {
-        console.log(err);
+      .catch(error => {
+        detectedError(errorEvent.signIn, error, {provider: 'Google'});
         app.ports.canceledSignIn.send(null);
       });
   });
@@ -33,8 +33,8 @@ export function firebaseAuthSetUpSubscriber (app) {
   app.ports.signInWithTwitter.subscribe(() => {
     firebase.auth().signInWithPopup(twitterAuthProvider)
       .then(() => {})
-      .catch((err) => {
-        console.log(err);
+      .catch(error => {
+        detectedError(errorEvent.signIn, error, {provider: 'Twitter'});
         app.ports.canceledSignIn.send(null);
       });
   });
@@ -42,8 +42,8 @@ export function firebaseAuthSetUpSubscriber (app) {
   app.ports.signInWithGithub.subscribe(() => {
     firebase.auth().signInWithPopup(githubAuthProvider)
       .then(() => {})
-      .catch((err) => {
-        console.log(err);
+      .catch(error => {
+        detectedError(errorEvent.signIn, error, {provider: 'Github'});
         app.ports.canceledSignIn.send(null);
       });
   });
@@ -52,53 +52,59 @@ export function firebaseAuthSetUpSubscriber (app) {
   app.ports.signOut.subscribe(() => {
     firebase.auth().signOut()
       .then(() => {})
-      .catch(detectedError);
+      .catch(error => {
+        const uid = firebase.auth().currentUser.uid;
+        detectedError(errorEvent.signOut, error, {uid});
+      });
   });
 
   // ユーザーネームの変更
   app.ports.saveUserName.subscribe(({uid, userName}) => {
     const currentUser = firebase.auth().currentUser;
-    if (currentUser && currentUser.uid === uid) {
-      const updateAuth = currentUser.updateProfile({displayName: userName});
-      const updateDB = firebase.database().ref(`/users/${uid}/userName/`).set(userName, detectedError);
-      Promise.all([updateAuth, updateDB])
-        .then(() => {})
-        .catch(detectedError)
-    } else {
-      detectedError('currentUser.uid !== uid')
-    }
+    const updateAuth = currentUser.updateProfile({displayName: userName});
+    const updateDB = firebase.database().ref(`/users/${uid}/userName/`).set(userName);
+    Promise.all([updateAuth, updateDB])
+      .then(() => {})
+      .catch(error => {
+        detectedError(errorEvent.saveUserName, error, {uid, userName});
+      });
   });
 
   // ユーザーアイコンの変更
   app.ports.saveUserPicture.subscribe(({uid, event}) => {
     const file = event.target.files[0];
-    const fileType = getFileType(file.name);
-    if (fileType === "") {
-      detectedError('fileType in not JPG or PNG');
+    if (!file) {
+      detectedError(errorEvent.saveUserPicture, 'uploaded file is empty', {uid});
       return;
     }
-    const pictureId = uuidv4();
-    const filePath = `userIcons/${uid}/${pictureId}.${fileType}`;
+
+    const fileType = getFileType(file.name);
+    if (fileType === "") {
+      console.error('fileType in not JPG or PNG'); // TODO: エラービュー表示に切り替える
+      return;
+    }
+
+    const filePath = `userIcons/${uid}/${file.name}`;
     const uploadFile = () => firebase.storage().ref().child(filePath).put(file);
-    const getNewPictureUrl = () => firebase.storage().ref(filePath).getDownloadURL()
+    const getNewPictureUrl = () => firebase.storage().ref(filePath).getDownloadURL();
 
     uploadFile()
       .then(getNewPictureUrl)
       .then(url => {
         const currentUser = firebase.auth().currentUser;
-        if (currentUser && currentUser.uid === uid) {
-          const updateAuth = currentUser.updateProfile({photoURL: url});
-          const updateDB = firebase.database().ref(`/users/${uid}/pictureUrl/`).set(url, detectedError);
-          Promise.all([updateAuth, updateDB])
-            .then(() => {
-              app.ports.savedUserPicture.send(url)
-            })
-            .catch(detectedError)
-        } else {
-          detectedError('currentUser.uid !== uid')
-        }
+        const updateAuth = currentUser.updateProfile({photoURL: url});
+        const updateDB = firebase.database().ref(`/users/${uid}/pictureUrl/`).set(url);
+        Promise.all([updateAuth, updateDB])
+          .then(() => {
+            app.ports.savedUserPicture.send(url)
+          })
+          .catch(error => {
+            detectedError(errorEvent.saveUserPicture, error, {uid, filePath});
+          })
       })
-      .catch(detectedError)
+      .catch(error => {
+        detectedError(errorEvent.saveUserPicture, error, {uid, filePath});
+      })
   });
 }
 
