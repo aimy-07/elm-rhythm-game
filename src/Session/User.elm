@@ -1,12 +1,13 @@
 port module Session.User exposing
     ( User
     , UserDto
+    , completedSaveUserPicture
+    , failedSaveUserPicture
     , getUsers
     , gotUsers
     , new
     , saveUserName
     , saveUserPicture
-    , savedUserPicture
     , updatePictureUrl
     , updateUserName
     )
@@ -59,4 +60,7 @@ port saveUserName : { uid : String, userName : String } -> Cmd msg
 port saveUserPicture : { uid : String, event : Decode.Value } -> Cmd msg
 
 
-port savedUserPicture : (String -> msg) -> Sub msg
+port completedSaveUserPicture : (String -> msg) -> Sub msg
+
+
+port failedSaveUserPicture : (() -> msg) -> Sub msg

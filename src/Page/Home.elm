@@ -23,8 +23,8 @@ import AudioManager.AudioLoadingS exposing (AudioLoadingS)
 import AudioManager.BGM as BGM
 import AudioManager.SE as SE
 import Constants exposing (allModeList, currentMusicIdDefault)
-import Html exposing (Html, a, div, img, input, label, text)
-import Html.Attributes exposing (class, disabled, href, id, name, src, step, target, type_, value)
+import Html exposing (Html, a, div, img, input, label, span, text)
+import Html.Attributes exposing (class, href, id, name, src, step, target, type_, value)
 import Html.Events exposing (on, onClick, onInput, onMouseUp)
 import Json.Decode as Decode
 import OwnRecord exposing (OwnRecordDto)
@@ -32,11 +32,13 @@ import Page
 import Page.Home.RankingRecords as RankingRecords exposing (RankingData, RankingRecords)
 import Page.Home.UserPlayRecords as UserPlayRecords exposing (UserPlayRecordData, UserPlayRecords)
 import Page.Home.UserSettingPanelS as UserSettingPanelS exposing (UserSettingPanelS(..))
+import Process
 import PublicRecord exposing (PublicRecordDto)
 import Rank exposing (Rank)
 import Route
 import Session exposing (Session)
 import Session.User as User exposing (User, UserDto)
+import Task
 import UserSetting exposing (UserSetting, UserSettingDto)
 import UserSetting.Setting as Setting exposing (Setting)
 import UserSetting.Setting.NotesSpeed as NotesSpeed
@@ -63,6 +65,7 @@ type alias Model =
 type PictureUploadS
     = NotUploading
     | Uploading
+    | FailedUpload
 
 
 init : Session -> AllMusicData -> AudioLoadingS -> ( Model, Cmd Msg )
@@ -115,8 +118,10 @@ type Msg
     | ChangeBgmVolume String
     | ChangeSeVolume String
     | InputUserName String
-    | SelectdPicture Decode.Value
-    | SavedUserPicture String
+    | SelectedUserPicture Decode.Value
+    | CompletedSaveUserPicture String
+    | FailedSaveUserPicture ()
+    | CompletedFailedAnimation
     | ClickedSettingPanelShowBtn
     | ClickedInfoPanelShowBtn
     | ClickedPanelCloseBtn
@@ -258,12 +263,12 @@ update msg model =
                         ]
                     )
 
-                SelectdPicture event ->
+                SelectedUserPicture event ->
                     ( { model | pictureUploadS = Uploading }
                     , User.saveUserPicture { uid = user.uid, event = event }
                     )
 
-                SavedUserPicture url ->
+                CompletedSaveUserPicture url ->
                     let
                         updatedSession =
                             Session.updateUser url User.updatePictureUrl model.session
@@ -271,6 +276,17 @@ update msg model =
                     ( { model | pictureUploadS = NotUploading, session = updatedSession }
                     , AudioManager.playSE SE.Succeed seVolume
                     )
+
+                FailedSaveUserPicture _ ->
+                    ( { model | pictureUploadS = FailedUpload }
+                    , Cmd.batch
+                        [ AudioManager.playSE SE.Attention seVolume
+                        , Process.sleep 1500 |> Task.perform (\_ -> CompletedFailedAnimation)
+                        ]
+                    )
+
+                CompletedFailedAnimation ->
+                    ( { model | pictureUploadS = NotUploading }, Cmd.none )
 
                 ClickedSettingPanelShowBtn ->
                     ( { model | userSettingPanelS = SettingShow }
@@ -316,7 +332,8 @@ subscriptions _ =
         , PublicRecord.gotPublicRecord GotRankingRecord
         , User.gotUsers GotRankingUsers
         , UserSetting.gotUserSetting GotUserSetting
-        , User.savedUserPicture SavedUserPicture
+        , User.completedSaveUserPicture CompletedSaveUserPicture
+        , User.failedSaveUserPicture FailedSaveUserPicture
         ]
 
 
@@ -408,38 +425,51 @@ viewLogoutIcon =
 viewUser : User -> PictureUploadS -> UserSettingPanelS -> Html Msg
 viewUser user pictureUploadS userSettingPanelS =
     let
-        isUploading =
-            pictureUploadS == Uploading
+        viewUserIconInput =
+            case pictureUploadS of
+                NotUploading ->
+                    label
+                        [ class "homeUserSetting_userIconBtnLabel" ]
+                        [ input
+                            [ class "homeUserSetting_userIconBtn"
+                            , type_ "file"
+                            , name "userPictureUrl"
+                            , on "change" (Decode.map SelectedUserPicture Decode.value)
+                            ]
+                            []
+                        , img
+                            [ class "homeUserSetting_userIconBtnImage"
+                            , src "./img/icon_photo.png"
+                            ]
+                            []
+                        ]
 
-        clsIsUploading =
-            if isUploading then
-                "is-uploading"
+                Uploading ->
+                    span
+                        [ class "homeUserSetting_userIconBtnLabel is-uploading" ]
+                        [ img
+                            [ class "homeUserSetting_userIconBtnImage is-uploading"
+                            , src "./img/icon_loading.png"
+                            ]
+                            []
+                        ]
 
-            else
-                ""
+                FailedUpload ->
+                    span
+                        [ class "homeUserSetting_userIconBtnLabel is-failed" ]
+                        [ img
+                            [ class "homeUserSetting_userIconBtnImage is-failed"
+                            , src "./img/icon_attention_red.png"
+                            ]
+                            []
+                        ]
     in
     div
         [ class "homeUserSetting_userInfoContents"
         , class <| UserSettingPanelS.clsStr userSettingPanelS
         ]
         [ img [ class "homeUserSetting_userIcon", src user.pictureUrl ] []
-        , label
-            [ class "homeUserSetting_userIconBtnLabel"
-            , class clsIsUploading
-            ]
-            [ input
-                [ class "homeUserSetting_userIconBtn"
-                , type_ "file"
-                , name "userPictureUrl"
-                , on "change" (Decode.map SelectdPicture Decode.value)
-                , disabled isUploading
-                ]
-                []
-            , img [ class "homeUserSetting_userIconBtnImage", src "./img/icon_photo.png" ] []
-                |> viewIf (not isUploading)
-            , img [ class "homeUserSetting_userIconBtnImage", class clsIsUploading, src "./img/icon_loading.png" ] []
-                |> viewIf isUploading
-            ]
+        , viewUserIconInput
         , input [ class "homeUserSetting_userNameInput", value user.userName, onInput InputUserName ] []
         ]
 

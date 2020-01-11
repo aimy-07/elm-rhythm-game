@@ -80,7 +80,7 @@ export function firebaseAuthSetUpSubscriber (app) {
 
     const fileType = getFileType(file.name);
     if (fileType === "") {
-      console.error('fileType in not JPG or PNG'); // TODO: エラービュー表示に切り替える
+      app.ports.failedSaveUserPicture.send(null);
       return;
     }
 
@@ -96,7 +96,7 @@ export function firebaseAuthSetUpSubscriber (app) {
         const updateDB = firebase.database().ref(`/users/${uid}/pictureUrl/`).set(url);
         Promise.all([updateAuth, updateDB])
           .then(() => {
-            app.ports.savedUserPicture.send(url)
+            app.ports.completedSaveUserPicture.send(url);
           })
           .catch(error => {
             detectedError(errorEvent.saveUserPicture, error, {uid, filePath});

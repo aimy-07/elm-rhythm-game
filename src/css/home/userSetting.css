@@ -124,8 +124,15 @@
 }
 
 .homeUserSetting_userIconBtnLabel.is-uploading {
-  cursor: wait;
   background-color: rgba(255, 255, 255, 0.3);
+  cursor: wait;
+}
+
+.homeUserSetting_userIconBtnLabel.is-failed {
+  background-color: rgba(255, 0, 0, 0.5);
+  opacity: 1;
+  animation: failedAmimation 1.5s linear 0s 1 normal both running;
+  cursor: not-allowed;
 }
 
 .homeUserSetting_userIconBtnLabel:hover .homeUserSetting_userIconBtnImage {
@@ -134,16 +141,29 @@
 
 .homeUserSetting_userIconBtnLabel.is-uploading .homeUserSetting_userIconBtnImage {
   opacity: 1;
-  animation: rotateAmimation 2s linear infinite;
-  pointer-events: none;
+  animation: uploadingAmimation 2s ease-in 0s infinite normal both running;
 }
 
-@keyframes rotateAmimation {
+.homeUserSetting_userIconBtnLabel.is-failed .homeUserSetting_userIconBtnImage {
+  opacity: 1;
+  animation: failedAmimation 1.5s ease-in 0s 1 normal both running;
+}
+
+@keyframes uploadingAmimation {
   0% {
     transform: rotate(0deg);
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes failedAmimation {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }
 
