@@ -86,6 +86,7 @@ export const errorEvent = {
   getPublicRecord: 'get_public_record',
   getUsers: 'get_users',
   getUserSetting: 'get_user_setting',
+  getMaintenanceMode: 'get_maintenance_mode',
   saveRecord: 'save_record',
   saveOwnRecord: 'save_own_record',
   savePublicRecord: 'save_public_record',

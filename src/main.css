@@ -40,6 +40,7 @@ div, span, button, a, img {
 @import url("./css/common.css");
 /* タイトル画面 */
 @import url("./css/title.css");
+@import url("./css/title/maintenance.css");
 @import url("./css/title/audioAttention.css");
 @import url("./css/title/titleArea.css");
 @import url("./css/title/overview.css");

@@ -15,9 +15,10 @@ import AllMusicData.MusicData exposing (MusicDataCsvDto, MusicDataJsonDto)
 import AudioManager
 import AudioManager.AudioLoadingS as AudioLoadingS exposing (AudioLoadingS)
 import AudioManager.BGM as BGM
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (class)
+import Html exposing (Html, a, div, text)
+import Html.Attributes exposing (class, href, target)
 import Html.Events exposing (onClick)
+import MaintenanceMode
 import Page
 import Session exposing (Session)
 import Utils exposing (cmdIf)
@@ -37,6 +38,7 @@ type alias Model =
 
 type ViewState
     = Blank
+    | Maintenance
     | Attention
     | DataLoading
 
@@ -48,15 +50,13 @@ init session =
       , audioLoadingS = AudioLoadingS.init
       , viewState = Blank
       }
-    , Cmd.batch
-        [ AudioLoadingS.loadAudioInitial ()
-        , AllMusicData.loadMusicDataByJsonCmds
-        ]
+    , MaintenanceMode.getMaintenanceMode ()
     )
 
 
 type Msg
-    = LoadedAudioInitial ()
+    = GotMaintenanceMode (Maybe Bool)
+    | LoadedAudioInitial ()
     | LoadedBGM String
     | LoadedSE String
     | LoadedMusicDataByJson MusicDataJsonDto
@@ -67,6 +67,23 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        GotMaintenanceMode maybeMaintenanceMode ->
+            let
+                maintenanceMode =
+                    maybeMaintenanceMode
+                        |> Maybe.withDefault False
+            in
+            if maintenanceMode then
+                ( { model | viewState = Maintenance }, Cmd.none )
+
+            else
+                ( model
+                , Cmd.batch
+                    [ AudioLoadingS.loadAudioInitial ()
+                    , AllMusicData.loadMusicDataByJsonCmds
+                    ]
+                )
+
         LoadedAudioInitial _ ->
             let
                 updatedAudioLoadingS =
@@ -134,7 +151,8 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ AudioLoadingS.loadedAudioInitial LoadedAudioInitial
+        [ MaintenanceMode.gotMaintenanceMode GotMaintenanceMode
+        , AudioLoadingS.loadedAudioInitial LoadedAudioInitial
         , AudioLoadingS.loadedBGM LoadedBGM
         , AudioLoadingS.loadedSE LoadedSE
         , AllMusicData.loadedMusicDataByJson LoadedMusicDataByJson
@@ -153,6 +171,9 @@ view model =
             case model.viewState of
                 Blank ->
                     viewBlank
+
+                Maintenance ->
+                    viewMaintenance
 
                 Attention ->
                     viewAudioAttention
@@ -187,7 +208,7 @@ viewAudioAttention =
         [ div
             [ class "audioAttention_textContainer" ]
             [ div [ class "audioAttention_mainText" ] [ text "Welcome to ElMusic" ]
-            , div [ class "audioAttention_subText" ] [ text "- Please click anywhere on the screen -" ]
+            , div [ class "audioAttention_subText" ] [ text "< 画面をクリックして始める >" ]
             , div
                 [ class "audioAttention_attentionContainer" ]
                 [ div [ class "audioAttention_attentionMainText" ] [ text "[注意] このゲームは音を使用します" ]
@@ -197,6 +218,22 @@ viewAudioAttention =
                 ]
             ]
         , div [ class "audioAttention_screenBtn", onClick ClickedAudioAttention ] []
+        ]
+
+
+viewMaintenance : Html Msg
+viewMaintenance =
+    div [ class "title_overview" ]
+        [ div
+            [ class "maintenance_textContainer" ]
+            [ div [ class "maintenance_title" ] [ text "Welcome to ElMusic" ]
+            , div [ class "maintenance_text red" ] [ text "ただいまメンテナンス中です" ]
+            , div [ class "maintenance_text" ]
+                [ text "メンテナンス終了目処は "
+                , a [ class "maintenance_link", href "https://twitter.com/yun_ar_1107", target "_blank" ] [ text "こちら" ]
+                , text " までお問い合わせください"
+                ]
+            ]
         ]
 
 

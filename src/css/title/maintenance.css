@@ -1,0 +1,41 @@
+.maintenance_textContainer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+  height: 200px;
+}
+
+.maintenance_title {
+  color: white;
+  font-size: 60px;
+  font-weight: 600;
+  text-shadow: 0 0 3px white;
+  text-align: center;
+  line-height: 80px;
+  letter-spacing: 1px;
+}
+
+.maintenance_text {
+  color: white;
+  font-size: 18px;
+  text-align: center;
+  line-height: 20px;
+  margin-top: 40px;
+  letter-spacing: 1px;
+}
+
+.maintenance_text.red {
+  color: red;
+}
+
+.maintenance_link {
+  color: white;
+  cursor: pointer;
+}
+
+.maintenance_link:hover {
+  color: var(--color-elm-lightblue);
+}

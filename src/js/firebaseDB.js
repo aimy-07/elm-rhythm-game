@@ -16,7 +16,7 @@ export function firebaseDBSetUpSubscriber (app) {
 	  GET
   ---------------------------------- */
   app.ports.getOwnRecord.subscribe(({uid, csvFileName}) => {
-    firebaseDBGet(`/userDatas/${uid}/playRecords/${csvFileName}`)
+    firebaseDBGet(`/userDatas/${uid}/playRecords/${csvFileName}/`)
       .then((snapshot) => {
         const ownRecordDto = {csvFileName, uid, playRecord: snapshot.val()};
         app.ports.gotOwnRecord.send(ownRecordDto);
@@ -39,7 +39,7 @@ export function firebaseDBSetUpSubscriber (app) {
   })
 
   app.ports.getUsers.subscribe(uidList => {
-    const getUsers = uidList.map(uid => firebaseDBGet(`/users/${uid}`));
+    const getUsers = uidList.map(uid => firebaseDBGet(`/users/${uid}/`));
     Promise.all(getUsers)
       .then(snapshots => {
         const users = snapshots.map(snapshot => snapshot.val());
@@ -56,7 +56,7 @@ export function firebaseDBSetUpSubscriber (app) {
   })
 
   app.ports.getUserSetting.subscribe(uid => {
-    firebaseDBGet(`/userDatas/${uid}/settings`)
+    firebaseDBGet(`/userDatas/${uid}/settings/`)
       .then((snapshot) => {
         if (!snapshot.val()) {
           app.ports.gotUserSetting.send(null);
@@ -76,6 +76,16 @@ export function firebaseDBSetUpSubscriber (app) {
       });
   });
 
+  app.ports.getMaintenanceMode.subscribe(() => {
+    firebaseDBGet(`/maintenanceMode/`)
+      .then((snapshot) => {
+        app.ports.gotMaintenanceMode.send(snapshot.val());
+      })
+      .catch(error => {
+        detectedError(errorEvent.getMaintenanceMode, error, {});
+      });
+  })
+
   /* ---------------------------------
 	  POST
   ---------------------------------- */
@@ -92,7 +102,7 @@ export function firebaseDBSetUpSubscriber (app) {
   })
 
   app.ports.saveOwnRecord_.subscribe(({uid, csvFileName, playRecord}) => {
-    firebaseDBSet(`/userDatas/${uid}/playRecords/${csvFileName}`, playRecord)
+    firebaseDBSet(`/userDatas/${uid}/playRecords/${csvFileName}/`, playRecord)
       .then(() => {
         app.ports.savedOwnRecord.send(null);
       })
