@@ -1,7 +1,7 @@
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
-export function animationSetUpSubscriber (app) {
+export const animationSetUpSubscriber = (app) => {
   // 判定時の◇エフェクトアニメーションを再生する
   app.ports.playJudgeEffectAnim.subscribe(({key, isLongNote}) => {
     const judgeEffect = document.getElementById("judgeEffect_" + key);

@@ -8,7 +8,7 @@ const uuidv4 = require('uuid/v4');
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
-export function firebaseDBSetUpSubscriber (app) {
+export const firebaseDBSetUpSubscriber = (app) => {
   const firebaseDBGet = (path) => firebase.database().ref(path).once('value');
   const firebaseDBSet = (path, data) => firebase.database().ref(path).set(data);
 

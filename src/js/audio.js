@@ -57,7 +57,7 @@ export const SE = (app) => {
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
-export function audioSetUpSubscriber (app, BGM, SE) {
+export const audioSetUpSubscriber = (app, BGM, SE) => {
   // タイトルのBGMだけ読み込む
   app.ports.loadAudioInitial.subscribe(() => {
     BGM.theRoadToHeaven.load();

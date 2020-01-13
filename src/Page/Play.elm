@@ -42,9 +42,10 @@ import Record
 import Route
 import Session exposing (Session)
 import Time
+import Tracking
 import UserSetting exposing (UserSetting)
 import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
-import Utils exposing (subIf, viewIf)
+import Utils exposing (cmdIf, subIf, viewIf)
 
 
 
@@ -94,7 +95,10 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , lanes = List.map Lane.new allKeyList
               , resultSavingS = ResultSavingS.init
               }
-            , AudioManager.stopBGM ()
+            , Cmd.batch
+                [ AudioManager.stopBGM ()
+                , Tracking.trackingPlayStart currentMusicData.csvFileName
+                ]
             )
 
         _ ->
@@ -113,7 +117,10 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , lanes = List.map Lane.new allKeyList
               , resultSavingS = ResultSavingS.init
               }
-            , Route.replaceUrl (Session.toNavKey session) Route.Home
+            , Cmd.batch
+                [ AudioManager.stopBGM ()
+                , Route.replaceUrl (Session.toNavKey session) Route.Home
+                ]
             )
 
 
@@ -366,9 +373,11 @@ update msg model =
                     ResultSavingS.savedRecord model.resultSavingS
             in
             ( { model | resultSavingS = nextResultSavingS }
-            , ResultSavingS.toResult nextResultSavingS
-                |> Maybe.map (\_ -> AudioManager.playSE SE.Result seVolume)
-                |> Maybe.withDefault Cmd.none
+            , Cmd.batch
+                [ AudioManager.playSE SE.Result seVolume
+                , Tracking.trackingPlayEnd model.currentMusicData.csvFileName
+                ]
+                |> cmdIf (not <| ResultSavingS.toResult nextResultSavingS == Nothing)
             )
 
         SavedUpdatedOwnRecord _ ->
@@ -377,9 +386,11 @@ update msg model =
                     ResultSavingS.savedUpdatedOwnRecord model.resultSavingS
             in
             ( { model | resultSavingS = nextResultSavingS }
-            , ResultSavingS.toResult nextResultSavingS
-                |> Maybe.map (\_ -> AudioManager.playSE SE.Result seVolume)
-                |> Maybe.withDefault Cmd.none
+            , Cmd.batch
+                [ AudioManager.playSE SE.Result seVolume
+                , Tracking.trackingPlayEnd model.currentMusicData.csvFileName
+                ]
+                |> cmdIf (not <| ResultSavingS.toResult nextResultSavingS == Nothing)
             )
 
         SavedUpdatedPublicRecord _ ->
@@ -388,9 +399,11 @@ update msg model =
                     ResultSavingS.savedUpdatedPublicRecord model.resultSavingS
             in
             ( { model | resultSavingS = nextResultSavingS }
-            , ResultSavingS.toResult nextResultSavingS
-                |> Maybe.map (\_ -> AudioManager.playSE SE.Result seVolume)
-                |> Maybe.withDefault Cmd.none
+            , Cmd.batch
+                [ AudioManager.playSE SE.Result seVolume
+                , Tracking.trackingPlayEnd model.currentMusicData.csvFileName
+                ]
+                |> cmdIf (not <| ResultSavingS.toResult nextResultSavingS == Nothing)
             )
 
         PlayTweetBtnSE ->

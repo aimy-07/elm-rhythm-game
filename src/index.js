@@ -7,31 +7,43 @@ import {firebaseDBSetUpSubscriber} from './js/firebaseDB';
 import {dataSetUpSubscriber} from './js/data';
 import {audioSetUpSubscriber, BGM, SE} from './js/audio';
 import {animationSetUpSubscriber} from './js/animation';
+import {trackingSetUpSubscriber, trackingEvent} from './js/tracking';
 
 import firebase from 'firebase/app';
 import 'firebase/auth';
 import 'firebase/database';
 import 'firebase/analytics';
-const Rollbar = require('rollbar');
 import {firebaseConfig, rollberConfig} from './config';
 
 
 
 /* ---------------------------------
-  Elm init
+  初期化処理
 ---------------------------------- */
 const app = Elm.Main.init({
   node: document.getElementById('root')
 });
+
+const firebaseApp = firebase.initializeApp(firebaseConfig);
+
+const firebaseAnalytics = firebase.analytics(firebaseApp);
+
+const Rollbar = require('rollbar');
+const rollbar = new Rollbar(rollberConfig);
 
 registerServiceWorker();
 
 
 
 /* ---------------------------------
-  Firebase init
+  Subscriber
 ---------------------------------- */
-const firebaseApp = firebase.initializeApp(firebaseConfig);
+firebaseAuthSetUpSubscriber(app);
+firebaseDBSetUpSubscriber(app);
+dataSetUpSubscriber(app);
+audioSetUpSubscriber(app, BGM(app), SE(app));
+animationSetUpSubscriber(app);
+trackingSetUpSubscriber(app, firebaseAnalytics);
 
 
 
@@ -51,6 +63,7 @@ firebase.auth().onAuthStateChanged((user) => {
     }
     firebase.database().ref(`/users/${user.uid}`).set(userInfo)
       .then(() => {
+        firebaseAnalytics.logEvent(trackingEvent.visitAndSignIn, {uid: user.uid});
         app.ports.onAuthStateChanged.send(userInfo);
       })
       .catch(error => {
@@ -67,20 +80,20 @@ firebase.auth().onAuthStateChanged((user) => {
 
 
 /* ---------------------------------
-  Subscriber
+  起動時のトラッキング
 ---------------------------------- */
-firebaseAuthSetUpSubscriber(app);
-firebaseDBSetUpSubscriber(app);
-dataSetUpSubscriber(app);
-audioSetUpSubscriber(app, BGM(app), SE(app));
-animationSetUpSubscriber(app);
+firebaseAnalytics.logEvent(trackingEvent.visit, {});
 
 
 
 /* ---------------------------------
-  エラーログ
+  エラー処理
 ---------------------------------- */
-const rollbar = new Rollbar(rollberConfig);
+export const detectedError = (errorEvent, errorMessage, property) => {
+  const uid = firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;
+  rollbar.error(`Failed[${errorEvent}] ${errorMessage} <uid: ${uid}> ${property}`);
+  app.ports.detectedError.send(null);
+}
 
 export const errorEvent = {
   signIn: 'sign_in',
@@ -104,22 +117,3 @@ export const errorEvent = {
   saveBgmVolume: 'save_bgm_volume',
   saveSeVolume: 'save_se_volume'
 }
-
-
-
-/* ---------------------------------
-  エラー処理
----------------------------------- */
-export const detectedError = (errorEvent, errorMessage, property) => {
-  const uid = firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;
-  rollbar.error(`Failed[${errorEvent}] ${errorMessage} <uid: ${uid}> ${property}`);
-  app.ports.detectedError.send(null);
-}
-
-
-
-/* ---------------------------------
-  アナリティクス
----------------------------------- */
-// const firebaseAnalytics = firebase.analytics(firebaseApp);
-// firebaseAnalytics.logEvent(event, {});

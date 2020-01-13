@@ -18,7 +18,7 @@ const githubAuthProvider = new firebase.auth.GithubAuthProvider();
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
-export function firebaseAuthSetUpSubscriber (app) {
+export const firebaseAuthSetUpSubscriber = (app) => {
   // サインイン
   app.ports.signInWithGoogle.subscribe(() => {
     firebase.auth().signInWithPopup(googleAuthProvider)

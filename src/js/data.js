@@ -5,7 +5,7 @@ import {detectedError, errorEvent} from '../index';
 /* ---------------------------------
 	Subscriber
 ---------------------------------- */
-export function dataSetUpSubscriber (app) {
+export const dataSetUpSubscriber = (app) => {
   // Jsonファイルの読み込み
   app.ports.loadMusicDataByJson.subscribe((musicId) => {
     getFile(
