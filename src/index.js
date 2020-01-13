@@ -1,16 +1,19 @@
 import './main.css';
 import { Elm } from './Main.elm';
 import registerServiceWorker from './registerServiceWorker';
+
 import {firebaseAuthSetUpSubscriber} from './js/firebaseAuth';
 import {firebaseDBSetUpSubscriber} from './js/firebaseDB';
 import {dataSetUpSubscriber} from './js/data';
 import {audioSetUpSubscriber, BGM, SE} from './js/audio';
 import {animationSetUpSubscriber} from './js/animation';
+
 import firebase from 'firebase/app';
 import 'firebase/auth';
 import 'firebase/database';
 import 'firebase/analytics';
-import {firebaseConfig} from './config';
+const Rollbar = require('rollbar');
+import {firebaseConfig, rollberConfig} from './config';
 
 
 
@@ -51,7 +54,12 @@ firebase.auth().onAuthStateChanged((user) => {
         app.ports.onAuthStateChanged.send(userInfo);
       })
       .catch(error => {
-        detectedError(errorEvent.setUserInfoOnAuthChanged, error, userInfo);
+        console.error(error);
+        detectedError(
+          errorEvent.setUserInfoOnAuthChanged,
+          error.message,
+          `<userName: ${userInfo.userName}> <pictureUrl: ${userInfo.pictureUrl}>`
+        );
       })
   }
 });
@@ -72,7 +80,7 @@ animationSetUpSubscriber(app);
 /* ---------------------------------
   エラーログ
 ---------------------------------- */
-const firebaseAnalytics = firebase.analytics(firebaseApp);
+const rollbar = new Rollbar(rollberConfig);
 
 export const errorEvent = {
   signIn: 'sign_in',
@@ -102,11 +110,16 @@ export const errorEvent = {
 /* ---------------------------------
   エラー処理
 ---------------------------------- */
-export const detectedError = (event, error, eventProperty) => {
-  if (error) {
-    console.error(event, error);
-    const time = new Date();
-    firebaseAnalytics.logEvent(event, Object.assign({error, time}, eventProperty));
-    app.ports.detectedError.send(null);
-  }
+export const detectedError = (errorEvent, errorMessage, property) => {
+  const uid = firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;
+  rollbar.error(`Failed[${errorEvent}] ${errorMessage} <uid: ${uid}> ${property}`);
+  app.ports.detectedError.send(null);
 }
+
+
+
+/* ---------------------------------
+  アナリティクス
+---------------------------------- */
+// const firebaseAnalytics = firebase.analytics(firebaseApp);
+// firebaseAnalytics.logEvent(event, {});

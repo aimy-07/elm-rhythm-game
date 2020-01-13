@@ -270,10 +270,22 @@ changeRouteTo maybeRoute model =
     in
     case model of
         Init _ ->
-            ( model, Cmd.none )
+            case maybeRoute of
+                Just Route.Error ->
+                    Error.init session allMusicData audioLoadingS
+                        |> updateWith Error GotErrorMsg model
+
+                _ ->
+                    ( model, Cmd.none )
 
         DataLoading _ ->
-            ( model, Cmd.none )
+            case maybeRoute of
+                Just Route.Error ->
+                    Error.init session allMusicData audioLoadingS
+                        |> updateWith Error GotErrorMsg model
+
+                _ ->
+                    ( model, Cmd.none )
 
         _ ->
             case maybeRoute of

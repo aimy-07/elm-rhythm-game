@@ -3,7 +3,6 @@ import 'firebase/auth';
 import 'firebase/database';
 import 'firebase/storage';
 import {detectedError, errorEvent} from '../index';
-const uuidv4 = require('uuid/v4');
 
 
 
@@ -25,8 +24,12 @@ export function firebaseAuthSetUpSubscriber (app) {
     firebase.auth().signInWithPopup(googleAuthProvider)
       .then(() => {})
       .catch(error => {
-        detectedError(errorEvent.signIn, error, {provider: 'Google'});
-        app.ports.canceledSignIn.send(null);
+        if (isCanceledSignIn(error)) {
+          app.ports.canceledSignIn.send(null);
+          return;
+        }
+        console.error(error);
+        detectedError(errorEvent.signIn, error.message, `<provider: Google>`);
       });
   });
 
@@ -34,8 +37,12 @@ export function firebaseAuthSetUpSubscriber (app) {
     firebase.auth().signInWithPopup(twitterAuthProvider)
       .then(() => {})
       .catch(error => {
-        detectedError(errorEvent.signIn, error, {provider: 'Twitter'});
-        app.ports.canceledSignIn.send(null);
+        if (isCanceledSignIn(error)) {
+          app.ports.canceledSignIn.send(null);
+          return;
+        }
+        console.error(error);
+        detectedError(errorEvent.signIn, error.message, `<provider: Twitter>`);
       });
   });
 
@@ -43,8 +50,12 @@ export function firebaseAuthSetUpSubscriber (app) {
     firebase.auth().signInWithPopup(githubAuthProvider)
       .then(() => {})
       .catch(error => {
-        detectedError(errorEvent.signIn, error, {provider: 'Github'});
-        app.ports.canceledSignIn.send(null);
+        if (isCanceledSignIn(error)) {
+          app.ports.canceledSignIn.send(null);
+          return;
+        }
+        console.error(error);
+        detectedError(errorEvent.signIn, error.message, `<provider: Github>`);
       });
   });
 
@@ -53,8 +64,8 @@ export function firebaseAuthSetUpSubscriber (app) {
     firebase.auth().signOut()
       .then(() => {})
       .catch(error => {
-        const uid = firebase.auth().currentUser.uid;
-        detectedError(errorEvent.signOut, error, {uid});
+        console.error(error);
+        detectedError(errorEvent.signOut, error.message, ``);
       });
   });
 
@@ -66,7 +77,8 @@ export function firebaseAuthSetUpSubscriber (app) {
     Promise.all([updateAuth, updateDB])
       .then(() => {})
       .catch(error => {
-        detectedError(errorEvent.saveUserName, error, {uid, userName});
+        console.error(error);
+        detectedError(errorEvent.saveUserName, error.message, `<userName: ${userName}>`);
       });
   });
 
@@ -74,7 +86,7 @@ export function firebaseAuthSetUpSubscriber (app) {
   app.ports.saveUserPicture.subscribe(({uid, event}) => {
     const file = event.target.files[0];
     if (!file) {
-      detectedError(errorEvent.saveUserPicture, 'uploaded file is empty', {uid});
+      detectedError(errorEvent.saveUserPicture, 'uploaded file is empty', ``);
       return;
     }
 
@@ -99,13 +111,30 @@ export function firebaseAuthSetUpSubscriber (app) {
             app.ports.completedSaveUserPicture.send(url);
           })
           .catch(error => {
-            detectedError(errorEvent.saveUserPicture, error, {uid, filePath});
+            console.error(error);
+            detectedError(errorEvent.saveUserPicture, error.message, `<fileName: ${file.name}>`);
           })
       })
       .catch(error => {
-        detectedError(errorEvent.saveUserPicture, error, {uid, filePath});
+        console.error(error);
+        detectedError(errorEvent.saveUserPicture, error.message, `<fileName: ${file.name}>`);
       })
   });
+}
+
+
+
+/* ---------------------------------
+	サインインがキャンセルされたかどうかのチェック
+---------------------------------- */
+const isCanceledSignIn = error => {
+  switch(error.code) {
+    case 'auth/cancelled-popup-request':
+    case 'auth/popup-closed-by-user':
+      return true;
+    default:
+      return false;
+  }
 }
 
 

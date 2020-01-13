@@ -8,26 +8,21 @@ import {detectedError, errorEvent} from '../index';
 export function dataSetUpSubscriber (app) {
   // Jsonファイルの読み込み
   app.ports.loadMusicDataByJson.subscribe((musicId) => {
-    const filePath = `./json/${musicId}.json`;
-
     getFile(
-      filePath,
+      `./json/${musicId}.json`,
       (data => {
         app.ports.loadedMusicDataByJson.send(JSON.parse(data));
       }),
-      (error => {
-        const uid = firebase.auth().currentUser.uid;
-        detectedError(errorEvent.loadMusicDataByJson, error, {filePath, uid});
+      (errorMessage => {
+        detectedError(errorEvent.loadMusicDataByJson, errorMessage, `<musicId: ${musicId}>`);
       })
     )
   });
 
   // Csvファイルの読み込み
   app.ports.loadMusicDataByCsv.subscribe((csvFileName) => {
-    const filePath = `./csv/${csvFileName}.csv`;
-
     getFile(
-      filePath,
+      `./csv/${csvFileName}.csv`,
       (data => {
         const csvData = data.split("\n").map(csvRow =>
           csvRow.split(',').map(value => {
@@ -37,9 +32,8 @@ export function dataSetUpSubscriber (app) {
         );
         app.ports.loadedMusicDataByCsv.send({csvFileName, csvData});
       }),
-      (error => {
-        const uid = firebase.auth().currentUser.uid;
-        detectedError(errorEvent.loadMusicDataByCsv, error, {filePath, uid});
+      (errorMessage => {
+        detectedError(errorEvent.loadMusicDataByCsv, errorMessage, `<csvFileName: ${csvFileName}>`);
       })
     )
   });

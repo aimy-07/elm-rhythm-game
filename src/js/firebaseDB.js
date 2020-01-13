@@ -22,7 +22,8 @@ export function firebaseDBSetUpSubscriber (app) {
         app.ports.gotOwnRecord.send(ownRecordDto);
       })
       .catch(error => {
-        detectedError(errorEvent.getOwnRecord, error, {uid, csvFileName});
+        console.error(error);
+        detectedError(errorEvent.getOwnRecord, error.message, `<csvFileName: ${csvFileName}>`);
       });
   })
 
@@ -33,8 +34,8 @@ export function firebaseDBSetUpSubscriber (app) {
         app.ports.gotPublicRecord.send(publicRecordDto);
       })
       .catch(error => {
-        const uid = firebase.auth().currentUser.uid;
-        detectedError(errorEvent.getPublicRecord, error, {uid, csvFileName});
+        console.error(error);
+        detectedError(errorEvent.getPublicRecord, error.message, `<csvFileName: ${csvFileName}>`);
       });
   })
 
@@ -50,8 +51,8 @@ export function firebaseDBSetUpSubscriber (app) {
         app.ports.gotUsers.send(userDtos);
       })
       .catch(error => {
-        const uid = firebase.auth().currentUser.uid;
-        detectedError(errorEvent.getUsers, error, {uid});
+        console.error(error);
+        detectedError(errorEvent.getUsers, error.message, `<uidList: ${uidList}>`);
       });
   })
 
@@ -72,7 +73,8 @@ export function firebaseDBSetUpSubscriber (app) {
         app.ports.gotUserSetting.send(userSettingDto);
       })
       .catch(error => {
-        detectedError(errorEvent.getUserSetting, error, {uid});
+        console.error(error);
+        detectedError(errorEvent.getUserSetting, error.message, ``);
       });
   });
 
@@ -82,7 +84,8 @@ export function firebaseDBSetUpSubscriber (app) {
         app.ports.gotMaintenanceMode.send(snapshot.val());
       })
       .catch(error => {
-        detectedError(errorEvent.getMaintenanceMode, error, {});
+        console.error(error);
+        detectedError(errorEvent.getMaintenanceMode, error.message, ``);
       });
   })
 
@@ -96,8 +99,9 @@ export function firebaseDBSetUpSubscriber (app) {
         app.ports.savedRecord.send(null);
       })
       .catch(error => {
-        const uid = firebase.auth().currentUser.uid;
-        detectedError(errorEvent.saveRecord, error, {uid, record});
+        const recordInfo = `{csvFileName: ${record.csvFileName}, combo: ${record.combo}, score: ${record.score}, createdAt: ${record.createdAt}}`;
+        console.error(error);
+        detectedError(errorEvent.saveRecord, error.message, `<record: ${recordInfo}>`);
       });
   })
 
@@ -107,7 +111,16 @@ export function firebaseDBSetUpSubscriber (app) {
         app.ports.savedOwnRecord.send(null);
       })
       .catch(error => {
-        detectedError(errorEvent.saveOwnRecord, error, {uid, csvFileName, playRecord});
+        const playRecordInfo =
+          !playRecord
+            ? `null`
+            : `{bestCombo: ${playRecord.bestCombo}, bestScore: ${playRecord.bestScore}, playCount: ${playRecord.playCount}}`;
+        console.error(error);
+        detectedError(
+          errorEvent.saveOwnRecord,
+          error.message,
+          `<csvFileName: ${csvFileName}> <playRecord: ${playRecordInfo}>`
+        );
       });
   })
 
@@ -117,8 +130,16 @@ export function firebaseDBSetUpSubscriber (app) {
         app.ports.savedPublicRecord.send(null);
       })
       .catch(error => {
-        const uid = firebase.auth().currentUser.uid;
-        detectedError(errorEvent.savePublicRecord, error, {uid, csvFileName, bestRecords});
+        const bestRecordsInfo =
+          !bestRecords || bestRecords === []
+            ? `null`
+            : bestRecords.map(bestRecord => `{uid: ${bestRecord.uid}, score: ${bestRecord.score}, createdAt: ${bestRecord.createdAt}}`).join();
+        console.error(error);
+        detectedError(
+          errorEvent.savePublicRecord,
+          error.message,
+          `<csvFileName: ${csvFileName}> <bestRecords: ${bestRecordsInfo}>`
+        );
       });
   })
 
@@ -126,7 +147,8 @@ export function firebaseDBSetUpSubscriber (app) {
     firebaseDBSet(`/userDatas/${uid}/settings/currentMusicId/`, currentMusicId)
       .then(() => {})
       .catch(error => {
-        detectedError(errorEvent.saveCurrentMusicId, error, {uid, currentMusicId});
+        console.error(error);
+        detectedError(errorEvent.saveCurrentMusicId, error.message, `<currentMusicId: ${currentMusicId}>`);
       });
   });
 
@@ -134,7 +156,8 @@ export function firebaseDBSetUpSubscriber (app) {
     firebaseDBSet(`/userDatas/${uid}/settings/currentMode/`, currentMode)
       .then(() => {})
       .catch(error => {
-        detectedError(errorEvent.saveCurrentMode, error, {uid, currentMode});
+        console.error(error);
+        detectedError(errorEvent.saveCurrentMode, error.message, `<currentMode: ${currentMode}>`);
       });
   });
 
@@ -142,7 +165,8 @@ export function firebaseDBSetUpSubscriber (app) {
     firebaseDBSet(`/userDatas/${uid}/settings/notesSpeed/`, notesSpeed)
       .then(() => {})
       .catch(error => {
-        detectedError(errorEvent.saveNotesSpeed, error, {uid, notesSpeed});
+        console.error(error);
+        detectedError(errorEvent.saveNotesSpeed, error.message, `<notesSpeed: ${notesSpeed}>`);
       });
   });
 
@@ -150,7 +174,8 @@ export function firebaseDBSetUpSubscriber (app) {
     firebaseDBSet(`/userDatas/${uid}/settings/bgmVolume/`, bgmVolume)
       .then(() => {})
       .catch(error => {
-        detectedError(errorEvent.saveBgmVolume, error, {uid, bgmVolume});
+        console.error(error);
+        detectedError(errorEvent.saveBgmVolume, error.message, `<bgmVolume: ${bgmVolume}>`);
       });
   });
 
@@ -158,11 +183,17 @@ export function firebaseDBSetUpSubscriber (app) {
     firebaseDBSet(`/userDatas/${uid}/settings/seVolume/`, seVolume)
       .then(() => {})
       .catch(error => {
-        detectedError(errorEvent.saveSeVolume, error, {uid, seVolume});
+        console.error(error);
+        detectedError(errorEvent.saveSeVolume, error.message, `<seVolume: ${seVolume}>`);
       });
   });
 }
 
+
+
+/* ---------------------------------
+	データチェック
+---------------------------------- */
 const isValid = (data) => {
   if (data !== false && data !== null && data !== undefined && data !== NaN && data !== '' ) {
     return true;
