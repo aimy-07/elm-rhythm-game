@@ -47,6 +47,7 @@ export const animationSetUpSubscriber = (app) => {
     replayAnim(bottomLeftArea2);
     const bottomRightArea = document.getElementById("home_bottomRightArea");
     replayAnim(bottomRightArea);
+    if (!bottomRightArea) return;
     // home_bottomRightArea のアニメーションを通常アニメーションに戻す
     setTimeout(() => bottomRightArea.classList.remove("playAnim"), 400);
   })
@@ -58,6 +59,7 @@ export const animationSetUpSubscriber = (app) => {
 	アニメーションを再生する
 ---------------------------------- */
 const replayAnim = (element) => {
+  if (!element) return;
   element.classList.remove("playAnim");
   requestAnimationFrame(() => {
     element.classList.add("playAnim");
