@@ -39,12 +39,11 @@
 .playJudgeEffect_text {
   position: absolute;
   text-align: center;
-  top: 600px;
+  top: 480px;
   width: 100px;
   color: white;
   opacity: 0;
-  transform: translate(0, -50%);
-  font-size: 12px;
+  font-size: 26px;
   font-weight: 600;
   text-transform: uppercase;
   text-shadow: 0px 0px 10px #fff;
@@ -57,17 +56,22 @@
 
 @keyframes judgeEffectAnim {
   0% {
-    transform: scale(1);
+    transform: translateY(0px);
     opacity: 0;
   }
 
   50% {
-    transform: scale(1.5);
+    transform: translateY(-40px);
+    opacity: 1;
+  }
+
+  70% {
+    transform: translateY(-40px);
     opacity: 1;
   }
 
   100% {
-    transform: scale(1.5);
+    transform: translateY(-40px);
     opacity: 0;
   }
 }

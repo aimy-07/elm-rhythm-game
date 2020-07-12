@@ -6,7 +6,7 @@ module Page.Play.Score exposing
     , updateKeyDown
     )
 
-import Constants exposing (goodScore, greatScore, lostScore, perfectScore)
+import Constants exposing (goodScore, niceScore, perfectScore)
 import Page.Play.Judge exposing (Judge(..))
 import Page.Play.Note as Note exposing (Note)
 
@@ -39,14 +39,14 @@ update headNotes (Score score) =
                             Perfect ->
                                 perfectScore
 
-                            Great ->
-                                greatScore
+                            Nice ->
+                                niceScore
 
                             Good ->
                                 goodScore
 
                             Lost ->
-                                lostScore
+                                0
 
                             Miss ->
                                 0
@@ -65,8 +65,8 @@ updateKeyDown judge (Score score) =
         Perfect ->
             Score (score + perfectScore)
 
-        Great ->
-            Score (score + greatScore)
+        Nice ->
+            Score (score + niceScore)
 
         Good ->
             Score (score + goodScore)

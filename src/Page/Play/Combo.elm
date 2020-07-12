@@ -51,7 +51,7 @@ update headNotes (Combo combo resultCombo) =
                             Perfect ->
                                 1
 
-                            Great ->
+                            Nice ->
                                 1
 
                             Good ->
@@ -87,7 +87,7 @@ updateKeyDown judge (Combo combo resultCombo) =
                 Perfect ->
                     combo + 1
 
-                Great ->
+                Nice ->
                     combo + 1
 
                 Good ->

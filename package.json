@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Elmでリズムゲームを作っています。 ソースコードはGithubで公開していますが、音源データや譜面データは非公開になります。",
   "main": "index.js",
-  "directories": {
-    "test": "tests"
+  "scripts": {
+    "start": "elm-app start"
   },
   "dependencies": {
     "firebase": "^7.5.2",
@@ -18,17 +18,14 @@
     "elm-format": "^0.8.2",
     "elm-test": "^0.19.1-revision2"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "author": "Yuna Tanaka",
+  "license": "ISC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aimy-07/elm-rhythm-game.git"
   },
-  "author": "Yuna Tanaka",
-  "license": "ISC",
+  "homepage": "https://github.com/aimy-07/elm-rhythm-game#readme",
   "bugs": {
     "url": "https://github.com/aimy-07/elm-rhythm-game/issues"
-  },
-  "homepage": "https://github.com/aimy-07/elm-rhythm-game#readme"
+  }
 }

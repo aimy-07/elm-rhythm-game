@@ -10,7 +10,7 @@ module Page.Play.Judge exposing
     )
 
 import AnimationManager
-import Constants exposing (goodRange, greatRange, perfectRange)
+import Constants exposing (goodRange, niceRange, perfectRange)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Key as Key exposing (Key)
 import Page.Play.Note.JustTime exposing (JustTime)
@@ -19,7 +19,7 @@ import Utils exposing (cmdIf)
 
 type Judge
     = Perfect
-    | Great
+    | Nice
     | Good
     | Lost
     | Miss
@@ -30,10 +30,11 @@ toString : Judge -> String
 toString judge =
     case judge of
         Perfect ->
-            "Perfect"
+            "Just"
 
-        Great ->
-            "Great"
+        -- Justは予約後のため、プログラム内ではPerfectとして扱っている
+        Nice ->
+            "Nice"
 
         Good ->
             "Good"
@@ -53,8 +54,8 @@ judgeKeyDown currentMusicTime justTime =
     if Basics.abs (justTime - currentMusicTime) < perfectRange then
         Perfect
 
-    else if Basics.abs (justTime - currentMusicTime) < greatRange then
-        Great
+    else if Basics.abs (justTime - currentMusicTime) < niceRange then
+        Nice
 
     else if Basics.abs (justTime - currentMusicTime) < goodRange then
         Good
@@ -87,7 +88,7 @@ judgeEffectCmd judgeEffect =
             { key = Key.unwrap judgeEffect.key
             , isLongNote = judgeEffect.isLongNote
             }
-            |> cmdIf (judgeEffect.judge == Perfect || judgeEffect.judge == Great || judgeEffect.judge == Good)
+            |> cmdIf (judgeEffect.judge == Perfect || judgeEffect.judge == Nice || judgeEffect.judge == Good)
         , AnimationManager.playJudgeEffectTextAnim
             { key = Key.unwrap judgeEffect.key
             , judgeText = toString judgeEffect.judge

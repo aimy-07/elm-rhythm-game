@@ -2,9 +2,9 @@ module Page.Play.JudgeCounter exposing
     ( JudgeCounter
     , init
     , toGood
-    , toGreat
     , toLost
     , toMiss
+    , toNice
     , toPerfect
     , update
     , updateKeyDown
@@ -17,7 +17,7 @@ import Page.Play.Note as Note exposing (Note)
 type JudgeCounter
     = JudgeCounter
         { perfect : Int
-        , great : Int
+        , nice : Int
         , good : Int
         , lost : Int
         , miss : Int
@@ -28,7 +28,7 @@ init : JudgeCounter
 init =
     JudgeCounter
         { perfect = 0
-        , great = 0
+        , nice = 0
         , good = 0
         , lost = 0
         , miss = 0
@@ -44,7 +44,7 @@ update headNotes (JudgeCounter judgeCounter) =
     JudgeCounter
         { judgeCounter
             | perfect = judgeCounter.perfect + computeIncrement Perfect headNoteJudges
-            , great = judgeCounter.great + computeIncrement Great headNoteJudges
+            , nice = judgeCounter.nice + computeIncrement Nice headNoteJudges
             , good = judgeCounter.good + computeIncrement Good headNoteJudges
             , lost = judgeCounter.lost + computeIncrement Lost headNoteJudges
             , miss = judgeCounter.miss + computeIncrement Miss headNoteJudges
@@ -71,8 +71,8 @@ updateKeyDown judge (JudgeCounter judgeCounter) =
         Perfect ->
             JudgeCounter { judgeCounter | perfect = judgeCounter.perfect + 1 }
 
-        Great ->
-            JudgeCounter { judgeCounter | great = judgeCounter.great + 1 }
+        Nice ->
+            JudgeCounter { judgeCounter | nice = judgeCounter.nice + 1 }
 
         Good ->
             JudgeCounter { judgeCounter | good = judgeCounter.good + 1 }
@@ -92,9 +92,9 @@ toPerfect (JudgeCounter { perfect }) =
     perfect
 
 
-toGreat : JudgeCounter -> Int
-toGreat (JudgeCounter { great }) =
-    great
+toNice : JudgeCounter -> Int
+toNice (JudgeCounter { nice }) =
+    nice
 
 
 toGood : JudgeCounter -> Int

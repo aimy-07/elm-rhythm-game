@@ -676,7 +676,7 @@ viewResult musicData resultSavingS judgeCounter =
                         , div
                             [ class "playResultNotesDetails_container" ]
                             [ viewNotesDetail Perfect (JudgeCounter.toPerfect judgeCounter)
-                            , viewNotesDetail Great (JudgeCounter.toGreat judgeCounter)
+                            , viewNotesDetail Nice (JudgeCounter.toNice judgeCounter)
                             , viewNotesDetail Good (JudgeCounter.toGood judgeCounter)
                             , viewNotesDetail Lost (JudgeCounter.toLost judgeCounter)
                             , viewNotesDetail Miss (JudgeCounter.toMiss judgeCounter)

@@ -7,11 +7,10 @@ module Constants exposing
     , currentMusicIdDefault
     , goodRange
     , goodScore
-    , greatRange
-    , greatScore
     , longTimeDuration
     , longTimeOffset
-    , lostScore
+    , niceRange
+    , niceScore
     , notesSpeedDefault
     , perfectRange
     , perfectScore
@@ -59,8 +58,8 @@ perfectRange =
     60
 
 
-greatRange : Float
-greatRange =
+niceRange : Float
+niceRange =
     100
 
 
@@ -74,19 +73,14 @@ perfectScore =
     5000
 
 
-greatScore : Int
-greatScore =
+niceScore : Int
+niceScore =
     2500
 
 
 goodScore : Int
 goodScore =
     1000
-
-
-lostScore : Int
-lostScore =
-    500
 
 
 currentMusicIdDefault : MusicId

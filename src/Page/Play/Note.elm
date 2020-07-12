@@ -351,7 +351,7 @@ updateKeyDown : Judge -> Note -> Note
 updateKeyDown judge note =
     case note of
         SingleNote singleNote ->
-            if judge == Perfect || judge == Great || judge == Good then
+            if judge == Perfect || judge == Nice || judge == Good then
                 -- KeyDownでLost or Missになることはない
                 SingleNote { singleNote | noteStatus = Judged }
 
@@ -359,7 +359,7 @@ updateKeyDown judge note =
                 note
 
         LongNote longNote ->
-            if judge == Perfect || judge == Great || judge == Good then
+            if judge == Perfect || judge == Nice || judge == Good then
                 -- KeyDownでLost or Missになることはない
                 LongNote { longNote | noteStatus = StartNoteJudged judge }
 
