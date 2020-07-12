@@ -31,7 +31,7 @@
   text-overflow: ellipsis;
 }
 
-.homeTopRight_userNameText.is-Me {
+.homeTopRight_userNameText.is-me {
   color: var(--color-elm-darkblue);
 }
 

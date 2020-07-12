@@ -14,6 +14,7 @@ module Page.Play.Lane exposing
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, id, style)
 import Page.Play.Key as Key exposing (Key)
+import Utils exposing (classIf)
 
 
 type Lane
@@ -108,23 +109,15 @@ allUnPress (Lane lane) =
 
 view : Lane -> Html msg
 view (Lane lane) =
-    let
-        clsIsPressing =
-            if lane.isPressing then
-                "is-pressing"
-
-            else
-                ""
-    in
     div
         [ class "playLane_lane"
-        , class clsIsPressing
+        , classIf lane.isPressing "is-pressing"
         , style "left" (String.fromInt lane.left ++ "px")
         ]
         [ div [ class "playCenterLine_judgeArea" ] []
         , div [ class "playCenterLine_judgeAreaLine left" ] []
         , div [ class "playCenterLine_judgeAreaLine right" ] []
-        , div [ class "playLane_keyText", class clsIsPressing ] [ text <| Key.unwrap lane.key ]
+        , div [ class "playLane_keyText", classIf lane.isPressing "is-pressing" ] [ text <| Key.unwrap lane.key ]
         , div [ class "playJudgeEffect_effect", id <| "judgeEffect_" ++ Key.unwrap lane.key ] []
         , div [ class "playJudgeEffect_text", id <| "judgeEffectText_" ++ Key.unwrap lane.key ] []
         ]

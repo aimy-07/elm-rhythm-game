@@ -4,7 +4,8 @@
   "description": "Elmでリズムゲームを作っています。 ソースコードはGithubで公開していますが、音源データや譜面データは非公開になります。",
   "main": "index.js",
   "scripts": {
-    "start": "elm-app start"
+    "start": "elm-app start",
+    "build": "elm-app build"
   },
   "dependencies": {
     "firebase": "^7.16.0",

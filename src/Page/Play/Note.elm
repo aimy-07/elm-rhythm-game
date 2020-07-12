@@ -27,7 +27,7 @@ import Page.Play.Key exposing (Key)
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note.JustTime exposing (JustTime)
 import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
-import Utils exposing (viewIf)
+import Utils exposing (classIf, viewIf)
 
 
 type Note
@@ -418,12 +418,8 @@ view currentMusicTime notesSpeed note =
 
         LongNote { noteStatus } ->
             let
-                clsIsLongDisabled =
-                    if noteStatus == LongJudging Lost then
-                        "is-disabled"
-
-                    else
-                        ""
+                isLongDisabled =
+                    noteStatus == LongJudging Lost
             in
             div
                 [ style "left" (String.fromInt left ++ "px")
@@ -437,7 +433,7 @@ view currentMusicTime notesSpeed note =
                     |> viewIf (not <| isLongJudging note)
                 , div
                     [ class "playNote_longLine"
-                    , class clsIsLongDisabled
+                    , classIf isLongDisabled "is-disabled"
                     , style "bottom" (String.fromFloat bottom ++ "px")
                     , style "height" (String.fromFloat height ++ "px")
                     ]

@@ -31,7 +31,7 @@ import OwnRecord exposing (OwnRecordDto)
 import Page
 import Page.Home.RankingRecords as RankingRecords exposing (RankingData, RankingRecords)
 import Page.Home.UserPlayRecords as UserPlayRecords exposing (UserPlayRecordData, UserPlayRecords)
-import Page.Home.UserSettingPanelS as UserSettingPanelS exposing (UserSettingPanelS(..))
+import Page.Home.UserSettingPanelS as UserSettingPanelS exposing (UserSettingPanelS)
 import Process
 import PublicRecord exposing (PublicRecordDto)
 import Rank exposing (Rank)
@@ -43,7 +43,7 @@ import UserSetting exposing (UserSetting, UserSettingDto)
 import UserSetting.Setting as Setting exposing (Setting)
 import UserSetting.Setting.NotesSpeed as NotesSpeed
 import UserSetting.Setting.Volume as Volume
-import Utils exposing (viewIf)
+import Utils exposing (classIf, viewIf)
 
 
 
@@ -123,6 +123,7 @@ type Msg
     | FailedSaveUserPicture ()
     | CompletedFailedAnimation
     | ClickedSettingPanelShowBtn
+    | ClickedHelpPanelShowBtn
     | ClickedInfoPanelShowBtn
     | ClickedPanelCloseBtn
     | SignOut
@@ -289,12 +290,17 @@ update msg model =
                     ( { model | pictureUploadS = NotUploading }, Cmd.none )
 
                 ClickedSettingPanelShowBtn ->
-                    ( { model | userSettingPanelS = SettingShow }
+                    ( { model | userSettingPanelS = UserSettingPanelS.showSetting }
+                    , AudioManager.playSE SE.Select seVolume
+                    )
+
+                ClickedHelpPanelShowBtn ->
+                    ( { model | userSettingPanelS = UserSettingPanelS.showHelp }
                     , AudioManager.playSE SE.Select seVolume
                     )
 
                 ClickedInfoPanelShowBtn ->
-                    ( { model | userSettingPanelS = InfoShow }
+                    ( { model | userSettingPanelS = UserSettingPanelS.showInformation }
                     , AudioManager.playSE SE.Select seVolume
                     )
 
@@ -367,8 +373,7 @@ view model =
             in
             case ( maybeCurrentMusicData, maybeUserPlayRecordData, maybeRankingData ) of
                 ( Just currentMusicData, Just userPlayRecordData, Just rankingData ) ->
-                    div
-                        [ class "home_back" ]
+                    div [ class "home_back" ]
                         [ div
                             [ class "home_contents" ]
                             -- 左側
@@ -380,6 +385,7 @@ view model =
                                     , viewUserSettingPanel setting model.userSettingPanelS
                                     ]
                                 , viewSettingIcon
+                                , viewHelpIcon
                                 , viewInfoIcon
                                 , viewLogoutIcon
                                 , viewModeTab setting
@@ -410,6 +416,11 @@ view model =
 viewSettingIcon : Html Msg
 viewSettingIcon =
     img [ class "homeUserSetting_settingIcon", src "./img/icon_setting.png", onClick ClickedSettingPanelShowBtn ] []
+
+
+viewHelpIcon : Html Msg
+viewHelpIcon =
+    img [ class "homeUserSetting_helpIcon", src "./img/icon_help.png", onClick ClickedHelpPanelShowBtn ] []
 
 
 viewInfoIcon : Html Msg
@@ -476,8 +487,7 @@ viewUser user pictureUploadS userSettingPanelS =
 
 viewUserSettingPanel : Setting -> UserSettingPanelS -> Html Msg
 viewUserSettingPanel setting userSettingPanelS =
-    div
-        [ class "homeUserSetting_userSettingPanelContents" ]
+    div [ class "homeUserSetting_userSettingPanelContents" ]
         [ div
             [ class "homeUserSettingPanel_outer" ]
             [ img
@@ -488,8 +498,10 @@ viewUserSettingPanel setting userSettingPanelS =
                 []
             , viewSetting setting
                 |> viewIf (UserSettingPanelS.isSetting userSettingPanelS)
+            , viewHelp
+                |> viewIf (UserSettingPanelS.isHelp userSettingPanelS)
             , viewInfo
-                |> viewIf (UserSettingPanelS.isInfo userSettingPanelS)
+                |> viewIf (UserSettingPanelS.isInformation userSettingPanelS)
             ]
         ]
 
@@ -505,9 +517,9 @@ viewSetting setting =
 
 
 viewRangeSlider : String -> Float -> Float -> Float -> (String -> Msg) -> Html Msg
-viewRangeSlider label value_ min max msg =
+viewRangeSlider labelText value_ min max msg =
     div []
-        [ div [ class "homeUserSetting_rangeSliderLabel" ] [ text label ]
+        [ div [ class "homeUserSetting_rangeSliderLabel" ] [ text labelText ]
         , input
             [ class "homeUserSetting_rangeSlider"
             , type_ "range"
@@ -536,10 +548,18 @@ sliderStyle value min max =
         ("-webkit-gradient(linear, left top, right top, color-stop(" ++ percentStr ++ ", white), color-stop(" ++ percentStr ++ ", #8f95a3))")
 
 
+viewHelp : Html msg
+viewHelp =
+    div [ class "homeUserSettingPanel" ]
+        [ div [ class "homeUserSettingPanel_title" ] [ text "Help" ]
+        , div [ class "homeUserSetting_helpText" ] [ text "WIP: 遊び方" ]
+        ]
+
+
 viewInfo : Html msg
 viewInfo =
     div [ class "homeUserSettingPanel" ]
-        [ div [ class "homeUserSettingPanel_title" ] [ text "Info" ]
+        [ div [ class "homeUserSettingPanel_title" ] [ text "Information" ]
         , div
             [ class "homeUserSetting_infoText" ]
             [ a [ href "https://twitter.com/yun_ar_1107", target "_blank" ] [ text "開発者：Yuna Tanaka" ] ]
@@ -554,16 +574,12 @@ viewModeTab setting =
     let
         viewModeTabBtn mode =
             let
-                clsIsSelecting =
-                    if mode == setting.currentMode then
-                        "is-selecting"
-
-                    else
-                        ""
+                isSelecting =
+                    mode == setting.currentMode
             in
             div
                 [ class "homeModeSelectTab_item"
-                , class clsIsSelecting
+                , classIf isSelecting "is-selecting"
                 , onClick <| ChangeMode mode
                 ]
                 [ text <| Mode.toString mode ]
@@ -593,12 +609,8 @@ viewMusicList currentMode currentMusicData allMusicData userPlayRecords =
 viewMusicListItem : MusicData -> MusicData -> Maybe UserPlayRecordData -> Html Msg
 viewMusicListItem currentMusicData musicData maybeUserPlayRecordData =
     let
-        clsIsSelecting =
-            if musicData.musicId == currentMusicData.musicId then
-                "is-selecting"
-
-            else
-                ""
+        isSelecting =
+            musicData.musicId == currentMusicData.musicId
 
         comboRank =
             maybeUserPlayRecordData
@@ -620,39 +632,30 @@ viewMusicListItem currentMusicData musicData maybeUserPlayRecordData =
                     )
                 |> Maybe.withDefault Rank.invalid
     in
-    div
-        [ class "homeMusicListItem_container"
-        , onClick <| ChangeMusicId musicData.musicId
-        ]
+    div [ class "homeMusicListItem_container", onClick <| ChangeMusicId musicData.musicId ]
         [ div
             [ class "homeMusicListItem_topContainer" ]
             [ div
-                [ class "homeMusicListItem_top", class clsIsSelecting ]
-                [ div [ class "homeMusicListItem_topText" ] [ text musicData.musicName ]
-                ]
-            , div [ class "homeMusicListItem_topTail", class clsIsSelecting ] []
+                [ class "homeMusicListItem_top", classIf isSelecting "is-selecting" ]
+                [ div [ class "homeMusicListItem_topText" ] [ text musicData.musicName ] ]
+            , div [ class "homeMusicListItem_topTail", classIf isSelecting "is-selecting" ] []
             , div
                 [ class "homeMusicListItem_rankBox combo" ]
                 [ div [ class "homeMusicListItem_rankBoxBack combo" ] []
                 , div [ class "homeMusicListItem_rankLabel" ] [ text "COMBO" ]
-                , div
-                    [ class "homeMusicListItem_rankText" ]
-                    [ text <| Rank.toString comboRank ]
+                , div [ class "homeMusicListItem_rankText" ] [ text <| Rank.toString comboRank ]
                 ]
-            , div [ class "homeMusicListItem_rankBox score" ]
+            , div
+                [ class "homeMusicListItem_rankBox score" ]
                 [ div [ class "homeMusicListItem_rankBoxBack score" ] []
                 , div [ class "homeMusicListItem_rankLabel" ] [ text "SCORE" ]
-                , div
-                    [ class "homeMusicListItem_rankText" ]
-                    [ text <| Rank.toString scoreRank ]
+                , div [ class "homeMusicListItem_rankText" ] [ text <| Rank.toString scoreRank ]
                 ]
             ]
         , div
             [ class "homeMusicListItem_bottomContainer" ]
             [ div [ class "homeMusicListItem_bottomText" ] [ text <| Level.toString musicData.level ]
-            , div [ class "homeMusicListItem_bottomLine" ]
-                [ div [ class "homeMusicListItem_bottomLineTail" ] []
-                ]
+            , div [ class "homeMusicListItem_bottomLine" ] [ div [ class "homeMusicListItem_bottomLineTail" ] [] ]
             ]
         ]
 
@@ -683,9 +686,7 @@ viewCenterArea currentMusicData userPlayRecordData =
                 [ div [ class "homeCenterArea_rankTitleText score" ] [ text "SCORE" ]
                 , div [ class "homeCenterArea_rankTitleText combo" ] [ text "COMBO" ]
                 ]
-            , div
-                []
-                (List.map (viewCenterAreaRankDetail currentMusicData) Rank.allRankList)
+            , div [] (List.map (viewCenterAreaRankDetail currentMusicData) Rank.allRankList)
             , div [ class "homeCenterArea_rankCenterLine1" ] []
             , div [ class "homeCenterArea_rankCenterLine2" ] []
             ]
@@ -706,16 +707,16 @@ viewCenterAreaRankDetail currentMusicData rank =
         , div
             [ class "homeCenterArea_rankDetailText combo" ]
             [ text <| String.fromInt (Rank.comboBorder currentMusicData.maxCombo rank) ]
-        , div
-            [ class "homeCenterArea_rankLine", class clsRankNum ]
-            []
+        , div [ class "homeCenterArea_rankLine", class clsRankNum ] []
         ]
 
 
 viewTopLeftArea : MusicData -> Html msg
 viewTopLeftArea currentMusicData =
     div [ class "home_topLeftArea", id "home_topLeftArea" ]
-        [ div [ class "homeTopLeft_modeText" ] [ text <| Mode.toString currentMusicData.mode ]
+        [ div
+            [ class "homeTopLeft_modeText" ]
+            [ text <| Mode.toString currentMusicData.mode ]
         ]
 
 
@@ -724,12 +725,8 @@ viewTopRightArea rankingData user =
     let
         viewRankingItem clsRank maybeRecord =
             let
-                clsIsMe =
-                    if RankingRecords.isOwnRecord maybeRecord user.uid then
-                        "is-Me"
-
-                    else
-                        ""
+                isMe =
+                    RankingRecords.isOwnRecord maybeRecord user.uid
 
                 userName =
                     maybeRecord
@@ -752,15 +749,12 @@ viewTopRightArea rankingData user =
             in
             [ img [ class "homeTopRight_rankIcon", class clsRank, src rankIconSrc ] []
             , viewUserIcon
-            , div [ class "homeTopRight_userNameText", class clsRank, class clsIsMe ] [ text userName ]
+            , div [ class "homeTopRight_userNameText", class clsRank, classIf isMe "is-me" ] [ text userName ]
             , div [ class "homeTopRight_scoreText", class clsRank ] [ text score ]
             , div [ class "homeTopRight_line", class clsRank ] []
             ]
     in
-    div
-        [ class "home_topRightArea"
-        , id "home_topRightArea"
-        ]
+    div [ class "home_topRightArea", id "home_topRightArea" ]
         (div [ class "homeTopRight_title" ] [ text "楽曲スコアランキング" ]
             :: viewRankingItem "first" rankingData.first
             ++ viewRankingItem "second" rankingData.second
@@ -783,15 +777,9 @@ viewBottomLeftArea1 currentMusicData userPlayRecordData =
     in
     div [ class "home_bottomLeftArea1", id "home_bottomLeftArea1" ]
         [ div [ class "homeBottomLeftArea1_label" ] [ text "COMBO" ]
-        , div
-            [ class "homeBottomLeftArea1_rankText" ]
-            [ text <| Rank.toString comboRank ]
-        , div
-            [ class "homeBottomLeftArea1_bestText" ]
-            [ text comboStr ]
-        , div
-            [ class "homeBottomLeftArea1_maxText" ]
-            [ text <| "/ " ++ String.fromInt currentMusicData.maxCombo ]
+        , div [ class "homeBottomLeftArea1_rankText" ] [ text <| Rank.toString comboRank ]
+        , div [ class "homeBottomLeftArea1_bestText" ] [ text comboStr ]
+        , div [ class "homeBottomLeftArea1_maxText" ] [ text <| "/ " ++ String.fromInt currentMusicData.maxCombo ]
         ]
 
 
@@ -810,15 +798,9 @@ viewBottomLeftArea2 currentMusicData userPlayRecordData =
     in
     div [ class "home_bottomLeftArea2", id "home_bottomLeftArea2" ]
         [ div [ class "homeBottomLeftArea2_label" ] [ text "SCORE" ]
-        , div
-            [ class "homeBottomLeftArea2_rankText" ]
-            [ text <| Rank.toString scoreRank ]
-        , div
-            [ class "homeBottomLeftArea2_bestText" ]
-            [ text scoreStr ]
-        , div
-            [ class "homeBottomLeftArea2_maxText" ]
-            [ text <| "/ " ++ String.fromInt currentMusicData.maxScore ]
+        , div [ class "homeBottomLeftArea2_rankText" ] [ text <| Rank.toString scoreRank ]
+        , div [ class "homeBottomLeftArea2_bestText" ] [ text scoreStr ]
+        , div [ class "homeBottomLeftArea2_maxText" ] [ text <| "/ " ++ String.fromInt currentMusicData.maxScore ]
         ]
 
 
@@ -832,8 +814,7 @@ viewBottomRightArea currentMusicData =
             ]
             [ div
                 [ class "home_bottomRightArea", id "home_bottomRightArea" ]
-                [ div [ class "homeBottomRight_playText" ] [ text "Play" ]
-                ]
+                [ div [ class "homeBottomRight_playText" ] [ text "Play" ] ]
             ]
         , div [ class "homeBottomRight_transparentCover1" ] []
         , div [ class "homeBottomRight_transparentCover2" ] []

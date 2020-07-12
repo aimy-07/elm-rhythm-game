@@ -1,6 +1,7 @@
 .homeMusicList_container {
   height: calc(600px - (19px * 2) - 180px - 20px);
-  overflow: scroll;
+  overflow-x: hidden;
+  overflow-y: scroll;
   box-sizing: border-box;
 }
 

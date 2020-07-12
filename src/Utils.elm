@@ -1,6 +1,7 @@
-module Utils exposing (cmdIf, subIf, viewIf)
+module Utils exposing (classIf, cmdIf, subIf, viewIf)
 
-import Html exposing (Html, text)
+import Html exposing (Attribute, Html, text)
+import Html.Attributes exposing (class)
 
 
 viewIf : Bool -> Html msg -> Html msg
@@ -28,3 +29,12 @@ subIf execute sub =
 
     else
         Sub.none
+
+
+classIf : Bool -> String -> Attribute msg
+classIf condition clsStr =
+    if condition then
+        class clsStr
+
+    else
+        class ""
