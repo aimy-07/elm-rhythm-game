@@ -2,9 +2,7 @@
   position: absolute;
   top: 0;
   height: 100%;
-  width: 98px;
-  border-left: solid 1px var(--color-elm-darkblue);
-  border-right: solid 1px var(--color-elm-darkblue);
+  width: 100px;
 }
 
 .playLane_lane.is-pressing {

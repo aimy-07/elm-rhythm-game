@@ -31,7 +31,7 @@
   box-shadow: 0 0 5px 2px white;
 }
 
-/* TODO: デバッグ用 */
+/* デバッグ用にロングノーツのサブノーツを見える化 */
 .playNote_longSubNote {
   position: absolute;
   left: 22.5px;

@@ -442,18 +442,21 @@ view currentMusicTime notesSpeed note =
                     , style "height" (String.fromFloat height ++ "px")
                     ]
                     []
-                , div
-                    []
-                    (toLongSubNotes note
-                        |> List.map (viewLongSubNote currentMusicTime notesSpeed)
-                    )
+
+                -- デバッグ用にロングノーツのサブノーツを見える化する時はコメントアウトを外す
+                -- , div
+                --     []
+                --     (toLongSubNotes note
+                --         |> List.map (viewLongSubNote currentMusicTime notesSpeed)
+                --     )
                 ]
 
 
+{-|
 
--- TODO: デバッグ用
+    デバッグ用にロングノーツのサブノーツを見える化したView
 
-
+-}
 viewLongSubNote : CurrentMusicTime -> NotesSpeed -> LongSubNote -> Html msg
 viewLongSubNote currentMusicTime notesSpeed longSubNote =
     let
