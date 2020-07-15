@@ -32,7 +32,7 @@ init =
 initCmd : Uid -> Cmd msg
 initCmd uid =
     allMusicIdList
-        |> List.map (\musicId -> List.map (CsvFileName.new musicId) allModeList)
+        |> List.map (\musicId -> List.map (CsvFileName.create musicId) allModeList)
         |> List.concat
         |> List.map (\csvFileName -> OwnRecord.getOwnRecord { uid = uid, csvFileName = csvFileName })
         |> Cmd.batch

@@ -7,18 +7,10 @@ port module UserSetting exposing
     , isLoaded
     , new
     , toSetting
-    , updateBgmVolume
-    , updateCurrentMode
-    , updateCurrentMusicId
-    , updateNotesSpeed
-    , updateSeVolume
+    , updateSetting
     )
 
-import AllMusicData.MusicData.Mode exposing (Mode)
-import AllMusicData.MusicData.MusicId exposing (MusicId)
 import UserSetting.Setting as Setting exposing (Setting, SettingDto)
-import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
-import UserSetting.Setting.Volume exposing (Volume)
 
 
 type UserSetting
@@ -63,56 +55,11 @@ toSetting userSetting =
             Nothing
 
 
-updateCurrentMusicId : MusicId -> UserSetting -> UserSetting
-updateCurrentMusicId currentMusicId userSetting =
+updateSetting : (Setting -> Setting) -> UserSetting -> UserSetting
+updateSetting update userSetting =
     case userSetting of
         Loaded setting ->
-            Loaded
-                { setting | currentMusicId = currentMusicId }
-
-        NotLoaded ->
-            userSetting
-
-
-updateCurrentMode : Mode -> UserSetting -> UserSetting
-updateCurrentMode currentMode userSetting =
-    case userSetting of
-        Loaded setting ->
-            Loaded
-                { setting | currentMode = currentMode }
-
-        NotLoaded ->
-            userSetting
-
-
-updateNotesSpeed : NotesSpeed -> UserSetting -> UserSetting
-updateNotesSpeed notesSpeed userSetting =
-    case userSetting of
-        Loaded setting ->
-            Loaded
-                { setting | notesSpeed = notesSpeed }
-
-        NotLoaded ->
-            userSetting
-
-
-updateBgmVolume : Volume -> UserSetting -> UserSetting
-updateBgmVolume bgmVolume userSetting =
-    case userSetting of
-        Loaded setting ->
-            Loaded
-                { setting | bgmVolume = bgmVolume }
-
-        NotLoaded ->
-            userSetting
-
-
-updateSeVolume : Volume -> UserSetting -> UserSetting
-updateSeVolume seVolume userSetting =
-    case userSetting of
-        Loaded setting ->
-            Loaded
-                { setting | seVolume = seVolume }
+            Loaded (update setting)
 
         NotLoaded ->
             userSetting

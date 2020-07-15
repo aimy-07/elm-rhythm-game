@@ -46,7 +46,7 @@ export const firebaseDBSetUpSubscriber = (app) => {
         const users = snapshots.map(snapshot => snapshot.val());
         // 不正なuserは除く
         const userDtos = users.filter(user =>
-          isValid(user) && isValid(user.uid) && isValid(user.userName) && isValid(user.pictureUrl)
+          isValid(user) && isValid(user.uid) && isValid(user.name) && isValid(user.pictureUrl)
         );
         app.ports.gotUsers.send(userDtos);
       })

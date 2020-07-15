@@ -8,44 +8,64 @@ port module Session.User exposing
     , new
     , saveUserName
     , saveUserPicture
+    , toName
+    , toPictureUrl
+    , toUid
+    , updateName
     , updatePictureUrl
-    , updateUserName
     )
 
 import Json.Decode as Decode
 import Session.User.Uid exposing (Uid)
 
 
-type alias User =
-    { uid : Uid
-    , userName : String
-    , pictureUrl : String
-    }
+type User
+    = User
+        { uid : Uid
+        , name : String
+        , pictureUrl : String
+        }
 
 
 type alias UserDto =
     { uid : String
-    , userName : String
+    , name : String
     , pictureUrl : String
     }
 
 
+toUid : User -> Uid
+toUid (User { uid }) =
+    uid
+
+
+toName : User -> Uid
+toName (User { name }) =
+    name
+
+
+toPictureUrl : User -> String
+toPictureUrl (User { pictureUrl }) =
+    pictureUrl
+
+
 new : UserDto -> User
-new { uid, userName, pictureUrl } =
-    { uid = uid
-    , userName = userName
-    , pictureUrl = pictureUrl
-    }
+new { uid, name, pictureUrl } =
+    User
+        { uid = uid
+        , name = name
+        , pictureUrl = pictureUrl
+        }
 
 
-updateUserName : String -> User -> User
-updateUserName userName user =
-    { user | userName = userName }
+updateName : String -> User -> User
+updateName name (User user) =
+    User { user | name = name }
 
 
 updatePictureUrl : String -> User -> User
-updatePictureUrl pictureUrl user =
-    { user | pictureUrl = pictureUrl }
+updatePictureUrl pictureUrl (User user) =
+    User { user | pictureUrl = pictureUrl }
 
 
 port getUsers : List String -> Cmd msg
@@ -54,7 +74,7 @@ port getUsers : List String -> Cmd msg
 port gotUsers : (List UserDto -> msg) -> Sub msg
 
 
-port saveUserName : { uid : String, userName : String } -> Cmd msg
+port saveUserName : { uid : String, name : String } -> Cmd msg
 
 
 port saveUserPicture : { uid : String, event : Decode.Value } -> Cmd msg

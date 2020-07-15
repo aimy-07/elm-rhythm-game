@@ -84,9 +84,9 @@ init session audioMusicData audioLoadingS =
               , pictureUploadS = NotUploading
               }
             , Cmd.batch
-                [ UserPlayRecords.initCmd user.uid
+                [ UserPlayRecords.initCmd (User.toUid user)
                 , RankingRecords.initCmd
-                , UserSetting.getUserSetting user.uid
+                , UserSetting.getUserSetting (User.toUid user)
                 ]
             )
 
@@ -139,11 +139,11 @@ update msg model =
             let
                 bgmVolume =
                     UserSetting.toSetting model.userSetting
-                        |> Maybe.map .bgmVolume
+                        |> Maybe.map Setting.toSeVolume
 
                 seVolume =
                     UserSetting.toSetting model.userSetting
-                        |> Maybe.map .seVolume
+                        |> Maybe.map Setting.toSeVolume
             in
             case msg of
                 GotUserPlayRecords ownRecordDtos ->
@@ -170,12 +170,12 @@ update msg model =
 
                         currentMusicId =
                             UserSetting.toSetting userSetting
-                                |> Maybe.map .currentMusicId
+                                |> Maybe.map Setting.toCurrentMusicId
                                 |> Maybe.withDefault currentMusicIdDefault
 
                         updatedBgmVolume =
                             UserSetting.toSetting userSetting
-                                |> Maybe.map .bgmVolume
+                                |> Maybe.map Setting.toBgmVolume
                     in
                     ( { model | userSetting = userSetting }
                     , AudioManager.playBGM (BGM.sampleFromMusicId currentMusicId) updatedBgmVolume
@@ -184,11 +184,11 @@ update msg model =
                 ChangeMusicId musicId ->
                     let
                         updatedUserSetting =
-                            UserSetting.updateCurrentMusicId musicId model.userSetting
+                            UserSetting.updateSetting (Setting.updateCurrentMusicId musicId) model.userSetting
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
-                        [ Setting.saveCurrentMusicId { uid = user.uid, currentMusicId = musicId }
+                        [ Setting.saveCurrentMusicId { uid = User.toUid user, currentMusicId = musicId }
                         , AudioManager.playBGM (BGM.sampleFromMusicId musicId) bgmVolume
                         , AudioManager.playSE SE.SelectPlayMusic seVolume
                         , AnimationManager.playMusicSelectAnim ()
@@ -198,11 +198,11 @@ update msg model =
                 ChangeMode mode ->
                     let
                         updatedUserSetting =
-                            UserSetting.updateCurrentMode mode model.userSetting
+                            UserSetting.updateSetting (Setting.updateCurrentMode mode) model.userSetting
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
-                        [ Setting.saveCurrentMode { uid = user.uid, currentMode = Mode.unwrap mode }
+                        [ Setting.saveCurrentMode { uid = User.toUid user, currentMode = Mode.unwrap mode }
                         , AudioManager.playSE SE.SelectPlayMusic seVolume
                         , AnimationManager.playMusicSelectAnim ()
                         ]
@@ -214,11 +214,11 @@ update msg model =
                             NotesSpeed.fromString speedValue
 
                         updatedUserSetting =
-                            UserSetting.updateNotesSpeed notesSpeed model.userSetting
+                            UserSetting.updateSetting (Setting.updateNotesSpeed notesSpeed) model.userSetting
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
-                        [ Setting.saveNotesSpeed { uid = user.uid, notesSpeed = notesSpeed }
+                        [ Setting.saveNotesSpeed { uid = User.toUid user, notesSpeed = notesSpeed }
                         , AudioManager.playSE SE.Cursor seVolume
                         ]
                     )
@@ -229,11 +229,11 @@ update msg model =
                             Volume.fromString volumeValue
 
                         updatedUserSetting =
-                            UserSetting.updateBgmVolume nextBgmVolume model.userSetting
+                            UserSetting.updateSetting (Setting.updateBgmVolume nextBgmVolume) model.userSetting
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
-                        [ Setting.saveBgmVolume { uid = user.uid, bgmVolume = nextBgmVolume }
+                        [ Setting.saveBgmVolume { uid = User.toUid user, bgmVolume = nextBgmVolume }
                         , AudioManager.changeBgmVolume nextBgmVolume
                         , AudioManager.playSE SE.Cursor seVolume
                         ]
@@ -245,11 +245,11 @@ update msg model =
                             Volume.fromString volumeValue
 
                         updatedUserSetting =
-                            UserSetting.updateSeVolume nextSeVolume model.userSetting
+                            UserSetting.updateSetting (Setting.updateSeVolume nextSeVolume) model.userSetting
                     in
                     ( { model | userSetting = updatedUserSetting }
                     , Cmd.batch
-                        [ Setting.saveSeVolume { uid = user.uid, seVolume = nextSeVolume }
+                        [ Setting.saveSeVolume { uid = User.toUid user, seVolume = nextSeVolume }
                         , AudioManager.playSE SE.Cursor seVolume
                         ]
                     )
@@ -257,24 +257,24 @@ update msg model =
                 InputUserName nextUserName ->
                     let
                         updatedSession =
-                            Session.updateUser nextUserName User.updateUserName model.session
+                            Session.updateUser (User.updateName nextUserName) model.session
                     in
                     ( { model | session = updatedSession }
                     , Cmd.batch
-                        [ User.saveUserName { uid = user.uid, userName = nextUserName }
+                        [ User.saveUserName { uid = User.toUid user, name = nextUserName }
                         , AudioManager.playSE SE.Cursor seVolume
                         ]
                     )
 
                 SelectedUserPicture event ->
                     ( { model | pictureUploadS = Uploading }
-                    , User.saveUserPicture { uid = user.uid, event = event }
+                    , User.saveUserPicture { uid = User.toUid user, event = event }
                     )
 
                 CompletedSaveUserPicture url ->
                     let
                         updatedSession =
-                            Session.updateUser url User.updatePictureUrl model.session
+                            Session.updateUser (User.updatePictureUrl url) model.session
                     in
                     ( { model | pictureUploadS = NotUploading, session = updatedSession }
                     , AudioManager.playSE SE.Succeed seVolume
@@ -362,7 +362,7 @@ view model =
         ( Just user, Just setting ) ->
             let
                 currentCsvFileName =
-                    CsvFileName.new setting.currentMusicId setting.currentMode
+                    CsvFileName.create (Setting.toCurrentMusicId setting) (Setting.toCurrentMode setting)
 
                 maybeCurrentMusicData =
                     AllMusicData.findByCsvFileName currentCsvFileName model.allMusicData
@@ -391,7 +391,11 @@ view model =
                                 , viewInfoIcon
                                 , viewLogoutIcon
                                 , viewModeTab setting
-                                , viewMusicList setting.currentMode currentMusicData model.allMusicData model.userPlayRecords
+                                , viewMusicList
+                                    (Setting.toCurrentMode setting)
+                                    currentMusicData
+                                    model.allMusicData
+                                    model.userPlayRecords
                                 ]
 
                             -- 右側
@@ -481,9 +485,9 @@ viewUser user pictureUploadS userSettingPanelS =
         [ class "homeUserSetting_userInfoContents"
         , class <| UserSettingPanelS.clsStr userSettingPanelS
         ]
-        [ img [ class "homeUserSetting_userIcon", src user.pictureUrl ] []
+        [ img [ class "homeUserSetting_userIcon", src (User.toPictureUrl user) ] []
         , viewUserIconInput
-        , input [ class "homeUserSetting_userNameInput", value user.userName, onInput InputUserName ] []
+        , input [ class "homeUserSetting_userNameInput", value (User.toName user), onInput InputUserName ] []
         ]
 
 
@@ -512,9 +516,9 @@ viewSetting : Setting -> Html Msg
 viewSetting setting =
     div [ class "homeUserSettingPanel" ]
         [ div [ class "homeUserSettingPanel_title" ] [ text "Setting" ]
-        , viewRangeSlider "ノーツ速度" setting.notesSpeed 0.2 0.8 ChangeNotesSpeed
-        , viewRangeSlider "BGM音量" setting.bgmVolume 0 1 ChangeBgmVolume
-        , viewRangeSlider "システム音量" setting.seVolume 0 1 ChangeSeVolume
+        , viewRangeSlider "ノーツ速度" (Setting.toNotesSpeed setting) 0.2 0.8 ChangeNotesSpeed
+        , viewRangeSlider "BGM音量" (Setting.toBgmVolume setting) 0 1 ChangeBgmVolume
+        , viewRangeSlider "システム音量" (Setting.toSeVolume setting) 0 1 ChangeSeVolume
         ]
 
 
@@ -577,7 +581,7 @@ viewModeTab setting =
         viewModeTabBtn mode =
             let
                 isSelecting =
-                    mode == setting.currentMode
+                    mode == Setting.toCurrentMode setting
             in
             div
                 [ class "homeModeSelectTab_item"
@@ -729,11 +733,11 @@ viewTopRightArea currentMusicData rankingRecords user =
         viewRankingItem clsRank maybeRecord =
             let
                 isMe =
-                    RankingRecord.isOwnRecord maybeRecord user.uid
+                    RankingRecord.isOwnRecord maybeRecord (User.toUid user)
 
                 userName =
                     maybeRecord
-                        |> Maybe.map (.user >> .userName)
+                        |> Maybe.map (.user >> User.toName)
                         |> Maybe.withDefault "---"
 
                 score =
@@ -743,7 +747,7 @@ viewTopRightArea currentMusicData rankingRecords user =
 
                 viewUserIcon =
                     maybeRecord
-                        |> Maybe.map (.user >> .pictureUrl)
+                        |> Maybe.map (.user >> User.toPictureUrl)
                         |> Maybe.map (\url -> img [ class "homeTopRight_rankIcon user", class clsRank, src url ] [])
                         |> Maybe.withDefault (text "")
 

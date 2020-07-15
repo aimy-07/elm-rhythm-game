@@ -68,11 +68,11 @@ toUser session =
             Nothing
 
 
-updateUser : data -> (data -> User -> User) -> Session -> Session
-updateUser data update session =
+updateUser : (User -> User) -> Session -> Session
+updateUser update session =
     case session of
         LoggedIn key user ->
-            LoggedIn key (update data user)
+            LoggedIn key (update user)
 
         NotLogin _ ->
             session

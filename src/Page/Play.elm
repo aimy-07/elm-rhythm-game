@@ -42,9 +42,11 @@ import PublicRecord exposing (PublicRecordDto)
 import Rank
 import Route
 import Session exposing (Session)
+import Session.User as User
 import Time
 import Tracking
 import UserSetting exposing (UserSetting)
+import UserSetting.Setting as Setting exposing (Setting)
 import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
 import Utils exposing (cmdIf, subIf, viewIf)
 
@@ -161,12 +163,14 @@ update msg model =
             BGM.fromMusicId model.currentMusicData.musicId
 
         bgmVolume =
-            UserSetting.toSetting model.userSetting
-                |> Maybe.map .bgmVolume
+            model.userSetting
+                |> UserSetting.toSetting
+                |> Maybe.map Setting.toBgmVolume
 
         seVolume =
-            UserSetting.toSetting model.userSetting
-                |> Maybe.map .seVolume
+            model.userSetting
+                |> UserSetting.toSetting
+                |> Maybe.map Setting.toSeVolume
     in
     case msg of
         Tick _ ->
@@ -346,7 +350,7 @@ update msg model =
                     let
                         result =
                             Result.new
-                                { uid = user.uid
+                                { uid = User.toUid user
                                 , csvFileName = model.currentMusicData.csvFileName
                                 , combo = Combo.toResultCombo model.combo
                                 , score = Score.unwrap model.score
@@ -477,7 +481,7 @@ view model =
     let
         notesSpeed =
             UserSetting.toSetting model.userSetting
-                |> Maybe.map .notesSpeed
+                |> Maybe.map Setting.toNotesSpeed
                 |> Maybe.withDefault notesSpeedDefault
     in
     div [ class "play_back" ]

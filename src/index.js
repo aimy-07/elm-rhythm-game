@@ -58,7 +58,7 @@ firebase.auth().onAuthStateChanged((user) => {
     // サインイン済み
     const userInfo = {
       uid: user.uid,
-      userName: user.displayName,
+      name: user.displayName,
       pictureUrl: user.photoURL
     }
     firebase.database().ref(`/users/${user.uid}`).set(userInfo)
@@ -71,7 +71,7 @@ firebase.auth().onAuthStateChanged((user) => {
         detectedError(
           errorEvent.setUserInfoOnAuthChanged,
           error.message,
-          `<userName: ${userInfo.userName}> <pictureUrl: ${userInfo.pictureUrl}>`
+          `<name: ${userInfo.name}> <pictureUrl: ${userInfo.pictureUrl}>`
         );
       })
   }

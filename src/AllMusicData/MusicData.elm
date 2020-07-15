@@ -75,7 +75,7 @@ newFromJson jsonDto mode =
                 Mode.Master ->
                     jsonDto.level.master
     in
-    { csvFileName = CsvFileName.new jsonDto.musicId mode
+    { csvFileName = CsvFileName.create jsonDto.musicId mode
     , musicId = jsonDto.musicId
     , musicName = jsonDto.musicName
     , composer = jsonDto.composer

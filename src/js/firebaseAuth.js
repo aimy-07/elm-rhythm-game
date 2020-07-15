@@ -70,15 +70,15 @@ export const firebaseAuthSetUpSubscriber = (app) => {
   });
 
   // ユーザーネームの変更
-  app.ports.saveUserName.subscribe(({uid, userName}) => {
+  app.ports.saveUserName.subscribe(({uid, name}) => {
     const currentUser = firebase.auth().currentUser;
-    const updateAuth = currentUser.updateProfile({displayName: userName});
-    const updateDB = firebase.database().ref(`/users/${uid}/userName/`).set(userName);
+    const updateAuth = currentUser.updateProfile({displayName: name});
+    const updateDB = firebase.database().ref(`/users/${uid}/name/`).set(name);
     Promise.all([updateAuth, updateDB])
       .then(() => {})
       .catch(error => {
         console.error(error);
-        detectedError(errorEvent.saveUserName, error.message, `<userName: ${userName}>`);
+        detectedError(errorEvent.saveUserName, error.message, `<name: ${name}>`);
       });
   });
 

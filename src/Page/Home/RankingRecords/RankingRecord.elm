@@ -9,7 +9,7 @@ module Page.Home.RankingRecords.RankingRecord exposing
     )
 
 import PublicRecord exposing (PublicRecord)
-import Session.User exposing (User)
+import Session.User as User exposing (User)
 import Session.User.Uid exposing (Uid)
 
 
@@ -81,7 +81,7 @@ convetUidToUser users maybeBestRecord =
         |> Maybe.andThen
             (\{ uid, score } ->
                 users
-                    |> List.filter (.uid >> (==) uid)
+                    |> List.filter (User.toUid >> (==) uid)
                     |> List.head
                     |> Maybe.map
                         (\user ->
@@ -95,5 +95,5 @@ convetUidToUser users maybeBestRecord =
 isOwnRecord : Maybe BestRecord -> Uid -> Bool
 isOwnRecord maybeBestRecord uid =
     maybeBestRecord
-        |> Maybe.map (.user >> .uid >> (==) uid)
+        |> Maybe.map (.user >> User.toUid >> (==) uid)
         |> Maybe.withDefault False
