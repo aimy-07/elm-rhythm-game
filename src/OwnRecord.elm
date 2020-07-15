@@ -6,21 +6,25 @@ port module OwnRecord exposing
     , new
     , saveOwnRecord
     , savedOwnRecord
-    , update
+    , toBestCombo
+    , toBestScore
+    , toCsvFileName
+    , toPlayCount
+    , toUid
     )
 
 import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
-import Record exposing (Record)
 import Session.User.Uid exposing (Uid)
 
 
-type alias OwnRecord =
-    { uid : Uid
-    , csvFileName : CsvFileName
-    , bestCombo : Maybe Int
-    , bestScore : Maybe Int
-    , playCount : Int
-    }
+type OwnRecord
+    = OwnRecord
+        { uid : Uid
+        , csvFileName : CsvFileName
+        , bestCombo : Int
+        , bestScore : Int
+        , playCount : Int
+        }
 
 
 type alias OwnRecordDto =
@@ -37,62 +41,70 @@ type alias PlayRecordDto =
     }
 
 
+toUid : OwnRecord -> Uid
+toUid (OwnRecord { uid }) =
+    uid
+
+
+toCsvFileName : OwnRecord -> CsvFileName
+toCsvFileName (OwnRecord { csvFileName }) =
+    csvFileName
+
+
+toBestCombo : OwnRecord -> Int
+toBestCombo (OwnRecord { bestCombo }) =
+    bestCombo
+
+
+toBestScore : OwnRecord -> Int
+toBestScore (OwnRecord { bestScore }) =
+    bestScore
+
+
+toPlayCount : OwnRecord -> Int
+toPlayCount (OwnRecord { playCount }) =
+    playCount
+
+
 new : OwnRecordDto -> OwnRecord
 new { uid, csvFileName, playRecord } =
-    { uid = uid
-    , csvFileName = csvFileName
-    , bestCombo =
-        playRecord
-            |> Maybe.map .bestCombo
-    , bestScore =
-        playRecord
-            |> Maybe.map .bestScore
-    , playCount =
-        playRecord
-            |> Maybe.map .playCount
-            |> Maybe.withDefault 0
+    OwnRecord
+        { uid = uid
+        , csvFileName = csvFileName
+        , bestCombo =
+            playRecord
+                |> Maybe.map .bestCombo
+                |> Maybe.withDefault 0
+        , bestScore =
+            playRecord
+                |> Maybe.map .bestScore
+                |> Maybe.withDefault 0
+        , playCount =
+            playRecord
+                |> Maybe.map .playCount
+                |> Maybe.withDefault 0
+        }
+
+
+saveOwnRecord :
+    { uid : Uid
+    , csvFileName : CsvFileName
+    , combo : Int
+    , bestCombo : Int
+    , score : Int
+    , bestScore : Int
+    , playCount : Int
     }
-
-
-{-| プレイが終了した時に、リザルトを元に個人のプレイデータを更新する
--}
-update : Record -> OwnRecord -> OwnRecord
-update record pastOwnRecord =
-    case ( pastOwnRecord.bestCombo, pastOwnRecord.bestScore ) of
-        ( Just bestCombo, Just bestScore ) ->
-            { pastOwnRecord
-                | bestCombo = Just <| Basics.max record.combo bestCombo
-                , bestScore = Just <| Basics.max record.score bestScore
-                , playCount = pastOwnRecord.playCount + 1
-            }
-
-        _ ->
-            { pastOwnRecord
-                | bestCombo = Just record.combo
-                , bestScore = Just record.score
-                , playCount = 1
-            }
-
-
-saveOwnRecord : OwnRecord -> Cmd msg
-saveOwnRecord ownRecord =
-    let
-        bestCombo =
-            ownRecord.bestCombo
-                |> Maybe.withDefault 0
-
-        bestScore =
-            ownRecord.bestScore
-                |> Maybe.withDefault 0
-    in
+    -> Cmd msg
+saveOwnRecord { uid, csvFileName, combo, bestCombo, score, bestScore, playCount } =
     saveOwnRecord_
-        { uid = ownRecord.uid
-        , csvFileName = ownRecord.csvFileName
+        { uid = uid
+        , csvFileName = csvFileName
         , playRecord =
             Just
-                { bestCombo = bestCombo
-                , bestScore = bestScore
-                , playCount = ownRecord.playCount
+                { bestCombo = Basics.max combo bestCombo
+                , bestScore = Basics.max score bestScore
+                , playCount = playCount + 1
                 }
         }
 

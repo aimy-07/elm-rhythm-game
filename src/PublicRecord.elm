@@ -8,19 +8,19 @@ port module PublicRecord exposing
     , savePublicRecord
     , savedPublicRecord
     , sortBestRecords
-    , update
+    , toBestRecords
+    , toCsvFileName
     )
 
 import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
-import CreatedAt exposing (CreatedAt)
-import Record exposing (Record)
 import Session.User.Uid exposing (Uid)
 
 
-type alias PublicRecord =
-    { csvFileName : CsvFileName
-    , bestRecords : List BestRecord
-    }
+type PublicRecord
+    = PublicRecord
+        { csvFileName : CsvFileName
+        , bestRecords : List BestRecord
+        }
 
 
 type alias BestRecord =
@@ -28,6 +28,10 @@ type alias BestRecord =
     , score : Int
     , createdAt : CreatedAt
     }
+
+
+type alias CreatedAt =
+    Float
 
 
 type alias PublicRecordDto =
@@ -43,14 +47,25 @@ type alias BestRecordDto =
     }
 
 
+toCsvFileName : PublicRecord -> CsvFileName
+toCsvFileName (PublicRecord { csvFileName }) =
+    csvFileName
+
+
+toBestRecords : PublicRecord -> List BestRecord
+toBestRecords (PublicRecord { bestRecords }) =
+    bestRecords
+
+
 new : PublicRecordDto -> PublicRecord
 new { csvFileName, bestRecords } =
-    { csvFileName = csvFileName
-    , bestRecords =
-        bestRecords
-            |> Maybe.map (List.map newBestRecord)
-            |> Maybe.withDefault []
-    }
+    PublicRecord
+        { csvFileName = csvFileName
+        , bestRecords =
+            bestRecords
+                |> Maybe.map (List.map newBestRecord)
+                |> Maybe.withDefault []
+        }
 
 
 newBestRecord : BestRecordDto -> BestRecord
@@ -61,59 +76,52 @@ newBestRecord { uid, score, createdAt } =
     }
 
 
-{-| プレイが終了した時に、リザルトを元にランキングデータを更新する
--}
-update : Record -> PublicRecord -> PublicRecord
-update record currentPublicRecord =
-    let
-        newRecord =
-            { uid = record.uid
-            , score = record.score
-            , createdAt = record.createdAt
-            }
-    in
-    if record.score > 0 then
-        let
-            nextBestRecords =
-                (newRecord :: currentPublicRecord.bestRecords)
-                    |> sortBestRecords
-                    |> List.take 3
-        in
-        { currentPublicRecord | bestRecords = nextBestRecords }
-
-    else
-        currentPublicRecord
-
-
 {-| scoreでソートし、同scoreだった場合はcreatedAtが新しいものを上位に持ってくる
 -}
 sortBestRecords : List BestRecord -> List BestRecord
 sortBestRecords bestRecords =
+    let
+        comparison a b =
+            if Basics.compare a.score b.score == EQ then
+                Basics.compare a.createdAt b.createdAt
+
+            else
+                Basics.compare a.score b.score
+    in
     bestRecords
         |> List.sortWith comparison
         |> List.reverse
 
 
-comparison : BestRecord -> BestRecord -> Order
-comparison a b =
-    if Basics.compare a.score b.score == EQ then
-        Basics.compare a.createdAt b.createdAt
+savePublicRecord :
+    { uid : Uid
+    , score : Int
+    , createdAt : CreatedAt
+    , csvFileName : CsvFileName
+    , bestRecords : List BestRecord
+    }
+    -> Cmd msg
+savePublicRecord { uid, score, createdAt, csvFileName, bestRecords } =
+    if score > 0 then
+        let
+            newRecord =
+                { uid = uid
+                , score = score
+                , createdAt = createdAt
+                }
+
+            nextBestRecords =
+                (newRecord :: bestRecords)
+                    |> sortBestRecords
+                    |> List.take 3
+        in
+        savePublicRecord_
+            { csvFileName = csvFileName
+            , bestRecords = Just nextBestRecords
+            }
 
     else
-        Basics.compare a.score b.score
-
-
-savePublicRecord : PublicRecord -> Cmd msg
-savePublicRecord publicRecord =
-    savePublicRecord_
-        { csvFileName = publicRecord.csvFileName
-        , bestRecords =
-            if List.isEmpty publicRecord.bestRecords then
-                Nothing
-
-            else
-                Just publicRecord.bestRecords
-        }
+        Cmd.none
 
 
 port getPublicRecord : String -> Cmd msg

@@ -35,11 +35,11 @@ import Page.Play.Key as Key
 import Page.Play.Lane as Lane exposing (Lane)
 import Page.Play.Note as Note exposing (Note)
 import Page.Play.PlayingS as PlayingS exposing (PlayingS)
+import Page.Play.Result as Result exposing (Result)
 import Page.Play.ResultSavingS as ResultSavingS exposing (ResultSavingS)
 import Page.Play.Score as Score exposing (Score)
 import PublicRecord exposing (PublicRecordDto)
 import Rank
-import Record
 import Route
 import Session exposing (Session)
 import Time
@@ -147,7 +147,7 @@ type Msg
     | FinishedMusic Float
     | GotCurrentOwnRecord OwnRecordDto
     | GotCurrentPublicRecord PublicRecordDto
-    | SavedRecord ()
+    | SavedResult ()
     | SavedUpdatedOwnRecord ()
     | SavedUpdatedPublicRecord ()
     | PlayTweetBtnSE
@@ -344,17 +344,18 @@ update msg model =
             case Session.toUser model.session of
                 Just user ->
                     let
-                        record =
-                            Record.new
+                        result =
+                            Result.new
                                 { uid = user.uid
                                 , csvFileName = model.currentMusicData.csvFileName
                                 , combo = Combo.toResultCombo model.combo
                                 , score = Score.unwrap model.score
                                 , createdAt = time
                                 }
+                                model.currentMusicData.maxCombo
 
                         ( nextResultSavingS, resultSavingSCmd ) =
-                            ResultSavingS.startSaving record model.resultSavingS
+                            ResultSavingS.startSaving result model.resultSavingS
                     in
                     ( { model
                         | playingS = PlayingS.finish
@@ -382,10 +383,10 @@ update msg model =
             in
             ( { model | resultSavingS = nextResultSavingS }, resultSavingSCmd )
 
-        SavedRecord _ ->
+        SavedResult _ ->
             let
                 nextResultSavingS =
-                    ResultSavingS.savedRecord model.resultSavingS
+                    ResultSavingS.savedResult model.resultSavingS
             in
             ( { model | resultSavingS = nextResultSavingS }
             , Cmd.batch
@@ -449,7 +450,7 @@ subscriptions model =
 
         saveResultSub =
             Sub.batch
-                [ Record.savedRecord SavedRecord
+                [ Result.savedResult SavedResult
                 , OwnRecord.gotOwnRecord GotCurrentOwnRecord
                 , OwnRecord.savedOwnRecord SavedUpdatedOwnRecord
                 , PublicRecord.gotPublicRecord GotCurrentPublicRecord
@@ -621,19 +622,20 @@ viewCountdown =
 viewResult : MusicData -> ResultSavingS -> JudgeCounter -> Html Msg
 viewResult musicData resultSavingS judgeCounter =
     case ResultSavingS.toResult resultSavingS of
-        Just { record, isBestCombo, isBestScore } ->
+        Just result ->
             let
-                isFullCombo =
-                    record.combo == musicData.maxCombo
-
                 comboRank =
-                    Rank.newComboRank record.combo musicData.maxCombo
+                    Rank.newComboRank (Result.toCombo result) musicData.maxCombo
 
                 scoreRank =
-                    Rank.newScoreRank record.score musicData.maxScore
+                    Rank.newScoreRank (Result.toScore result) musicData.maxScore
 
                 tweetTextContent =
-                    tweetText musicData.musicName musicData.mode record.combo record.score
+                    tweetText
+                        musicData.musicName
+                        musicData.mode
+                        (Result.toCombo result)
+                        (Result.toScore result)
 
                 viewNotesDetail judge count =
                     div [ class "playResultNotesDetail_container" ]
@@ -645,18 +647,18 @@ viewResult musicData resultSavingS judgeCounter =
                 viewComboEffectText =
                     div [ class "playResultItem_effectText" ]
                         [ text "自己ベスト更新！"
-                            |> viewIf isBestCombo
+                            |> viewIf (Result.isBestCombo result)
                         , text "フルコンボ！"
-                            |> viewIf isFullCombo
+                            |> viewIf (Result.isFullCombo result)
                         ]
 
                 viewScoreEffectText =
                     div [ class "playResultItem_effectText" ]
                         [ text "自己ベスト更新！"
-                            |> viewIf isBestScore
+                            |> viewIf (Result.isBestScore result)
                         ]
 
-                viewResultItem labelText rank viewEffectText result max =
+                viewResultItem labelText rank viewEffectText result_ max =
                     div [ class "playResultItem_container" ]
                         [ div [ class "playResultItem_box" ] []
                         , div [ class "playResultItem_labelText" ] [ text labelText ]
@@ -664,7 +666,7 @@ viewResult musicData resultSavingS judgeCounter =
                         , viewEffectText
                         , div
                             [ class "playResultItem_textContainer" ]
-                            [ span [ class "playResultItem_resultText" ] [ text <| String.fromInt result ]
+                            [ span [ class "playResultItem_resultText" ] [ text <| String.fromInt result_ ]
                             , span [ class "playResultItem_maxText" ] [ text <| " / " ++ String.fromInt max ]
                             ]
                         , div [ class "playResultItem_line" ] []
@@ -703,8 +705,8 @@ viewResult musicData resultSavingS judgeCounter =
                             , viewNotesDetail Lost (JudgeCounter.toLost judgeCounter)
                             , viewNotesDetail Miss (JudgeCounter.toMiss judgeCounter)
                             ]
-                        , viewResultItem "COMBO" comboRank viewComboEffectText record.combo musicData.maxCombo
-                        , viewResultItem "SCORE" scoreRank viewScoreEffectText record.score musicData.maxScore
+                        , viewResultItem "COMBO" comboRank viewComboEffectText (Result.toCombo result) musicData.maxCombo
+                        , viewResultItem "SCORE" scoreRank viewScoreEffectText (Result.toScore result) musicData.maxScore
 
                         -- 戻るボタンでプレイ画面に戻ることを許容する
                         , a

@@ -3,37 +3,33 @@ module Page.Play.ResultSavingS exposing
     , gotCurrentOwnRecord
     , gotCurrentPublicRecord
     , init
-    , savedRecord
+    , savedResult
     , savedUpdatedOwnRecord
     , savedUpdatedPublicRecord
     , startSaving
     , toResult
     )
 
-import OwnRecord exposing (OwnRecord, OwnRecordDto)
-import PublicRecord exposing (PublicRecord, PublicRecordDto)
-import Record exposing (Record)
+import OwnRecord exposing (OwnRecordDto)
+import Page.Play.Result as Result exposing (Result)
+import PublicRecord exposing (PublicRecordDto)
 
 
 type ResultSavingS
     = Init
     | ConnectingDB
-        { record : Record
-        , recordSavingS : SavingS Record
-        , ownRecordSavingS : SavingS OwnRecord
-        , publicRecordSavingS : SavingS PublicRecord
+        { result : Result
+        , resultSavingS : SavingS
+        , ownRecordSavingS : SavingS
+        , publicRecordSavingS : SavingS
         }
-    | Completed
-        { record : Record
-        , isBestCombo : Bool
-        , isBestScore : Bool
-        }
+    | Completed Result
 
 
-type SavingS record
+type SavingS
     = Prepare
-    | Saving record
-    | Saved record
+    | Saving
+    | Saved
 
 
 init : ResultSavingS
@@ -41,33 +37,33 @@ init =
     Init
 
 
-toResult : ResultSavingS -> Maybe { record : Record, isBestCombo : Bool, isBestScore : Bool }
+toResult : ResultSavingS -> Maybe Result
 toResult resultSavingS =
     case resultSavingS of
+        Completed result ->
+            Just result
+
         Init ->
             Nothing
 
         ConnectingDB _ ->
             Nothing
 
-        Completed result ->
-            Just result
 
-
-startSaving : Record -> ResultSavingS -> ( ResultSavingS, Cmd msg )
-startSaving record resultSavingS =
+startSaving : Result -> ResultSavingS -> ( ResultSavingS, Cmd msg )
+startSaving result resultSavingS =
     case resultSavingS of
         Init ->
             ( ConnectingDB
-                { record = record
-                , recordSavingS = Saving record
+                { result = result
+                , resultSavingS = Saving
                 , ownRecordSavingS = Prepare
                 , publicRecordSavingS = Prepare
                 }
             , Cmd.batch
-                [ Record.saveRecord record
-                , OwnRecord.getOwnRecord { uid = record.uid, csvFileName = record.csvFileName }
-                , PublicRecord.getPublicRecord record.csvFileName
+                [ Result.saveResult result
+                , OwnRecord.getOwnRecord { uid = Result.toUid result, csvFileName = Result.toCsvFileName result }
+                , PublicRecord.getPublicRecord <| Result.toCsvFileName result
                 ]
             )
 
@@ -83,14 +79,26 @@ gotCurrentOwnRecord ownRecordDto resultSavingS =
     case resultSavingS of
         ConnectingDB savingS ->
             let
+                result =
+                    savingS.result
+
                 ownRecord =
                     OwnRecord.new ownRecordDto
-
-                updatedOwnRecord =
-                    OwnRecord.update savingS.record ownRecord
             in
-            ( ConnectingDB { savingS | ownRecordSavingS = toSaving ownRecord savingS.ownRecordSavingS }
-            , OwnRecord.saveOwnRecord updatedOwnRecord
+            ( ConnectingDB
+                { savingS
+                    | result = Result.updateIsBest (OwnRecord.toBestCombo ownRecord) (OwnRecord.toBestScore ownRecord) result
+                    , ownRecordSavingS = Saving
+                }
+            , OwnRecord.saveOwnRecord
+                { uid = OwnRecord.toUid ownRecord
+                , csvFileName = OwnRecord.toCsvFileName ownRecord
+                , combo = Result.toCombo result
+                , bestCombo = OwnRecord.toBestCombo ownRecord
+                , score = Result.toScore result
+                , bestScore = OwnRecord.toBestScore ownRecord
+                , playCount = OwnRecord.toPlayCount ownRecord
+                }
             )
 
         Init ->
@@ -105,14 +113,20 @@ gotCurrentPublicRecord publicRecordDto resultSavingS =
     case resultSavingS of
         ConnectingDB savingS ->
             let
-                currentPublicRecord =
-                    PublicRecord.new publicRecordDto
+                result =
+                    savingS.result
 
-                updatedPublicRecord =
-                    PublicRecord.update savingS.record currentPublicRecord
+                publicRecord =
+                    PublicRecord.new publicRecordDto
             in
-            ( ConnectingDB { savingS | publicRecordSavingS = toSaving currentPublicRecord savingS.publicRecordSavingS }
-            , PublicRecord.savePublicRecord updatedPublicRecord
+            ( ConnectingDB { savingS | publicRecordSavingS = Saving }
+            , PublicRecord.savePublicRecord
+                { uid = Result.toUid result
+                , score = Result.toScore result
+                , createdAt = Result.toCreatedAt result
+                , csvFileName = PublicRecord.toCsvFileName publicRecord
+                , bestRecords = PublicRecord.toBestRecords publicRecord
+                }
             )
 
         Init ->
@@ -122,11 +136,11 @@ gotCurrentPublicRecord publicRecordDto resultSavingS =
             ( resultSavingS, Cmd.none )
 
 
-savedRecord : ResultSavingS -> ResultSavingS
-savedRecord resultSavingS =
+savedResult : ResultSavingS -> ResultSavingS
+savedResult resultSavingS =
     case resultSavingS of
         ConnectingDB savingS ->
-            ConnectingDB { savingS | recordSavingS = toSaved savingS.recordSavingS }
+            ConnectingDB { savingS | resultSavingS = Saved }
                 |> toCompleted
 
         Init ->
@@ -140,7 +154,7 @@ savedUpdatedOwnRecord : ResultSavingS -> ResultSavingS
 savedUpdatedOwnRecord resultSavingS =
     case resultSavingS of
         ConnectingDB savingS ->
-            ConnectingDB { savingS | ownRecordSavingS = toSaved savingS.ownRecordSavingS }
+            ConnectingDB { savingS | ownRecordSavingS = Saved }
                 |> toCompleted
 
         Init ->
@@ -154,7 +168,7 @@ savedUpdatedPublicRecord : ResultSavingS -> ResultSavingS
 savedUpdatedPublicRecord resultSavingS =
     case resultSavingS of
         ConnectingDB savingS ->
-            ConnectingDB { savingS | publicRecordSavingS = toSaved savingS.publicRecordSavingS }
+            ConnectingDB { savingS | publicRecordSavingS = Saved }
                 |> toCompleted
 
         Init ->
@@ -170,88 +184,12 @@ toCompleted resultSavingS =
         Init ->
             resultSavingS
 
-        ConnectingDB { record, recordSavingS, ownRecordSavingS, publicRecordSavingS } ->
-            case maybeSavedRecord ownRecordSavingS of
-                Just pastOwnRecord ->
-                    if isSaved recordSavingS && isSaved publicRecordSavingS then
-                        Completed (newResult record pastOwnRecord)
+        ConnectingDB savingS ->
+            if savingS.resultSavingS == Saved && savingS.ownRecordSavingS == Saved && savingS.publicRecordSavingS == Saved then
+                Completed savingS.result
 
-                    else
-                        resultSavingS
-
-                Nothing ->
-                    resultSavingS
+            else
+                resultSavingS
 
         Completed _ ->
             resultSavingS
-
-
-newResult : Record -> OwnRecord -> { record : Record, isBestCombo : Bool, isBestScore : Bool }
-newResult record pastOwnRecord =
-    let
-        isBestCombo =
-            pastOwnRecord.bestCombo
-                |> Maybe.map (\bestCombo -> record.combo > bestCombo)
-                |> Maybe.withDefault (record.combo > 0)
-
-        isBestScore =
-            pastOwnRecord.bestScore
-                |> Maybe.map (\bestScore -> record.score > bestScore)
-                |> Maybe.withDefault (record.score > 0)
-    in
-    { record = record
-    , isBestCombo = isBestCombo
-    , isBestScore = isBestScore
-    }
-
-
-toSaving : record -> SavingS record -> SavingS record
-toSaving record savingS =
-    case savingS of
-        Prepare ->
-            Saving record
-
-        Saving _ ->
-            savingS
-
-        Saved _ ->
-            savingS
-
-
-toSaved : SavingS record -> SavingS record
-toSaved savingS =
-    case savingS of
-        Prepare ->
-            savingS
-
-        Saving record ->
-            Saved record
-
-        Saved _ ->
-            savingS
-
-
-isSaved : SavingS record -> Bool
-isSaved savingS =
-    case savingS of
-        Prepare ->
-            False
-
-        Saving _ ->
-            False
-
-        Saved _ ->
-            True
-
-
-maybeSavedRecord : SavingS record -> Maybe record
-maybeSavedRecord savingS =
-    case savingS of
-        Prepare ->
-            Nothing
-
-        Saving _ ->
-            Nothing
-
-        Saved record ->
-            Just record

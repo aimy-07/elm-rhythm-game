@@ -1,38 +1,32 @@
 module Page.Home.UserPlayRecords exposing
-    ( UserPlayRecordData
-    , UserPlayRecords
+    ( UserPlayRecords
     , findByCsvFileName
     , gotOwnRecord
     , init
     , initCmd
+    , isLoaded
     )
 
 import AllMusicData.MusicData.CsvFileName as CsvFileName exposing (CsvFileName)
 import Constants exposing (allModeList, allMusicIdList)
 import Dict exposing (Dict)
-import OwnRecord exposing (OwnRecord, OwnRecordDto)
+import OwnRecord exposing (OwnRecordDto)
+import Page.Home.UserPlayRecords.UserPlayRecord as UserPlayRecord exposing (UserPlayRecord)
 import Session.User.Uid exposing (Uid)
 
 
 type UserPlayRecords
-    = LoadingOwnRecord UserPlayRecordDict
+    = Loading UserPlayRecordDict
     | Loaded UserPlayRecordDict
 
 
 type alias UserPlayRecordDict =
-    Dict String UserPlayRecordData
-
-
-type alias UserPlayRecordData =
-    { bestCombo : Maybe Int
-    , bestScore : Maybe Int
-    , playCount : Int
-    }
+    Dict String UserPlayRecord
 
 
 init : UserPlayRecords
 init =
-    LoadingOwnRecord Dict.empty
+    Loading Dict.empty
 
 
 initCmd : Uid -> Cmd msg
@@ -44,45 +38,38 @@ initCmd uid =
         |> Cmd.batch
 
 
+isLoaded : UserPlayRecords -> Bool
+isLoaded userPlayRecords =
+    case userPlayRecords of
+        Loaded _ ->
+            True
 
--- List.map2 CsvFileName.new allMusicIdList allModeList
---     |> List.map (\csvFileName -> OwnRecord.getOwnRecord { uid = uid, csvFileName = csvFileName })
---     |> Cmd.batch
+        Loading _ ->
+            False
 
 
 gotOwnRecord : OwnRecordDto -> UserPlayRecords -> UserPlayRecords
 gotOwnRecord ownRecordDto userPlayRecords =
     case userPlayRecords of
-        LoadingOwnRecord userPlayRecordDict ->
+        Loading userPlayRecordDict ->
             let
-                newOwnRecord =
-                    OwnRecord.new ownRecordDto
-
                 nextUserPlayRecordDict =
-                    Dict.insert newOwnRecord.csvFileName (newUserPlayRecordData newOwnRecord) userPlayRecordDict
+                    Dict.insert ownRecordDto.csvFileName (UserPlayRecord.new ownRecordDto) userPlayRecordDict
             in
             if Dict.size nextUserPlayRecordDict == List.length allMusicIdList * List.length allModeList then
                 Loaded nextUserPlayRecordDict
 
             else
-                LoadingOwnRecord nextUserPlayRecordDict
+                Loading nextUserPlayRecordDict
 
         Loaded _ ->
             userPlayRecords
 
 
-newUserPlayRecordData : OwnRecord -> UserPlayRecordData
-newUserPlayRecordData ownRecord =
-    { bestCombo = ownRecord.bestCombo
-    , bestScore = ownRecord.bestScore
-    , playCount = ownRecord.playCount
-    }
-
-
-findByCsvFileName : CsvFileName -> UserPlayRecords -> Maybe UserPlayRecordData
+findByCsvFileName : CsvFileName -> UserPlayRecords -> Maybe UserPlayRecord
 findByCsvFileName csvFileName userPlayRecords =
     case userPlayRecords of
-        LoadingOwnRecord _ ->
+        Loading _ ->
             Nothing
 
         Loaded userPlayRecordDict ->

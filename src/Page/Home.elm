@@ -29,8 +29,10 @@ import Html.Events exposing (on, onClick, onInput, onMouseUp)
 import Json.Decode as Decode
 import OwnRecord exposing (OwnRecordDto)
 import Page
-import Page.Home.RankingRecords as RankingRecords exposing (RankingData, RankingRecords)
-import Page.Home.UserPlayRecords as UserPlayRecords exposing (UserPlayRecordData, UserPlayRecords)
+import Page.Home.RankingRecords as RankingRecords exposing (RankingRecords)
+import Page.Home.RankingRecords.RankingRecord as RankingRecord
+import Page.Home.UserPlayRecords as UserPlayRecords exposing (UserPlayRecords)
+import Page.Home.UserPlayRecords.UserPlayRecord as UserPlayRecord exposing (UserPlayRecord)
 import Page.Home.UserSettingPanelS as UserSettingPanelS exposing (UserSettingPanelS)
 import Process
 import PublicRecord exposing (PublicRecordDto)
@@ -365,14 +367,14 @@ view model =
                 maybeCurrentMusicData =
                     AllMusicData.findByCsvFileName currentCsvFileName model.allMusicData
 
-                maybeUserPlayRecordData =
-                    UserPlayRecords.findByCsvFileName currentCsvFileName model.userPlayRecords
+                isLoadedUserPlayRecords =
+                    UserPlayRecords.isLoaded model.userPlayRecords
 
-                maybeRankingData =
-                    RankingRecords.findByCsvFileName currentCsvFileName model.rankingRecords
+                isLoadedRankingRecords =
+                    RankingRecords.isLoaded model.rankingRecords
             in
-            case ( maybeCurrentMusicData, maybeUserPlayRecordData, maybeRankingData ) of
-                ( Just currentMusicData, Just userPlayRecordData, Just rankingData ) ->
+            case ( maybeCurrentMusicData, isLoadedUserPlayRecords, isLoadedRankingRecords ) of
+                ( Just currentMusicData, True, True ) ->
                     div [ class "home_back" ]
                         [ div
                             [ class "home_contents" ]
@@ -395,11 +397,11 @@ view model =
                             -- 右側
                             , div
                                 [ class "home_rightContents" ]
-                                [ viewCenterArea currentMusicData userPlayRecordData
+                                [ viewCenterArea currentMusicData model.userPlayRecords
                                 , viewTopLeftArea currentMusicData
-                                , viewTopRightArea rankingData user
-                                , viewBottomLeftArea1 currentMusicData userPlayRecordData
-                                , viewBottomLeftArea2 currentMusicData userPlayRecordData
+                                , viewTopRightArea currentMusicData model.rankingRecords user
+                                , viewBottomLeftArea1 currentMusicData model.userPlayRecords
+                                , viewBottomLeftArea2 currentMusicData model.userPlayRecords
                                 , viewBottomRightArea currentMusicData
                                 ]
                             ]
@@ -597,39 +599,30 @@ viewMusicList currentMode currentMusicData allMusicData userPlayRecords =
         (filteredMusicData
             |> List.map
                 (\musicData ->
-                    let
-                        maybeUserPlayRecordData =
-                            UserPlayRecords.findByCsvFileName musicData.csvFileName userPlayRecords
-                    in
-                    viewMusicListItem currentMusicData musicData maybeUserPlayRecordData
+                    userPlayRecords
+                        |> UserPlayRecords.findByCsvFileName musicData.csvFileName
+                        |> Maybe.map (viewMusicListItem currentMusicData musicData)
+                        |> Maybe.withDefault (text "")
                 )
         )
 
 
-viewMusicListItem : MusicData -> MusicData -> Maybe UserPlayRecordData -> Html Msg
-viewMusicListItem currentMusicData musicData maybeUserPlayRecordData =
+viewMusicListItem : MusicData -> MusicData -> UserPlayRecord -> Html Msg
+viewMusicListItem currentMusicData musicData userPlayRecord =
     let
         isSelecting =
             musicData.musicId == currentMusicData.musicId
 
         comboRank =
-            maybeUserPlayRecordData
-                |> Maybe.map
-                    (\record ->
-                        record.bestCombo
-                            |> Maybe.map (\combo -> Rank.newComboRank combo musicData.maxCombo)
-                            |> Maybe.withDefault Rank.invalid
-                    )
+            userPlayRecord
+                |> UserPlayRecord.toBestCombo
+                |> Maybe.map (\combo -> Rank.newComboRank combo musicData.maxCombo)
                 |> Maybe.withDefault Rank.invalid
 
         scoreRank =
-            maybeUserPlayRecordData
-                |> Maybe.map
-                    (\record ->
-                        record.bestScore
-                            |> Maybe.map (\score -> Rank.newScoreRank score musicData.maxScore)
-                            |> Maybe.withDefault Rank.invalid
-                    )
+            userPlayRecord
+                |> UserPlayRecord.toBestScore
+                |> Maybe.map (\score -> Rank.newScoreRank score musicData.maxScore)
                 |> Maybe.withDefault Rank.invalid
     in
     div [ class "homeMusicListItem_container", onClick <| ChangeMusicId musicData.musicId ]
@@ -660,8 +653,15 @@ viewMusicListItem currentMusicData musicData maybeUserPlayRecordData =
         ]
 
 
-viewCenterArea : MusicData -> UserPlayRecordData -> Html msg
-viewCenterArea currentMusicData userPlayRecordData =
+viewCenterArea : MusicData -> UserPlayRecords -> Html msg
+viewCenterArea currentMusicData userPlayRecords =
+    let
+        playCount =
+            userPlayRecords
+                |> UserPlayRecords.findByCsvFileName currentMusicData.csvFileName
+                |> Maybe.map UserPlayRecord.toPlayCount
+                |> Maybe.withDefault 0
+    in
     div [ class "home_centerArea", id "home_centerArea" ]
         [ div [ class "homeCenterArea_Inner" ] []
         , div
@@ -680,7 +680,7 @@ viewCenterArea currentMusicData userPlayRecordData =
             , div [ class "homeCenterArea_boxText center" ] [ text <| MusicData.toStringTime currentMusicData.fullTime ]
             , div [ class "homeCenterArea_box right" ] []
             , div [ class "homeCenterArea_boxLabel right" ] [ text "プレイ回数" ]
-            , div [ class "homeCenterArea_boxText right" ] [ text <| String.fromInt userPlayRecordData.playCount ++ "回" ]
+            , div [ class "homeCenterArea_boxText right" ] [ text <| String.fromInt playCount ++ "回" ]
             , div
                 [ class "homeCenterArea_rankText title" ]
                 [ div [ class "homeCenterArea_rankTitleText score" ] [ text "SCORE" ]
@@ -720,13 +720,16 @@ viewTopLeftArea currentMusicData =
         ]
 
 
-viewTopRightArea : RankingData -> User -> Html msg
-viewTopRightArea rankingData user =
+viewTopRightArea : MusicData -> RankingRecords -> User -> Html msg
+viewTopRightArea currentMusicData rankingRecords user =
     let
+        maybeRankingRecord =
+            RankingRecords.findByCsvFileName currentMusicData.csvFileName rankingRecords
+
         viewRankingItem clsRank maybeRecord =
             let
                 isMe =
-                    RankingRecords.isOwnRecord maybeRecord user.uid
+                    RankingRecord.isOwnRecord maybeRecord user.uid
 
                 userName =
                     maybeRecord
@@ -754,24 +757,33 @@ viewTopRightArea rankingData user =
             , div [ class "homeTopRight_line", class clsRank ] []
             ]
     in
-    div [ class "home_topRightArea", id "home_topRightArea" ]
-        (div [ class "homeTopRight_title" ] [ text "楽曲スコアランキング" ]
-            :: viewRankingItem "first" rankingData.first
-            ++ viewRankingItem "second" rankingData.second
-            ++ viewRankingItem "third" rankingData.third
-        )
+    case maybeRankingRecord of
+        Just rankingRecord ->
+            div [ class "home_topRightArea", id "home_topRightArea" ]
+                (div [ class "homeTopRight_title" ] [ text "楽曲スコアランキング" ]
+                    :: viewRankingItem "first" (RankingRecord.toFirst rankingRecord)
+                    ++ viewRankingItem "second" (RankingRecord.toSecond rankingRecord)
+                    ++ viewRankingItem "third" (RankingRecord.toThird rankingRecord)
+                )
+
+        Nothing ->
+            text ""
 
 
-viewBottomLeftArea1 : MusicData -> UserPlayRecordData -> Html msg
-viewBottomLeftArea1 currentMusicData userPlayRecordData =
+viewBottomLeftArea1 : MusicData -> UserPlayRecords -> Html msg
+viewBottomLeftArea1 currentMusicData userPlayRecords =
     let
         comboRank =
-            userPlayRecordData.bestCombo
+            userPlayRecords
+                |> UserPlayRecords.findByCsvFileName currentMusicData.csvFileName
+                |> Maybe.andThen UserPlayRecord.toBestCombo
                 |> Maybe.map (\combo -> Rank.newComboRank combo currentMusicData.maxCombo)
                 |> Maybe.withDefault Rank.invalid
 
         comboStr =
-            userPlayRecordData.bestCombo
+            userPlayRecords
+                |> UserPlayRecords.findByCsvFileName currentMusicData.csvFileName
+                |> Maybe.andThen UserPlayRecord.toBestCombo
                 |> Maybe.map String.fromInt
                 |> Maybe.withDefault "---"
     in
@@ -783,16 +795,20 @@ viewBottomLeftArea1 currentMusicData userPlayRecordData =
         ]
 
 
-viewBottomLeftArea2 : MusicData -> UserPlayRecordData -> Html msg
-viewBottomLeftArea2 currentMusicData userPlayRecordData =
+viewBottomLeftArea2 : MusicData -> UserPlayRecords -> Html msg
+viewBottomLeftArea2 currentMusicData userPlayRecords =
     let
         scoreRank =
-            userPlayRecordData.bestScore
+            userPlayRecords
+                |> UserPlayRecords.findByCsvFileName currentMusicData.csvFileName
+                |> Maybe.andThen UserPlayRecord.toBestScore
                 |> Maybe.map (\score -> Rank.newScoreRank score currentMusicData.maxScore)
                 |> Maybe.withDefault Rank.invalid
 
         scoreStr =
-            userPlayRecordData.bestScore
+            userPlayRecords
+                |> UserPlayRecords.findByCsvFileName currentMusicData.csvFileName
+                |> Maybe.andThen UserPlayRecord.toBestScore
                 |> Maybe.map String.fromInt
                 |> Maybe.withDefault "---"
     in

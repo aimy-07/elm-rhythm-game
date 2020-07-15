@@ -1,48 +1,34 @@
 module Page.Home.RankingRecords exposing
-    ( RankingData
-    , RankingRecords
+    ( RankingRecords
     , findByCsvFileName
     , gotPublicRecord
     , gotUsers
     , init
     , initCmd
-    , isOwnRecord
+    , isLoaded
     )
 
 import AllMusicData.MusicData.CsvFileName as CsvFileName exposing (CsvFileName)
 import Constants exposing (allModeList, allMusicIdList)
 import Dict exposing (Dict)
+import Page.Home.RankingRecords.RankingRecord as RankingRecord exposing (RankingRecord)
 import PublicRecord exposing (PublicRecord, PublicRecordDto)
-import Session.User as User exposing (User, UserDto)
-import Session.User.Uid exposing (Uid)
+import Session.User as User exposing (UserDto)
 import Set
 
 
 type RankingRecords
     = LoadingPublicRecord PublicRecordDict
     | LoadingUser PublicRecordDict
-    | Loaded RankingDict
+    | Loaded RankingRecordDict
 
 
 type alias PublicRecordDict =
     Dict String PublicRecord
 
 
-type alias RankingDict =
-    Dict String RankingData
-
-
-type alias RankingData =
-    { first : Maybe BestRecord
-    , second : Maybe BestRecord
-    , third : Maybe BestRecord
-    }
-
-
-type alias BestRecord =
-    { user : User
-    , score : Int
-    }
+type alias RankingRecordDict =
+    Dict String RankingRecord
 
 
 init : RankingRecords
@@ -59,10 +45,17 @@ initCmd =
         |> Cmd.batch
 
 
+isLoaded : RankingRecords -> Bool
+isLoaded rankingRecords =
+    case rankingRecords of
+        Loaded _ ->
+            True
 
--- List.map2 CsvFileName.new allMusicIdList allModeList
---     |> List.map PublicRecord.getPublicRecord
---     |> Cmd.batch
+        LoadingPublicRecord _ ->
+            False
+
+        LoadingUser _ ->
+            False
 
 
 gotPublicRecord : PublicRecordDto -> RankingRecords -> ( RankingRecords, Cmd msg )
@@ -74,20 +67,21 @@ gotPublicRecord publicRecordDto rankingRecords =
                     PublicRecord.new publicRecordDto
 
                 nextPublicRecordDict =
-                    Dict.insert publicRecord.csvFileName publicRecord publicRecordDict
+                    Dict.insert (PublicRecord.toCsvFileName publicRecord) publicRecord publicRecordDict
             in
             if Dict.size nextPublicRecordDict == List.length allMusicIdList * List.length allModeList then
-                ( LoadingUser nextPublicRecordDict
-                , nextPublicRecordDict
-                    |> Dict.values
-                    |> List.map .bestRecords
-                    |> List.concat
-                    |> List.map .uid
-                    |> Set.fromList
-                    -- 重複をなくすため一度Setに変換している
-                    |> Set.toList
-                    |> User.getUsers
-                )
+                let
+                    rankingUsers =
+                        nextPublicRecordDict
+                            |> Dict.values
+                            |> List.map PublicRecord.toBestRecords
+                            |> List.concat
+                            |> List.map .uid
+                            |> Set.fromList
+                            -- 重複をなくすため一度Setに変換している
+                            |> Set.toList
+                in
+                ( LoadingUser nextPublicRecordDict, User.getUsers rankingUsers )
 
             else
                 ( LoadingPublicRecord nextPublicRecordDict, Cmd.none )
@@ -112,7 +106,7 @@ gotUsers userDtos rankingRecords =
 
                 rankingDataDict =
                     publicRecordDict
-                        |> Dict.map (\_ publicRecord -> newRankingData users publicRecord)
+                        |> Dict.map (\_ publicRecord -> RankingRecord.new users publicRecord)
             in
             Loaded rankingDataDict
 
@@ -120,48 +114,7 @@ gotUsers userDtos rankingRecords =
             rankingRecords
 
 
-newRankingData : List User -> PublicRecord -> RankingData
-newRankingData users { bestRecords } =
-    let
-        first =
-            bestRecords
-                |> PublicRecord.sortBestRecords
-                |> List.head
-                |> convetUidToUser users
-
-        second =
-            bestRecords
-                |> PublicRecord.sortBestRecords
-                |> List.drop 1
-                |> List.head
-                |> convetUidToUser users
-
-        third =
-            bestRecords
-                |> PublicRecord.sortBestRecords
-                |> List.drop 2
-                |> List.head
-                |> convetUidToUser users
-    in
-    { first = first
-    , second = second
-    , third = third
-    }
-
-
-convetUidToUser : List User -> Maybe PublicRecord.BestRecord -> Maybe BestRecord
-convetUidToUser users maybeBestRecord =
-    maybeBestRecord
-        |> Maybe.andThen
-            (\{ uid, score } ->
-                users
-                    |> List.filter (.uid >> (==) uid)
-                    |> List.head
-                    |> Maybe.map (\user -> { user = user, score = score })
-            )
-
-
-findByCsvFileName : CsvFileName -> RankingRecords -> Maybe RankingData
+findByCsvFileName : CsvFileName -> RankingRecords -> Maybe RankingRecord
 findByCsvFileName csvFileName rankingRecords =
     case rankingRecords of
         LoadingPublicRecord _ ->
@@ -172,10 +125,3 @@ findByCsvFileName csvFileName rankingRecords =
 
         Loaded rankingDict ->
             Dict.get csvFileName rankingDict
-
-
-isOwnRecord : Maybe BestRecord -> Uid -> Bool
-isOwnRecord maybeBestRecord uid =
-    maybeBestRecord
-        |> Maybe.map (.user >> .uid >> (==) uid)
-        |> Maybe.withDefault False

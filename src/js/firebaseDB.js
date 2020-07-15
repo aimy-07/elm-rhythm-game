@@ -92,16 +92,16 @@ export const firebaseDBSetUpSubscriber = (app) => {
   /* ---------------------------------
 	  POST
   ---------------------------------- */
-  app.ports.saveRecord_.subscribe(record => {
-    const recordId = uuidv4();
-    firebaseDBSet(`/records/${record.csvFileName}/${record.uid}/${recordId}/`, record)
+  app.ports.saveResult_.subscribe(result => {
+    const resultId = uuidv4();
+    firebaseDBSet(`/results/${result.csvFileName}/${result.uid}/${resultId}/`, result)
       .then(() => {
-        app.ports.savedRecord.send(null);
+        app.ports.savedResult.send(null);
       })
       .catch(error => {
-        const recordInfo = `{csvFileName: ${record.csvFileName}, combo: ${record.combo}, score: ${record.score}, createdAt: ${record.createdAt}}`;
+        const resultInfo = `{csvFileName: ${result.csvFileName}, combo: ${result.combo}, score: ${result.score}, createdAt: ${result.createdAt}}`;
         console.error(error);
-        detectedError(errorEvent.saveRecord, error.message, `<record: ${recordInfo}>`);
+        detectedError(errorEvent.saveResult, error.message, `<result: ${resultInfo}>`);
       });
   })
 
