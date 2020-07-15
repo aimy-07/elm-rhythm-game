@@ -28,6 +28,7 @@ import OwnRecord exposing (OwnRecordDto)
 import Page
 import Page.Play.Combo as Combo exposing (Combo)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
+import Page.Play.Guideline as Guideline exposing (Guideline)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.JudgeCounter as JudgeCounter exposing (JudgeCounter)
 import Page.Play.Key as Key
@@ -65,6 +66,7 @@ type alias Model =
     , combo : Combo
     , judgeCounter : JudgeCounter
     , lanes : List Lane
+    , guidelines : List Guideline
     , resultSavingS : ResultSavingS
     }
 
@@ -93,6 +95,13 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , combo = Combo.init
               , judgeCounter = JudgeCounter.init
               , lanes = List.map Lane.new allKeyList
+              , guidelines =
+                    Guideline.createGuidelines
+                        { bpm = currentMusicData.bpm
+                        , beatsCountPerMeasure = currentMusicData.beatsCountPerMeasure
+                        , offset = currentMusicData.offset
+                        , fullTime = currentMusicData.fullTime
+                        }
               , resultSavingS = ResultSavingS.init
               }
             , Cmd.batch
@@ -115,6 +124,7 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , combo = Combo.init
               , judgeCounter = JudgeCounter.init
               , lanes = List.map Lane.new allKeyList
+              , guidelines = []
               , resultSavingS = ResultSavingS.init
               }
             , Cmd.batch
@@ -186,6 +196,10 @@ update msg model =
 
                 nextJudgeCounter =
                     JudgeCounter.update headNotes model.judgeCounter
+
+                nextGuidelines =
+                    model.guidelines
+                        |> List.map (Guideline.update updatedTime)
             in
             ( { model
                 | currentMusicTime = updatedTime
@@ -193,6 +207,7 @@ update msg model =
                 , score = nextScore
                 , combo = nextCombo
                 , judgeCounter = nextJudgeCounter
+                , guidelines = nextGuidelines
               }
             , Cmd.batch
                 [ headNotes
@@ -468,6 +483,7 @@ view model =
         [ div
             [ class "play_contents" ]
             [ viewLanes model.lanes
+            , viewGuidelines model.currentMusicTime notesSpeed model.guidelines
             , viewNotes model.currentMusicTime notesSpeed model.allNotes
             , viewMusicInfo model.currentMusicData
             , viewDisplayCircle model.currentMusicData model.currentMusicTime model.combo model.score
@@ -497,8 +513,14 @@ viewLanes lanes =
 
 viewNotes : CurrentMusicTime -> NotesSpeed -> List Note -> Html msg
 viewNotes currentMusicTime notesSpeed allNotes =
-    div [ class "playCenterLine_judgeLine", id "judge_area" ]
+    div [ class "playCenterLine_judgeLine" ]
         (List.map (Note.view currentMusicTime notesSpeed) allNotes)
+
+
+viewGuidelines : CurrentMusicTime -> NotesSpeed -> List Guideline -> Html msg
+viewGuidelines currentMusicTime notesSpeed guidelines =
+    div [ class "playCenterLine_judgeLine" ]
+        (List.map (Guideline.view currentMusicTime notesSpeed) guidelines)
 
 
 viewMusicInfo : MusicData -> Html msg

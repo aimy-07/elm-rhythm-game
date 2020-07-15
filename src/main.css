@@ -60,6 +60,7 @@ div, span, button, a, img {
 @import url("./css/play/centerLine.css");
 @import url("./css/play/lane.css");
 @import url("./css/play/note.css");
+@import url("./css/play/guideline.css");
 @import url("./css/play/judgeEffect.css");
 @import url("./css/play/displayArea.css");
 @import url("./css/play/overview.css");

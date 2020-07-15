@@ -1,0 +1,8 @@
+.playGuideline_line {
+  position: absolute;
+  left: 0px;
+  width: 1000px;
+  height: 6px;
+  background-color: white;
+  opacity: 0.7;
+}
