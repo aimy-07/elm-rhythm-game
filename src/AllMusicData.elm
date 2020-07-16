@@ -15,6 +15,7 @@ port module AllMusicData exposing
     )
 
 import AllMusicData.MusicData as MusicData exposing (MusicData, MusicDataCsvDto, MusicDataJsonDto)
+import AllMusicData.MusicData.AllNotes as AllNotes
 import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
 import AllMusicData.MusicData.Mode exposing (Mode)
 import Constants exposing (allModeList, allMusicIdList)
@@ -59,7 +60,7 @@ isLoadedCsv allMusicData =
     toMusicDataDict allMusicData
         |> Dict.values
         |> List.sortBy .order
-        |> List.map (.allNotes >> List.isEmpty)
+        |> List.map (.allNotes >> AllNotes.isEmpty)
         |> List.member True
         |> not
 

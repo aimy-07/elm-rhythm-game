@@ -12,6 +12,7 @@ module Page.Play exposing
 
 import AllMusicData exposing (AllMusicData)
 import AllMusicData.MusicData as MusicData exposing (MusicData)
+import AllMusicData.MusicData.AllNotes as AllNotes exposing (AllNotes)
 import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
 import AllMusicData.MusicData.Level as Level
 import AllMusicData.MusicData.Mode as Mode
@@ -46,7 +47,7 @@ import Session.User as User
 import Time
 import Tracking
 import UserSetting exposing (UserSetting)
-import UserSetting.Setting as Setting exposing (Setting)
+import UserSetting.Setting as Setting
 import UserSetting.Setting.NotesSpeed exposing (NotesSpeed)
 import Utils exposing (cmdIf, subIf, viewIf)
 
@@ -62,7 +63,7 @@ type alias Model =
     , currentMusicData : MusicData
     , userSetting : UserSetting
     , playingS : PlayingS
-    , allNotes : List Note
+    , allNotes : AllNotes
     , currentMusicTime : CurrentMusicTime
     , score : Score
     , combo : Combo
@@ -120,7 +121,7 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , currentMusicData = MusicData.empty
               , userSetting = UserSetting.init
               , playingS = PlayingS.init
-              , allNotes = []
+              , allNotes = AllNotes.empty
               , currentMusicTime = 0
               , score = Score.init
               , combo = Combo.init
@@ -182,15 +183,13 @@ update msg model =
                     time * 1000
 
                 updatedNotes =
-                    model.allNotes
-                        |> List.map (Note.update updatedTime model.lanes)
+                    AllNotes.update updatedTime model.lanes model.allNotes
 
                 nextAllNotes =
-                    updatedNotes
-                        |> List.filter (not << Note.isDisabled)
+                    AllNotes.removeDisabledNotes updatedNotes
 
                 headNotes =
-                    Note.headNotes updatedNotes
+                    AllNotes.headNotes updatedNotes
 
                 nextScore =
                     Score.update headNotes model.score
@@ -243,48 +242,51 @@ update msg model =
                     else
                         let
                             maybeHeadNote =
-                                Note.maybeHeadNote key model.allNotes
+                                AllNotes.headNote key model.allNotes
+
+                            judge =
+                                maybeHeadNote
+                                    |> Maybe.map
+                                        (\note ->
+                                            Judge.judgeKeyDown model.currentMusicTime (Note.toJustTime note)
+                                        )
+                                    |> Maybe.withDefault Invalid
+
+                            nextAllNotes =
+                                model.allNotes
+                                    |> AllNotes.updateKeyDown key judge
+                                    |> AllNotes.removeDisabledNotes
+
+                            nextScore =
+                                Score.updateKeyDown judge model.score
+
+                            nextCombo =
+                                Combo.updateKeyDown judge model.combo
+
+                            nextJudgeCounter =
+                                JudgeCounter.updateKeyDown judge model.judgeCounter
+
+                            isLongNote =
+                                maybeHeadNote
+                                    |> Maybe.map (\note -> Note.isLongNote note)
+                                    |> Maybe.withDefault False
                         in
-                        case maybeHeadNote of
-                            Just headNote ->
-                                let
-                                    judge =
-                                        Judge.judgeKeyDown model.currentMusicTime (Note.toJustTime headNote)
-
-                                    nextAllNotes =
-                                        model.allNotes
-                                            |> Note.updateHeadNote key (Note.updateKeyDown judge)
-                                            |> List.filter (not << Note.isDisabled)
-
-                                    nextScore =
-                                        Score.updateKeyDown judge model.score
-
-                                    nextCombo =
-                                        Combo.updateKeyDown judge model.combo
-
-                                    nextJudgeCounter =
-                                        JudgeCounter.updateKeyDown judge model.judgeCounter
-                                in
-                                ( { model
-                                    | allNotes = nextAllNotes
-                                    , lanes = nextLanes
-                                    , score = nextScore
-                                    , combo = nextCombo
-                                    , judgeCounter = nextJudgeCounter
-                                  }
-                                , Cmd.batch
-                                    [ Judge.judgeEffectCmd
-                                        { key = key
-                                        , judge = judge
-                                        , isLongNote = Note.isLongNote headNote
-                                        }
-                                    , Combo.comboEffectCmd model.combo nextCombo
-                                    ]
-                                )
-
-                            Nothing ->
-                                -- このレーンのノーツはもうない
-                                ( { model | lanes = nextLanes }, Cmd.none )
+                        ( { model
+                            | allNotes = nextAllNotes
+                            , lanes = nextLanes
+                            , score = nextScore
+                            , combo = nextCombo
+                            , judgeCounter = nextJudgeCounter
+                          }
+                        , Cmd.batch
+                            [ Judge.judgeEffectCmd
+                                { key = key
+                                , judge = judge
+                                , isLongNote = isLongNote
+                                }
+                            , Combo.comboEffectCmd model.combo nextCombo
+                            ]
+                        )
 
                 Key.Space ->
                     let
@@ -314,22 +316,12 @@ update msg model =
 
                     else
                         let
-                            maybeHeadNote =
-                                Note.maybeHeadNote key model.allNotes
+                            nextAllNotes =
+                                model.allNotes
+                                    |> AllNotes.updateKeyUp key
+                                    |> AllNotes.removeDisabledNotes
                         in
-                        case maybeHeadNote of
-                            Just _ ->
-                                let
-                                    nextAllNotes =
-                                        model.allNotes
-                                            |> Note.updateHeadNote key Note.updateKeyUp
-                                            |> List.filter (not << Note.isDisabled)
-                                in
-                                ( { model | allNotes = nextAllNotes, lanes = nextLanes }, Cmd.none )
-
-                            Nothing ->
-                                -- このレーンのノーツはもうない
-                                ( { model | lanes = nextLanes }, Cmd.none )
+                        ( { model | allNotes = nextAllNotes, lanes = nextLanes }, Cmd.none )
 
                 Key.Space ->
                     ( model, Cmd.none )
@@ -516,10 +508,13 @@ viewLanes lanes =
         ]
 
 
-viewNotes : CurrentMusicTime -> NotesSpeed -> List Note -> Html msg
+viewNotes : CurrentMusicTime -> NotesSpeed -> AllNotes -> Html msg
 viewNotes currentMusicTime notesSpeed allNotes =
     div [ class "playCenterLine_judgeLine" ]
-        (List.map (Note.view currentMusicTime notesSpeed) allNotes)
+        (allNotes
+            |> AllNotes.toList
+            |> List.map (Note.view currentMusicTime notesSpeed)
+        )
 
 
 viewGuidelines : CurrentMusicTime -> NotesSpeed -> List Guideline -> Html msg

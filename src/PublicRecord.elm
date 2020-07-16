@@ -102,26 +102,26 @@ savePublicRecord :
     }
     -> Cmd msg
 savePublicRecord { uid, score, createdAt, csvFileName, bestRecords } =
-    if score > 0 then
-        let
-            newRecord =
-                { uid = uid
-                , score = score
-                , createdAt = createdAt
-                }
+    let
+        newRecord =
+            { uid = uid
+            , score = score
+            , createdAt = createdAt
+            }
 
-            nextBestRecords =
+        nextBestRecords =
+            if score > 0 then
                 (newRecord :: bestRecords)
                     |> sortBestRecords
                     |> List.take 3
-        in
-        savePublicRecord_
-            { csvFileName = csvFileName
-            , bestRecords = Just nextBestRecords
-            }
 
-    else
-        Cmd.none
+            else
+                bestRecords
+    in
+    savePublicRecord_
+        { csvFileName = csvFileName
+        , bestRecords = Just nextBestRecords
+        }
 
 
 port getPublicRecord : String -> Cmd msg

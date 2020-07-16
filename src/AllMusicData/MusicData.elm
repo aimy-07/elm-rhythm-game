@@ -8,12 +8,11 @@ module AllMusicData.MusicData exposing
     , updateFromCsv
     )
 
+import AllMusicData.MusicData.AllNotes as AllNotes exposing (AllNotes)
 import AllMusicData.MusicData.CsvFileName as CsvFileName exposing (CsvFileName)
 import AllMusicData.MusicData.Level exposing (Level)
 import AllMusicData.MusicData.Mode as Mode exposing (Mode)
 import AllMusicData.MusicData.MusicId exposing (MusicId)
-import Constants exposing (allKeyList)
-import Page.Play.Note as Note exposing (Note)
 
 
 type alias MusicData =
@@ -27,7 +26,7 @@ type alias MusicData =
     , bpm : Int
     , beatsCountPerMeasure : Int
     , offset : Float
-    , allNotes : List Note
+    , allNotes : AllNotes
     , maxCombo : Int
     , maxScore : Int
     , order : Int
@@ -85,7 +84,7 @@ newFromJson jsonDto mode =
     , bpm = jsonDto.bpm
     , beatsCountPerMeasure = jsonDto.beatsCountPerMeasure
     , offset = jsonDto.offset
-    , allNotes = []
+    , allNotes = AllNotes.empty
     , maxCombo = 0
     , maxScore = 0
     , order = jsonDto.order
@@ -98,95 +97,28 @@ updateFromCsv csvData maybeMusicData =
         Just musicData ->
             let
                 allNotes =
-                    csvData
-                        |> List.map
-                            (createNotesFromCsvRow
-                                { beatsCountPerMeasure = Basics.toFloat musicData.beatsCountPerMeasure
-                                , timePerBeat = 60 * 1000 / Basics.toFloat musicData.bpm
-                                , offset = musicData.offset
-                                }
-                            )
-                        |> List.concat
+                    AllNotes.new
+                        { bpm = musicData.bpm
+                        , beatsCountPerMeasure = musicData.beatsCountPerMeasure
+                        , offset = musicData.offset
+                        }
+                        csvData
 
                 maxCombo =
-                    Note.computeMaxCombo allNotes
+                    AllNotes.computeMaxCombo allNotes
 
                 maxScore =
-                    Note.computeMaxScore allNotes
+                    AllNotes.computeMaxScore allNotes
             in
-            Just { musicData | allNotes = allNotes, maxScore = maxScore, maxCombo = maxCombo }
+            Just <|
+                { musicData
+                    | allNotes = allNotes
+                    , maxCombo = maxCombo
+                    , maxScore = maxScore
+                }
 
         Nothing ->
             maybeMusicData
-
-
-createNotesFromCsvRow :
-    { beatsCountPerMeasure : Float
-    , timePerBeat : Float
-    , offset : Float
-    }
-    -> List (Maybe Float)
-    -> List Note
-createNotesFromCsvRow { beatsCountPerMeasure, timePerBeat, offset } csvRow =
-    let
-        maybeMeasure =
-            csvRow
-                |> List.head
-                |> Maybe.withDefault Nothing
-
-        maybeBeat =
-            csvRow
-                |> List.drop 1
-                |> List.head
-                |> Maybe.withDefault Nothing
-
-        notesData =
-            csvRow
-                |> List.drop 2
-    in
-    let
-        maybeJustTime =
-            case ( maybeMeasure, maybeBeat ) of
-                ( Just measure, Just beat ) ->
-                    Just <| ((measure * beatsCountPerMeasure + beat) * timePerBeat) + offset * 1000
-
-                _ ->
-                    Nothing
-    in
-    notesData
-        |> List.indexedMap
-            (\index maybeValue ->
-                let
-                    maybeKey =
-                        allKeyList
-                            |> List.drop index
-                            |> List.head
-
-                    maybeLongTime =
-                        case maybeValue of
-                            Just value ->
-                                if value == Basics.toFloat 0 then
-                                    maybeValue
-
-                                else
-                                    Just (value * timePerBeat)
-
-                            Nothing ->
-                                maybeValue
-                in
-                case ( maybeKey, maybeJustTime, maybeLongTime ) of
-                    ( Just key, Just justTime, Just longTime ) ->
-                        Just <|
-                            Note.new
-                                { key = key
-                                , justTime = justTime
-                                , longTime = longTime
-                                }
-
-                    _ ->
-                        Nothing
-            )
-        |> List.filterMap identity
 
 
 empty : MusicData
@@ -201,7 +133,7 @@ empty =
     , bpm = 0
     , beatsCountPerMeasure = 0
     , offset = 0
-    , allNotes = []
+    , allNotes = AllNotes.empty
     , maxCombo = 0
     , maxScore = 0
     , order = -1

@@ -1,24 +1,20 @@
 module Page.Play.Note exposing
     ( Note
     , NoteDto
-    , computeMaxCombo
-    , computeMaxScore
     , headNoteJudge
     , headNoteJudgeEffect
-    , headNotes
     , isDisabled
     , isLongNote
-    , maybeHeadNote
     , new
     , toJustTime
+    , toLongSubNotes
     , update
-    , updateHeadNote
     , updateKeyDown
     , updateKeyUp
     , view
     )
 
-import Constants exposing (allKeyList, longTimeDuration, longTimeOffset, perfectScore)
+import Constants exposing (longTimeDuration, longTimeOffset)
 import Html exposing (Html, div)
 import Html.Attributes exposing (class, style)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
@@ -100,21 +96,6 @@ new { key, justTime, longTime } =
             }
 
 
-computeMaxScore : List Note -> Int
-computeMaxScore notes =
-    notes
-        |> List.map (\note -> 1 + List.length (toLongSubNotes note))
-        |> List.sum
-        |> (*) perfectScore
-
-
-computeMaxCombo : List Note -> Int
-computeMaxCombo notes =
-    notes
-        |> List.map (\note -> 1 + List.length (toLongSubNotes note))
-        |> List.sum
-
-
 toKey : Note -> Key
 toKey note =
     case note of
@@ -188,50 +169,6 @@ isLongJudging note =
 isDisabled : Note -> Bool
 isDisabled note =
     toNoteStatus note == Judged || toNoteStatus note == OverMissJudged
-
-
-isSameNote : Note -> Note -> Bool
-isSameNote a b =
-    (not << isDisabled) a && (not << isDisabled) b && (toKey a == toKey b) && (toJustTime a == toJustTime b)
-
-
-{-| 同じレーンのノーツの中で、現在先頭にあるノーツを取得する
--}
-maybeHeadNote : Key -> List Note -> Maybe Note
-maybeHeadNote key allNotes =
-    allNotes
-        |> List.filter (toKey >> (==) key)
-        |> List.sortBy toJustTime
-        |> List.head
-
-
-{-| 同じレーンのノーツの中で、現在先頭にあるノーツのみを更新する
--}
-updateHeadNote : Key -> (Note -> Note) -> List Note -> List Note
-updateHeadNote key updateNote allNotes =
-    maybeHeadNote key allNotes
-        |> Maybe.map
-            (\headNote ->
-                allNotes
-                    |> List.map
-                        (\note ->
-                            if isSameNote note headNote then
-                                updateNote note
-
-                            else
-                                note
-                        )
-            )
-        |> Maybe.withDefault allNotes
-
-
-{-| 全レーンにおいて、各レーンの先頭のノーツを取得する
--}
-headNotes : List Note -> List Note
-headNotes allNotes =
-    allKeyList
-        |> List.map (\key -> maybeHeadNote key allNotes)
-        |> List.filterMap identity
 
 
 {-| 毎フレームUpdateごとに、各レーンの先頭のノーツのJudgeを取得する
