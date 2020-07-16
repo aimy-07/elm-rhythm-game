@@ -12,7 +12,6 @@ module Page.Play exposing
 
 import AllMusicData exposing (AllMusicData)
 import AllMusicData.MusicData as MusicData exposing (MusicData)
-import AllMusicData.MusicData.AllNotes as AllNotes exposing (AllNotes)
 import AllMusicData.MusicData.Csv exposing (CsvDto)
 import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
 import AllMusicData.MusicData.Level as Level
@@ -28,6 +27,7 @@ import Html.Events exposing (onMouseUp)
 import Keyboard exposing (Key(..))
 import OwnRecord exposing (OwnRecordDto)
 import Page
+import Page.Play.AllNotes as AllNotes exposing (AllNotes)
 import Page.Play.Combo as Combo exposing (Combo)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Guideline as Guideline exposing (Guideline)

@@ -1,4 +1,4 @@
-module AllMusicData.MusicData.AllNotes exposing
+module Page.Play.AllNotes exposing
     ( AllNotes
     , empty
     , headNote
