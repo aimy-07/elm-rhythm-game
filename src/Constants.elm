@@ -35,7 +35,7 @@ allMusicIdList =
 
 allModeList : List Mode
 allModeList =
-    [ Mode.Normal, Mode.Hard, Mode.Master ]
+    [ Mode.Easy, Mode.Normal, Mode.Hard ]
 
 
 allKeyList : List Key
@@ -90,7 +90,7 @@ currentMusicIdDefault =
 
 currentModeDefault : Mode
 currentModeDefault =
-    Mode.Normal
+    Mode.Easy
 
 
 notesSpeedDefault : NotesSpeed

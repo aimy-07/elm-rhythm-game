@@ -139,7 +139,7 @@ update msg model =
             let
                 bgmVolume =
                     UserSetting.toSetting model.userSetting
-                        |> Maybe.map Setting.toSeVolume
+                        |> Maybe.map Setting.toBgmVolume
 
                 seVolume =
                     UserSetting.toSetting model.userSetting

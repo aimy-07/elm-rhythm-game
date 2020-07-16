@@ -4,39 +4,39 @@ import String.Extra as ExString
 
 
 type Mode
-    = Normal
+    = Easy
+    | Normal
     | Hard
-    | Master
 
 
 new : String -> Mode
 new rawMode =
     case rawMode of
+        "easy" ->
+            Easy
+
         "normal" ->
             Normal
 
         "hard" ->
             Hard
 
-        "master" ->
-            Master
-
         _ ->
-            -- ここに入ることは仕様上ないので考慮しない。型合わせのためNormalにしておく。
-            Normal
+            -- ここに入ることは仕様上ないので考慮しない。型合わせのためEasyにしておく。
+            Easy
 
 
 unwrap : Mode -> String
 unwrap mode =
     case mode of
+        Easy ->
+            "easy"
+
         Normal ->
             "normal"
 
         Hard ->
             "hard"
-
-        Master ->
-            "master"
 
 
 toString : Mode -> String

@@ -42,9 +42,9 @@ type alias MusicDataJsonDto =
     , beatsCountPerMeasure : Int
     , offset : Float
     , level :
-        { normal : Int
+        { easy : Int
+        , normal : Int
         , hard : Int
-        , master : Int
         }
     , order : Int
     }
@@ -65,14 +65,14 @@ newFromJson jsonDto mode =
     let
         level =
             case mode of
+                Mode.Easy ->
+                    jsonDto.level.easy
+
                 Mode.Normal ->
                     jsonDto.level.normal
 
                 Mode.Hard ->
                     jsonDto.level.hard
-
-                Mode.Master ->
-                    jsonDto.level.master
     in
     { csvFileName = CsvFileName.create jsonDto.musicId mode
     , musicId = jsonDto.musicId
@@ -127,7 +127,7 @@ empty =
     , musicId = ""
     , musicName = ""
     , composer = ""
-    , mode = Mode.Normal
+    , mode = Mode.Easy
     , level = 0
     , fullTime = 0
     , bpm = 0
