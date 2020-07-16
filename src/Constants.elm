@@ -50,17 +50,17 @@ longTimeDuration =
 
 longTimeOffset : Float
 longTimeOffset =
-    30
+    100
 
 
 perfectRange : Float
 perfectRange =
-    60
+    80
 
 
 niceRange : Float
 niceRange =
-    100
+    120
 
 
 goodRange : Float
