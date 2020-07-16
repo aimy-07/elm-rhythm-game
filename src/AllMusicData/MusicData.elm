@@ -1,14 +1,17 @@
-module AllMusicData.MusicData exposing
+port module AllMusicData.MusicData exposing
     ( MusicData
-    , MusicDataCsvDto
-    , MusicDataJsonDto
+    , MusicDataDto
     , empty
+    , loadMusicDataByCsv
+    , loadMusicDataByJson
+    , loadedMusicDataByCsv
+    , loadedMusicDataByJson
     , newFromJson
     , toStringTime
     , updateFromCsv
     )
 
-import AllMusicData.MusicData.AllNotes as AllNotes exposing (AllNotes)
+import AllMusicData.MusicData.Csv as Csv exposing (CsvData, CsvDto)
 import AllMusicData.MusicData.CsvFileName as CsvFileName exposing (CsvFileName)
 import AllMusicData.MusicData.Level exposing (Level)
 import AllMusicData.MusicData.Mode as Mode exposing (Mode)
@@ -26,14 +29,13 @@ type alias MusicData =
     , bpm : Int
     , beatsCountPerMeasure : Int
     , offset : Float
-    , allNotes : AllNotes
     , maxCombo : Int
     , maxScore : Int
     , order : Int
     }
 
 
-type alias MusicDataJsonDto =
+type alias MusicDataDto =
     { musicId : String
     , musicName : String
     , composer : String
@@ -50,17 +52,7 @@ type alias MusicDataJsonDto =
     }
 
 
-type alias MusicDataCsvDto =
-    { csvFileName : String
-    , csvData : CsvData
-    }
-
-
-type alias CsvData =
-    List (List (Maybe Float))
-
-
-newFromJson : MusicDataJsonDto -> Mode -> MusicData
+newFromJson : MusicDataDto -> Mode -> MusicData
 newFromJson jsonDto mode =
     let
         level =
@@ -84,7 +76,6 @@ newFromJson jsonDto mode =
     , bpm = jsonDto.bpm
     , beatsCountPerMeasure = jsonDto.beatsCountPerMeasure
     , offset = jsonDto.offset
-    , allNotes = AllNotes.empty
     , maxCombo = 0
     , maxScore = 0
     , order = jsonDto.order
@@ -97,7 +88,7 @@ updateFromCsv csvData maybeMusicData =
         Just musicData ->
             let
                 allNotes =
-                    AllNotes.new
+                    Csv.createAllNotes
                         { bpm = musicData.bpm
                         , beatsCountPerMeasure = musicData.beatsCountPerMeasure
                         , offset = musicData.offset
@@ -105,17 +96,12 @@ updateFromCsv csvData maybeMusicData =
                         csvData
 
                 maxCombo =
-                    AllNotes.computeMaxCombo allNotes
+                    Csv.computeMaxCombo allNotes
 
                 maxScore =
-                    AllNotes.computeMaxScore allNotes
+                    Csv.computeMaxScore allNotes
             in
-            Just <|
-                { musicData
-                    | allNotes = allNotes
-                    , maxCombo = maxCombo
-                    , maxScore = maxScore
-                }
+            Just { musicData | maxCombo = maxCombo, maxScore = maxScore }
 
         Nothing ->
             maybeMusicData
@@ -133,7 +119,6 @@ empty =
     , bpm = 0
     , beatsCountPerMeasure = 0
     , offset = 0
-    , allNotes = AllNotes.empty
     , maxCombo = 0
     , maxScore = 0
     , order = -1
@@ -150,3 +135,15 @@ toStringTime time =
             Basics.round time // 60
     in
     String.fromInt min ++ "分" ++ String.fromInt sec ++ "秒"
+
+
+port loadMusicDataByJson : String -> Cmd msg
+
+
+port loadedMusicDataByJson : (MusicDataDto -> msg) -> Sub msg
+
+
+port loadMusicDataByCsv : String -> Cmd msg
+
+
+port loadedMusicDataByCsv : (CsvDto -> msg) -> Sub msg

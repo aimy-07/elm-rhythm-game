@@ -261,11 +261,11 @@
 
 .playResultItem_rankText {
   position: absolute;
-  top: 57px;
+  top: 60px;
   left: 51px;
   width: 50px;
   color: black;
-  font-size: 28px;
+  font-size: 24px;
   text-align: center;
   font-family: "fortunaDot";
 }

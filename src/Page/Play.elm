@@ -13,6 +13,7 @@ module Page.Play exposing
 import AllMusicData exposing (AllMusicData)
 import AllMusicData.MusicData as MusicData exposing (MusicData)
 import AllMusicData.MusicData.AllNotes as AllNotes exposing (AllNotes)
+import AllMusicData.MusicData.Csv exposing (CsvDto)
 import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
 import AllMusicData.MusicData.Level as Level
 import AllMusicData.MusicData.Mode as Mode
@@ -34,7 +35,7 @@ import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.JudgeCounter as JudgeCounter exposing (JudgeCounter)
 import Page.Play.Key as Key
 import Page.Play.Lane as Lane exposing (Lane)
-import Page.Play.Note as Note exposing (Note)
+import Page.Play.Note as Note
 import Page.Play.PlayingS as PlayingS exposing (PlayingS)
 import Page.Play.Result as Result exposing (Result)
 import Page.Play.ResultSavingS as ResultSavingS exposing (ResultSavingS)
@@ -92,7 +93,7 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , currentMusicData = currentMusicData
               , userSetting = userSetting
               , playingS = PlayingS.init
-              , allNotes = currentMusicData.allNotes
+              , allNotes = AllNotes.empty
               , currentMusicTime = 0
               , score = Score.init
               , combo = Combo.init
@@ -108,7 +109,8 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , resultSavingS = ResultSavingS.init
               }
             , Cmd.batch
-                [ AudioManager.stopBGM ()
+                [ MusicData.loadMusicDataByCsv currentMusicData.csvFileName
+                , AudioManager.stopBGM ()
                 , Tracking.trackingPlayStart currentMusicData.csvFileName
                 ]
             )
@@ -142,7 +144,8 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
 
 
 type Msg
-    = Tick Time.Posix
+    = GotAllNotes CsvDto
+    | Tick Time.Posix
     | GotCurrentMusicTime CurrentMusicTime
     | KeyDown Keyboard.RawKey
     | KeyUp Keyboard.RawKey
@@ -174,6 +177,18 @@ update msg model =
                 |> Maybe.map Setting.toSeVolume
     in
     case msg of
+        GotAllNotes csvDto ->
+            let
+                allNotes =
+                    AllNotes.new
+                        { bpm = model.currentMusicData.bpm
+                        , beatsCountPerMeasure = model.currentMusicData.beatsCountPerMeasure
+                        , offset = model.currentMusicData.offset
+                        }
+                        csvDto.csvData
+            in
+            ( { model | allNotes = allNotes }, Cmd.none )
+
         Tick _ ->
             ( model, AudioManager.getCurrentBGMTime bgm )
 
@@ -454,7 +469,8 @@ subscriptions model =
                 ]
     in
     Sub.batch
-        [ AudioManager.onEndBGM FinishedMusic
+        [ MusicData.loadedMusicDataByCsv GotAllNotes
+        , AudioManager.onEndBGM FinishedMusic
         , updateCurrentMusicTimeSub
             |> subIf (PlayingS.isPlaying model.playingS)
         , keyboardSub
@@ -475,27 +491,34 @@ view model =
             UserSetting.toSetting model.userSetting
                 |> Maybe.map Setting.toNotesSpeed
                 |> Maybe.withDefault notesSpeedDefault
+
+        isLoadedNotes =
+            not <| AllNotes.isEmpty model.allNotes && PlayingS.isReady model.playingS
     in
-    div [ class "play_back" ]
-        [ div
-            [ class "play_contents" ]
-            [ viewLanes model.lanes
-            , viewGuidelines model.currentMusicTime notesSpeed model.guidelines
-            , viewNotes model.currentMusicTime notesSpeed model.allNotes
-            , viewMusicInfo model.currentMusicData
-            , viewDisplayCircle model.currentMusicData model.currentMusicTime model.combo model.score
+    if isLoadedNotes then
+        div [ class "play_back" ]
+            [ div
+                [ class "play_contents" ]
+                [ viewLanes model.lanes
+                , viewGuidelines model.currentMusicTime notesSpeed model.guidelines
+                , viewNotes model.currentMusicTime notesSpeed model.allNotes
+                , viewMusicInfo model.currentMusicData
+                , viewDisplayCircle model.currentMusicData model.currentMusicTime model.combo model.score
+                ]
+            , div [ class "playJudgeEffect_missEffect", id "missEffect" ] []
+            , viewReady
+                |> viewIf (PlayingS.isReady model.playingS)
+            , viewPause
+                |> viewIf (PlayingS.isPause model.playingS)
+            , viewCountdown
+                |> viewIf (PlayingS.isCountdown model.playingS)
+            , viewResult model.currentMusicData model.resultSavingS model.judgeCounter
+                |> viewIf (PlayingS.isFinish model.playingS)
+            , div [] [ Page.viewLoaded ]
             ]
-        , div [ class "playJudgeEffect_missEffect", id "missEffect" ] []
-        , viewReady
-            |> viewIf (PlayingS.isReady model.playingS)
-        , viewPause
-            |> viewIf (PlayingS.isPause model.playingS)
-        , viewCountdown
-            |> viewIf (PlayingS.isCountdown model.playingS)
-        , viewResult model.currentMusicData model.resultSavingS model.judgeCounter
-            |> viewIf (PlayingS.isFinish model.playingS)
-        , div [] [ Page.viewLoaded ]
-        ]
+
+    else
+        div [ class "home_back" ] [ Page.viewLoading ]
 
 
 viewLanes : List Lane -> Html msg

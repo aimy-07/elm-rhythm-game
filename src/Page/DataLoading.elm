@@ -11,7 +11,8 @@ module Page.DataLoading exposing
     )
 
 import AllMusicData exposing (AllMusicData)
-import AllMusicData.MusicData exposing (MusicDataCsvDto, MusicDataJsonDto)
+import AllMusicData.MusicData as MusicData exposing (MusicDataDto)
+import AllMusicData.MusicData.Csv exposing (CsvDto)
 import AudioManager
 import AudioManager.AudioLoadingS as AudioLoadingS exposing (AudioLoadingS)
 import AudioManager.BGM as BGM
@@ -59,8 +60,8 @@ type Msg
     | LoadedAudioInitial ()
     | LoadedBGM String
     | LoadedSE String
-    | LoadedMusicDataByJson MusicDataJsonDto
-    | LoadedMusicDataByCsv MusicDataCsvDto
+    | LoadedMusicDataByJson MusicDataDto
+    | LoadedMusicDataByCsv CsvDto
     | ClickedAudioAttention
 
 
@@ -155,8 +156,8 @@ subscriptions _ =
         , AudioLoadingS.loadedAudioInitial LoadedAudioInitial
         , AudioLoadingS.loadedBGM LoadedBGM
         , AudioLoadingS.loadedSE LoadedSE
-        , AllMusicData.loadedMusicDataByJson LoadedMusicDataByJson
-        , AllMusicData.loadedMusicDataByCsv LoadedMusicDataByCsv
+        , MusicData.loadedMusicDataByJson LoadedMusicDataByJson
+        , MusicData.loadedMusicDataByCsv LoadedMusicDataByCsv
         ]
 
 

@@ -1,4 +1,4 @@
-port module AllMusicData exposing
+module AllMusicData exposing
     ( AllMusicData
     , filterByMode
     , findByCsvFileName
@@ -8,14 +8,12 @@ port module AllMusicData exposing
     , isLoadedJson
     , loadMusicDataByCsvCmds
     , loadMusicDataByJsonCmds
-    , loadedMusicDataByCsv
-    , loadedMusicDataByJson
     , updateFromCsv
     , updateFromJson
     )
 
-import AllMusicData.MusicData as MusicData exposing (MusicData, MusicDataCsvDto, MusicDataJsonDto)
-import AllMusicData.MusicData.AllNotes as AllNotes
+import AllMusicData.MusicData as MusicData exposing (MusicData, MusicDataDto)
+import AllMusicData.MusicData.Csv exposing (CsvDto)
 import AllMusicData.MusicData.CsvFileName exposing (CsvFileName)
 import AllMusicData.MusicData.Mode exposing (Mode)
 import Constants exposing (allModeList, allMusicIdList)
@@ -60,12 +58,12 @@ isLoadedCsv allMusicData =
     toMusicDataDict allMusicData
         |> Dict.values
         |> List.sortBy .order
-        |> List.map (.allNotes >> AllNotes.isEmpty)
+        |> List.map (\{ maxCombo, maxScore } -> maxCombo == 0 || maxScore == 0)
         |> List.member True
         |> not
 
 
-updateFromJson : MusicDataJsonDto -> AllMusicData -> AllMusicData
+updateFromJson : MusicDataDto -> AllMusicData -> AllMusicData
 updateFromJson jsonDto allMusicData =
     case allMusicData of
         LoadingJson musicDataDict ->
@@ -93,7 +91,7 @@ updateFromJson jsonDto allMusicData =
             allMusicData
 
 
-updateFromCsv : MusicDataCsvDto -> AllMusicData -> AllMusicData
+updateFromCsv : CsvDto -> AllMusicData -> AllMusicData
 updateFromCsv csvDto allMusicData =
     case allMusicData of
         LoadingJson _ ->
@@ -157,7 +155,7 @@ toMusicDataDict allMusicData =
 loadMusicDataByJsonCmds : Cmd msg
 loadMusicDataByJsonCmds =
     allMusicIdList
-        |> List.map loadMusicDataByJson
+        |> List.map MusicData.loadMusicDataByJson
         |> Cmd.batch
 
 
@@ -166,17 +164,5 @@ loadMusicDataByCsvCmds allMusicData =
     toMusicDataDict allMusicData
         |> Dict.values
         |> List.sortBy .order
-        |> List.map (.csvFileName >> loadMusicDataByCsv)
+        |> List.map (.csvFileName >> MusicData.loadMusicDataByCsv)
         |> Cmd.batch
-
-
-port loadMusicDataByJson : String -> Cmd msg
-
-
-port loadedMusicDataByJson : (MusicDataJsonDto -> msg) -> Sub msg
-
-
-port loadMusicDataByCsv : String -> Cmd msg
-
-
-port loadedMusicDataByCsv : (MusicDataCsvDto -> msg) -> Sub msg

@@ -1,7 +1,5 @@
 module AllMusicData.MusicData.AllNotes exposing
     ( AllNotes
-    , computeMaxCombo
-    , computeMaxScore
     , empty
     , headNote
     , headNotes
@@ -14,7 +12,7 @@ module AllMusicData.MusicData.AllNotes exposing
     , updateKeyUp
     )
 
-import Constants exposing (perfectScore)
+import AllMusicData.MusicData.Csv as MusicDataCsv exposing (CsvData)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
 import Page.Play.Judge exposing (Judge(..))
 import Page.Play.Key as Key exposing (Key)
@@ -33,10 +31,6 @@ type AllNotes
         }
 
 
-type alias CsvData =
-    List (List (Maybe Float))
-
-
 new :
     { bpm : Int
     , beatsCountPerMeasure : Int
@@ -46,81 +40,13 @@ new :
     -> AllNotes
 new musicData csvData =
     AllNotes
-        { laneS = createNotesPerLane musicData Key.S csvData
-        , laneD = createNotesPerLane musicData Key.D csvData
-        , laneF = createNotesPerLane musicData Key.F csvData
-        , laneJ = createNotesPerLane musicData Key.J csvData
-        , laneK = createNotesPerLane musicData Key.K csvData
-        , laneL = createNotesPerLane musicData Key.L csvData
+        { laneS = MusicDataCsv.createNotesPerLane musicData Key.S csvData
+        , laneD = MusicDataCsv.createNotesPerLane musicData Key.D csvData
+        , laneF = MusicDataCsv.createNotesPerLane musicData Key.F csvData
+        , laneJ = MusicDataCsv.createNotesPerLane musicData Key.J csvData
+        , laneK = MusicDataCsv.createNotesPerLane musicData Key.K csvData
+        , laneL = MusicDataCsv.createNotesPerLane musicData Key.L csvData
         }
-
-
-createNotesPerLane :
-    { bpm : Int
-    , beatsCountPerMeasure : Int
-    , offset : Float
-    }
-    -> Key
-    -> CsvData
-    -> List Note
-createNotesPerLane { bpm, beatsCountPerMeasure, offset } key csvData =
-    let
-        timePerBeat =
-            60 * 1000 / Basics.toFloat bpm
-    in
-    csvData
-        |> List.filterMap
-            (\csvRow ->
-                let
-                    csvCellData index =
-                        (List.drop index >> List.head >> Maybe.withDefault Nothing) csvRow
-
-                    maybeMeasure =
-                        csvCellData 0
-
-                    maybeBeat =
-                        csvCellData 1
-
-                    maybeNoteData =
-                        case key of
-                            Key.S ->
-                                csvCellData 2
-
-                            Key.D ->
-                                csvCellData 3
-
-                            Key.F ->
-                                csvCellData 4
-
-                            Key.J ->
-                                csvCellData 5
-
-                            Key.K ->
-                                csvCellData 6
-
-                            Key.L ->
-                                csvCellData 7
-                in
-                case ( maybeMeasure, maybeBeat, maybeNoteData ) of
-                    ( Just measure, Just beat, Just noteData ) ->
-                        let
-                            justTime =
-                                ((measure * Basics.toFloat beatsCountPerMeasure + beat) * timePerBeat) + offset * 1000
-
-                            longTime =
-                                noteData * timePerBeat
-                        in
-                        Just <|
-                            Note.new
-                                { key = key
-                                , justTime = justTime
-                                , longTime = longTime
-                                }
-
-                    _ ->
-                        Nothing
-            )
-        |> List.sortBy Note.toJustTime
 
 
 empty : AllNotes
@@ -299,42 +225,3 @@ removeDisabledNotes allNotes =
                     [] ->
                         notesPerLane
             )
-
-
-{-| 総スコアの計算
--}
-computeMaxScore : AllNotes -> Int
-computeMaxScore (AllNotes allNotes) =
-    let
-        computeMaxScorePerLane notesPerLine =
-            notesPerLine
-                |> List.map (\note -> 1 + List.length (Note.toLongSubNotes note))
-                |> List.sum
-                |> (*) perfectScore
-    in
-    [ computeMaxScorePerLane allNotes.laneS
-    , computeMaxScorePerLane allNotes.laneD
-    , computeMaxScorePerLane allNotes.laneF
-    , computeMaxScorePerLane allNotes.laneJ
-    , computeMaxScorePerLane allNotes.laneK
-    , computeMaxScorePerLane allNotes.laneL
-    ]
-        |> List.sum
-
-
-computeMaxCombo : AllNotes -> Int
-computeMaxCombo (AllNotes allNotes) =
-    let
-        computeMaxComboPerLane notesPerLine =
-            notesPerLine
-                |> List.map (\note -> 1 + List.length (Note.toLongSubNotes note))
-                |> List.sum
-    in
-    [ computeMaxComboPerLane allNotes.laneS
-    , computeMaxComboPerLane allNotes.laneD
-    , computeMaxComboPerLane allNotes.laneF
-    , computeMaxComboPerLane allNotes.laneJ
-    , computeMaxComboPerLane allNotes.laneK
-    , computeMaxComboPerLane allNotes.laneL
-    ]
-        |> List.sum
