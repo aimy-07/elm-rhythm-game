@@ -348,7 +348,7 @@ view currentMusicTime notesSpeed note =
                 ]
                 [ div
                     [ class "playNote_note"
-                    , style "bottom" (String.fromFloat (bottom - 20) ++ "px")
+                    , style "transform" ("translateY(" ++ String.fromFloat -(bottom + 20) ++ "px) rotate(45deg)")
                     ]
                     []
                 ]
@@ -364,14 +364,14 @@ view currentMusicTime notesSpeed note =
                 ]
                 [ div
                     [ class "playNote_note long"
-                    , style "bottom" (String.fromFloat (bottom - 20) ++ "px")
+                    , style "transform" ("translateY(" ++ String.fromFloat -(bottom + 20) ++ "px) rotate(45deg)")
                     ]
                     []
                     |> viewIf (not <| isLongJudging note)
                 , div
                     [ class "playNote_longLine"
                     , classIf isLongDisabled "is-disabled"
-                    , style "bottom" (String.fromFloat bottom ++ "px")
+                    , style "transform" ("translateY(" ++ String.fromFloat -(bottom + height) ++ "px)")
                     , style "height" (String.fromFloat height ++ "px")
                     ]
                     []

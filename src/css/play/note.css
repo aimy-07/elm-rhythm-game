@@ -8,7 +8,6 @@
     0 0 25px 12px white,
     0 0 40px 20px var(--color-elm-green),
     0 0 50px 35px var(--color-elm-lightblue);
-  transform:rotate(45deg);
   z-index: 1;
 }
 

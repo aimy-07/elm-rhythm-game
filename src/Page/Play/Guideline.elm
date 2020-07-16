@@ -67,7 +67,7 @@ view currentMusicTime notesSpeed (Guideline guideline) =
     in
     div
         [ class "playGuideline_line"
-        , style "bottom" (String.fromFloat (bottom - 4) ++ "px")
+        , style "transform" ("translateY(" ++ String.fromFloat -(bottom + 4) ++ "px)")
         ]
         []
         |> viewIf (not guideline.isPassed)
