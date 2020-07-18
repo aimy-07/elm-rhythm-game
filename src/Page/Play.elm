@@ -30,7 +30,6 @@ import Page
 import Page.Play.AllNotes as AllNotes exposing (AllNotes)
 import Page.Play.Combo as Combo exposing (Combo)
 import Page.Play.CurrentMusicTime exposing (CurrentMusicTime)
-import Page.Play.Guideline as Guideline exposing (Guideline)
 import Page.Play.Judge as Judge exposing (Judge(..))
 import Page.Play.JudgeCounter as JudgeCounter exposing (JudgeCounter)
 import Page.Play.Key as Key
@@ -70,8 +69,10 @@ type alias Model =
     , combo : Combo
     , judgeCounter : JudgeCounter
     , lanes : List Lane
-    , guidelines : List Guideline
     , resultSavingS : ResultSavingS
+
+    -- 小節頭のガイドラインは一旦搭載しないことにしたが、戻せるようコメントアウト対応にしておく
+    -- , guidelines : List Guideline
     }
 
 
@@ -99,14 +100,16 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , combo = Combo.init
               , judgeCounter = JudgeCounter.init
               , lanes = List.map Lane.new allKeyList
-              , guidelines =
-                    Guideline.createGuidelines
-                        { bpm = currentMusicData.bpm
-                        , beatsCountPerMeasure = currentMusicData.beatsCountPerMeasure
-                        , offset = currentMusicData.offset
-                        , fullTime = currentMusicData.fullTime
-                        }
               , resultSavingS = ResultSavingS.init
+
+              -- 小節頭のガイドラインは一旦搭載しないことにしたが、戻せるようコメントアウト対応にしておく
+              --   , guidelines =
+              --         Guideline.createGuidelines
+              --             { bpm = currentMusicData.bpm
+              --             , beatsCountPerMeasure = currentMusicData.beatsCountPerMeasure
+              --             , offset = currentMusicData.offset
+              --             , fullTime = currentMusicData.fullTime
+              --             }
               }
             , Cmd.batch
                 [ MusicData.loadMusicDataByCsv currentMusicData.csvFileName
@@ -129,8 +132,10 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , combo = Combo.init
               , judgeCounter = JudgeCounter.init
               , lanes = List.map Lane.new allKeyList
-              , guidelines = []
               , resultSavingS = ResultSavingS.init
+
+              -- 小節頭のガイドラインは一旦搭載しないことにしたが、戻せるようコメントアウト対応にしておく
+              --   , guidelines = []
               }
             , Cmd.batch
                 [ AudioManager.stopBGM ()
@@ -215,9 +220,10 @@ update msg model =
                 nextJudgeCounter =
                     JudgeCounter.update headNotes model.judgeCounter
 
-                nextGuidelines =
-                    model.guidelines
-                        |> List.map (Guideline.update updatedTime)
+                -- 小節頭のガイドラインは一旦搭載しないことにしたが、戻せるようコメントアウト対応にしておく
+                -- nextGuidelines =
+                --     model.guidelines
+                --         |> List.map (Guideline.update updatedTime)
             in
             ( { model
                 | currentMusicTime = updatedTime
@@ -225,7 +231,9 @@ update msg model =
                 , score = nextScore
                 , combo = nextCombo
                 , judgeCounter = nextJudgeCounter
-                , guidelines = nextGuidelines
+
+                -- 小節頭のガイドラインは一旦搭載しないことにしたが、戻せるようコメントアウト対応にしておく
+                -- , guidelines = nextGuidelines
               }
             , Cmd.batch
                 [ headNotes
@@ -500,7 +508,9 @@ view model =
             [ div
                 [ class "play_contents" ]
                 [ viewLanes model.lanes
-                , viewGuidelines model.currentMusicTime notesSpeed model.guidelines
+
+                -- 小節頭のガイドラインは一旦搭載しないことにしたが、戻せるようコメントアウト対応にしておく
+                -- , viewGuidelines model.currentMusicTime notesSpeed model.guidelines
                 , viewNotes model.currentMusicTime notesSpeed model.allNotes
                 , viewMusicInfo model.currentMusicData
                 , viewDisplayCircle model.currentMusicData model.currentMusicTime model.combo model.score
@@ -540,10 +550,12 @@ viewNotes currentMusicTime notesSpeed allNotes =
         )
 
 
-viewGuidelines : CurrentMusicTime -> NotesSpeed -> List Guideline -> Html msg
-viewGuidelines currentMusicTime notesSpeed guidelines =
-    div [ class "playCenterLine_judgeLine" ]
-        (List.map (Guideline.view currentMusicTime notesSpeed) guidelines)
+
+-- 小節頭のガイドラインは一旦搭載しないことにしたが、戻せるようコメントアウト対応にしておく
+-- viewGuidelines : CurrentMusicTime -> NotesSpeed -> List Guideline -> Html msg
+-- viewGuidelines currentMusicTime notesSpeed guidelines =
+--     div [ class "playCenterLine_judgeLine" ]
+--         (List.map (Guideline.view currentMusicTime notesSpeed) guidelines)
 
 
 viewMusicInfo : MusicData -> Html msg
