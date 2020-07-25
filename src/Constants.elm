@@ -3,6 +3,8 @@ module Constants exposing
     , allModeList
     , allMusicIdList
     , bgmVolumeDefault
+    , comboBonusActivateCombo
+    , comboBonusRate
     , currentModeDefault
     , currentMusicIdDefault
     , goodRange
@@ -70,17 +72,27 @@ goodRange =
 
 perfectScore : Int
 perfectScore =
-    5000
+    5250
 
 
 niceScore : Int
 niceScore =
-    2500
+    2750
 
 
 goodScore : Int
 goodScore =
-    1000
+    1250
+
+
+comboBonusRate : Float
+comboBonusRate =
+    0.13
+
+
+comboBonusActivateCombo : Int
+comboBonusActivateCombo =
+    10
 
 
 currentMusicIdDefault : MusicId

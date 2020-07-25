@@ -15,98 +15,98 @@ import Utils exposing (cmdIf)
 
 
 type Combo
-    = Combo Int ResultCombo
-
-
-type alias ResultCombo =
-    Int
+    = Combo
+        { combo : Int
+        , resultCombo : Int
+        }
 
 
 init : Combo
 init =
-    Combo 0 0
+    Combo
+        { combo = 0
+        , resultCombo = 0
+        }
 
 
 unwrap : Combo -> Int
-unwrap (Combo combo _) =
+unwrap (Combo { combo }) =
     combo
 
 
-toResultCombo : Combo -> ResultCombo
-toResultCombo (Combo _ resultCombo) =
+toResultCombo : Combo -> Int
+toResultCombo (Combo { resultCombo }) =
     resultCombo
 
 
 update : List Note -> Combo -> Combo
-update headNotes (Combo combo resultCombo) =
+update headNotes (Combo { combo, resultCombo }) =
     let
         headNoteJudges =
             List.map Note.headNoteJudge headNotes
 
-        increment =
+        comboIncrement =
             headNoteJudges
-                |> List.map
-                    (\judge ->
-                        case judge of
-                            Perfect ->
-                                1
-
-                            Nice ->
-                                1
-
-                            Good ->
-                                1
-
-                            Lost ->
-                                0
-
-                            Miss ->
-                                0
-
-                            Invalid ->
-                                0
-                    )
+                |> List.map computeComboIncrement
                 |> List.sum
 
         nextCombo =
             if List.member Miss headNoteJudges then
                 -- Missがあったらそれまでのcomboは無効にする
-                increment
+                comboIncrement
 
             else
-                combo + increment
+                combo + comboIncrement
     in
-    Combo nextCombo (updateResultCombo nextCombo resultCombo)
+    Combo
+        { combo = nextCombo
+        , resultCombo = updateResultCombo nextCombo resultCombo
+        }
 
 
 updateKeyDown : Judge -> Combo -> Combo
-updateKeyDown judge (Combo combo resultCombo) =
+updateKeyDown judge (Combo { combo, resultCombo }) =
     let
+        comboIncrement =
+            computeComboIncrement judge
+
         nextCombo =
-            case judge of
-                Perfect ->
-                    combo + 1
+            if judge == Miss then
+                0
 
-                Nice ->
-                    combo + 1
-
-                Good ->
-                    combo + 1
-
-                Lost ->
-                    -- KeyDownでLost判定が出ることはない
-                    combo
-
-                Miss ->
-                    0
-
-                Invalid ->
-                    combo
+            else
+                combo + comboIncrement
     in
-    Combo nextCombo (updateResultCombo nextCombo resultCombo)
+    Combo
+        { combo = nextCombo
+        , resultCombo = updateResultCombo nextCombo resultCombo
+        }
 
 
-updateResultCombo : Int -> ResultCombo -> ResultCombo
+computeComboIncrement : Judge -> Int
+computeComboIncrement judge =
+    case judge of
+        Perfect ->
+            1
+
+        Nice ->
+            1
+
+        Good ->
+            1
+
+        Lost ->
+            -- Lost：Comboが0にはならないが、Combo数は増えない
+            0
+
+        Miss ->
+            0
+
+        Invalid ->
+            0
+
+
+updateResultCombo : Int -> Int -> Int
 updateResultCombo combo resultCombo =
     if combo > resultCombo then
         combo

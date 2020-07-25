@@ -92,8 +92,6 @@ convetUidToUser users maybeBestRecord =
             )
 
 
-isOwnRecord : Maybe BestRecord -> Uid -> Bool
-isOwnRecord maybeBestRecord uid =
-    maybeBestRecord
-        |> Maybe.map (.user >> User.toUid >> (==) uid)
-        |> Maybe.withDefault False
+isOwnRecord : BestRecord -> Uid -> Bool
+isOwnRecord bestRecord uid =
+    User.toUid bestRecord.user == uid

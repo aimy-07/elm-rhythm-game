@@ -272,10 +272,10 @@
 
 .playResultItem_effectText {
   position: absolute;
-  top: 60px;
+  top: 58px;
   right: 0px;
-  color: var(--color-elm-orange);
-  font-size: 10px;
+  color: var(--color-elm-orange-w1);
+  font-size: 12px;
   font-weight: 600;
 }
 

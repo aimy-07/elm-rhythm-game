@@ -1,13 +1,14 @@
 module AllMusicData.MusicData.Csv exposing
     ( CsvData
     , CsvDto
+    , computeMaxBasicScore
     , computeMaxCombo
-    , computeMaxScore
+    , computeMaxComboBonus
     , createAllNotes
     , createNotesPerLane
     )
 
-import Constants exposing (perfectScore)
+import Constants exposing (comboBonusRate, perfectScore)
 import Page.Play.Judge exposing (Judge(..))
 import Page.Play.Key as Key exposing (Key)
 import Page.Play.Note as Note exposing (Note)
@@ -109,14 +110,25 @@ createAllNotes musicData csvData =
         |> List.concat
 
 
-{-| 総スコアの計算
+{-| 総基本スコアの計算
 -}
-computeMaxScore : List Note -> Int
-computeMaxScore notes =
+computeMaxBasicScore : List Note -> Int
+computeMaxBasicScore notes =
     notes
         |> List.map (\note -> 1 + List.length (Note.toLongSubNotes note))
         |> List.sum
         |> (*) perfectScore
+
+
+{-| 総基本コンボボーナススコアの計算
+-}
+computeMaxComboBonus : List Note -> Int
+computeMaxComboBonus notes =
+    notes
+        |> computeMaxBasicScore
+        |> Basics.toFloat
+        |> (*) comboBonusRate
+        |> Basics.floor
 
 
 {-| 総コンボの計算

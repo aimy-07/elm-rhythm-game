@@ -78,11 +78,11 @@
   position: relative;
 }
 
-.homeMusicListItem_rankBox.combo {
+.homeMusicListItem_rankBox.score {
   margin-left: -5px;
 }
 
-.homeMusicListItem_rankBox.score {
+.homeMusicListItem_rankBox.combo {
   margin-left: 12px;
 }
 
@@ -92,11 +92,11 @@
   transform: rotate(45deg);
 }
 
-.homeMusicListItem_rankBoxBack.combo {
+.homeMusicListItem_rankBoxBack.score {
   background-color: var(--color-elm-darkblue);
 }
 
-.homeMusicListItem_rankBoxBack.score {
+.homeMusicListItem_rankBoxBack.combo {
   background-color: var(--color-elm-lightblue);
 }
 

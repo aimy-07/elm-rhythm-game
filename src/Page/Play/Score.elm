@@ -6,77 +6,117 @@ module Page.Play.Score exposing
     , updateKeyDown
     )
 
-import Constants exposing (goodScore, niceScore, perfectScore)
+import Constants exposing (comboBonusActivateCombo, goodScore, niceScore, perfectScore)
 import Page.Play.Judge exposing (Judge(..))
 import Page.Play.Note as Note exposing (Note)
 
 
 type Score
-    = Score Int
+    = Score
+        { basicScore : Int
+        , comboBonus : Float
+        , comboBonusPerNote : Float
+        }
 
 
-init : Score
-init =
-    Score 0
+init : Int -> Int -> Score
+init maxCombo maxComboBonus =
+    Score
+        { basicScore = 0
+        , comboBonus = 0
+        , comboBonusPerNote = Basics.toFloat maxComboBonus / Basics.toFloat (maxCombo - comboBonusActivateCombo + 1)
+        }
 
 
 unwrap : Score -> Int
-unwrap (Score score) =
-    score
+unwrap (Score { basicScore, comboBonus }) =
+    basicScore + Basics.floor comboBonus
 
 
-update : List Note -> Score -> Score
-update headNotes (Score score) =
+update : List Note -> Int -> Score -> Score
+update headNotes combo (Score score) =
     let
         headNoteJudges =
             List.map Note.headNoteJudge headNotes
 
-        increment =
+        scoreIncrement =
             headNoteJudges
-                |> List.map
-                    (\judge ->
-                        case judge of
-                            Perfect ->
-                                perfectScore
+                |> List.map computeBasicScoreIncrement
+                |> List.sum
 
-                            Nice ->
-                                niceScore
-
-                            Good ->
-                                goodScore
-
-                            Lost ->
-                                0
-
-                            Miss ->
-                                0
-
-                            Invalid ->
-                                0
-                    )
+        comboBonusIncrement =
+            headNoteJudges
+                |> List.map (computeComboBonusIncrement score.comboBonusPerNote combo)
                 |> List.sum
     in
-    Score (score + increment)
+    Score
+        { score
+            | basicScore = score.basicScore + scoreIncrement
+            , comboBonus = score.comboBonus + comboBonusIncrement
+        }
 
 
-updateKeyDown : Judge -> Score -> Score
-updateKeyDown judge (Score score) =
+updateKeyDown : Judge -> Int -> Score -> Score
+updateKeyDown judge combo (Score score) =
+    let
+        scoreIncrement =
+            computeBasicScoreIncrement judge
+
+        comboBonusIncrement =
+            computeComboBonusIncrement score.comboBonusPerNote combo judge
+    in
+    Score
+        { score
+            | basicScore = score.basicScore + scoreIncrement
+            , comboBonus = score.comboBonus + comboBonusIncrement
+        }
+
+
+computeBasicScoreIncrement : Judge -> Int
+computeBasicScoreIncrement judge =
     case judge of
         Perfect ->
-            Score (score + perfectScore)
+            perfectScore
 
         Nice ->
-            Score (score + niceScore)
+            niceScore
 
         Good ->
-            Score (score + goodScore)
+            goodScore
 
         Lost ->
-            -- KeyDownでLost判定が出ることはない
-            Score score
+            -- Lost：Comboが0にはならないが、Combo数は増えない
+            0
 
         Miss ->
-            Score score
+            0
 
         Invalid ->
-            Score score
+            0
+
+
+computeComboBonusIncrement : Float -> Int -> Judge -> Float
+computeComboBonusIncrement comboBonusPerNote combo judge =
+    if combo >= comboBonusActivateCombo then
+        case judge of
+            Perfect ->
+                comboBonusPerNote
+
+            Nice ->
+                comboBonusPerNote
+
+            Good ->
+                comboBonusPerNote
+
+            Lost ->
+                -- Lost：Comboが0にはならないが、Combo数は増えない
+                0
+
+            Miss ->
+                0
+
+            Invalid ->
+                0
+
+    else
+        0

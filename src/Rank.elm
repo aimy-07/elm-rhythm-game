@@ -55,19 +55,19 @@ comboBorder max rank =
             max
 
         SS ->
-            Basics.round (Basics.toFloat max * 0.95)
+            Basics.floor (Basics.toFloat max * 0.95)
 
         S ->
-            Basics.round (Basics.toFloat max * 0.9)
+            Basics.floor (Basics.toFloat max * 0.9)
 
         A ->
-            Basics.round (Basics.toFloat max * 0.8)
+            Basics.floor (Basics.toFloat max * 0.8)
 
         B ->
-            Basics.round (Basics.toFloat max * 0.6)
+            Basics.floor (Basics.toFloat max * 0.6)
 
         C ->
-            Basics.round (Basics.toFloat max * 0.3)
+            Basics.floor (Basics.toFloat max * 0.3)
 
         D ->
             0
@@ -107,22 +107,22 @@ scoreBorder : Int -> Rank -> Int
 scoreBorder max rank =
     case rank of
         SSS ->
-            Basics.round (Basics.toFloat max * 0.98)
+            Basics.floor (Basics.toFloat max * 0.98)
 
         SS ->
-            Basics.round (Basics.toFloat max * 0.95)
+            Basics.floor (Basics.toFloat max * 0.95)
 
         S ->
-            Basics.round (Basics.toFloat max * 0.9)
+            Basics.floor (Basics.toFloat max * 0.9)
 
         A ->
-            Basics.round (Basics.toFloat max * 0.8)
+            Basics.floor (Basics.toFloat max * 0.8)
 
         B ->
-            Basics.round (Basics.toFloat max * 0.6)
+            Basics.floor (Basics.toFloat max * 0.6)
 
         C ->
-            Basics.round (Basics.toFloat max * 0.3)
+            Basics.floor (Basics.toFloat max * 0.3)
 
         D ->
             0

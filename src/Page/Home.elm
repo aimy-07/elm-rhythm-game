@@ -626,7 +626,7 @@ viewMusicListItem currentMusicData musicData userPlayRecord =
         scoreRank =
             userPlayRecord
                 |> UserPlayRecord.toBestScore
-                |> Maybe.map (\score -> Rank.newScoreRank score musicData.maxScore)
+                |> Maybe.map (\score -> Rank.newScoreRank score (MusicData.toMaxScore currentMusicData))
                 |> Maybe.withDefault Rank.invalid
     in
     div [ class "homeMusicListItem_container", onClick <| ChangeMusicId musicData.musicId ]
@@ -637,16 +637,16 @@ viewMusicListItem currentMusicData musicData userPlayRecord =
                 [ div [ class "homeMusicListItem_topText" ] [ text musicData.musicName ] ]
             , div [ class "homeMusicListItem_topTail", classIf isSelecting "is-selecting" ] []
             , div
-                [ class "homeMusicListItem_rankBox combo" ]
-                [ div [ class "homeMusicListItem_rankBoxBack combo" ] []
-                , div [ class "homeMusicListItem_rankLabel" ] [ text "COMBO" ]
-                , div [ class "homeMusicListItem_rankText" ] [ text <| Rank.toString comboRank ]
-                ]
-            , div
                 [ class "homeMusicListItem_rankBox score" ]
                 [ div [ class "homeMusicListItem_rankBoxBack score" ] []
                 , div [ class "homeMusicListItem_rankLabel" ] [ text "SCORE" ]
                 , div [ class "homeMusicListItem_rankText" ] [ text <| Rank.toString scoreRank ]
+                ]
+            , div
+                [ class "homeMusicListItem_rankBox combo" ]
+                [ div [ class "homeMusicListItem_rankBoxBack combo" ] []
+                , div [ class "homeMusicListItem_rankLabel" ] [ text "COMBO" ]
+                , div [ class "homeMusicListItem_rankText" ] [ text <| Rank.toString comboRank ]
                 ]
             ]
         , div
@@ -707,7 +707,7 @@ viewCenterAreaRankDetail currentMusicData rank =
         [ text <| Rank.toString rank
         , div
             [ class "homeCenterArea_rankDetailText score" ]
-            [ text <| String.fromInt (Rank.scoreBorder currentMusicData.maxScore rank) ]
+            [ text <| String.fromInt (Rank.scoreBorder (MusicData.toMaxScore currentMusicData) rank) ]
         , div
             [ class "homeCenterArea_rankDetailText combo" ]
             [ text <| String.fromInt (Rank.comboBorder currentMusicData.maxCombo rank) ]
@@ -732,34 +732,40 @@ viewTopRightArea currentMusicData rankingRecords user =
 
         viewRankingItem clsRank maybeRecord =
             let
-                isMe =
-                    RankingRecord.isOwnRecord maybeRecord (User.toUid user)
-
-                userName =
-                    maybeRecord
-                        |> Maybe.map (.user >> User.toName)
-                        |> Maybe.withDefault "---"
-
-                score =
-                    maybeRecord
-                        |> Maybe.map (.score >> String.fromInt)
-                        |> Maybe.withDefault "---"
-
-                viewUserIcon =
-                    maybeRecord
-                        |> Maybe.map (.user >> User.toPictureUrl)
-                        |> Maybe.map (\url -> img [ class "homeTopRight_rankIcon user", class clsRank, src url ] [])
-                        |> Maybe.withDefault (text "")
-
-                rankIconSrc =
-                    "./img/icon_rank_" ++ clsRank ++ ".png"
+                viewRankIcon =
+                    img
+                        [ class "homeTopRight_rankIcon"
+                        , class clsRank
+                        , src <| "./img/icon_rank_" ++ clsRank ++ ".png"
+                        ]
+                        []
             in
-            [ img [ class "homeTopRight_rankIcon", class clsRank, src rankIconSrc ] []
-            , viewUserIcon
-            , div [ class "homeTopRight_userNameText", class clsRank, classIf isMe "is-me" ] [ text userName ]
-            , div [ class "homeTopRight_scoreText", class clsRank ] [ text score ]
-            , div [ class "homeTopRight_line", class clsRank ] []
-            ]
+            case maybeRecord of
+                Just record ->
+                    [ viewRankIcon
+                    , img
+                        [ class "homeTopRight_rankIcon user"
+                        , class clsRank
+                        , src <| User.toPictureUrl record.user
+                        ]
+                        []
+                    , div
+                        [ class "homeTopRight_userNameText"
+                        , class clsRank
+                        , classIf (RankingRecord.isOwnRecord record (User.toUid user)) "is-me"
+                        ]
+                        [ text <| User.toName record.user ]
+                    , div
+                        [ class "homeTopRight_scoreText", class clsRank ]
+                        [ text <| String.fromInt record.score ]
+                    , div [ class "homeTopRight_line", class clsRank ] []
+                    ]
+
+                Nothing ->
+                    [ viewRankIcon
+                    , div [ class "homeTopRight_noDataText", class clsRank ] [ text "No Data" ]
+                    , div [ class "homeTopRight_line", class clsRank ] []
+                    ]
     in
     case maybeRankingRecord of
         Just rankingRecord ->
@@ -777,51 +783,56 @@ viewTopRightArea currentMusicData rankingRecords user =
 viewBottomLeftArea1 : MusicData -> UserPlayRecords -> Html msg
 viewBottomLeftArea1 currentMusicData userPlayRecords =
     let
-        comboRank =
+        maybeBestScore =
             userPlayRecords
                 |> UserPlayRecords.findByCsvFileName currentMusicData.csvFileName
-                |> Maybe.andThen UserPlayRecord.toBestCombo
-                |> Maybe.map (\combo -> Rank.newComboRank combo currentMusicData.maxCombo)
-                |> Maybe.withDefault Rank.invalid
-
-        comboStr =
-            userPlayRecords
-                |> UserPlayRecords.findByCsvFileName currentMusicData.csvFileName
-                |> Maybe.andThen UserPlayRecord.toBestCombo
-                |> Maybe.map String.fromInt
-                |> Maybe.withDefault "---"
+                |> Maybe.andThen UserPlayRecord.toBestScore
     in
-    div [ class "home_bottomLeftArea1", id "home_bottomLeftArea1" ]
-        [ div [ class "homeBottomLeftArea1_label" ] [ text "COMBO" ]
-        , div [ class "homeBottomLeftArea1_rankText" ] [ text <| Rank.toString comboRank ]
-        , div [ class "homeBottomLeftArea1_bestText" ] [ text comboStr ]
-        , div [ class "homeBottomLeftArea1_maxText" ] [ text <| "/ " ++ String.fromInt currentMusicData.maxCombo ]
-        ]
+    case maybeBestScore of
+        Just bestScore ->
+            let
+                rank =
+                    Rank.newScoreRank bestScore (MusicData.toMaxScore currentMusicData)
+            in
+            div [ class "home_bottomLeftArea1", id "home_bottomLeftArea1" ]
+                [ div [ class "homeBottomLeftArea1_label" ] [ text "SCORE" ]
+                , div [ class "homeBottomLeftArea1_rankText" ] [ text <| Rank.toString rank ]
+                , div [ class "homeBottomLeftArea1_bestText" ] [ text <| String.fromInt bestScore ]
+                ]
+
+        Nothing ->
+            div [ class "home_bottomLeftArea1", id "home_bottomLeftArea1" ]
+                [ div [ class "homeBottomLeftArea1_label" ] [ text "SCORE" ]
+                , div [ class "homeBottomLeftArea1_noDataText" ] [ text "NO DATA" ]
+                ]
 
 
 viewBottomLeftArea2 : MusicData -> UserPlayRecords -> Html msg
 viewBottomLeftArea2 currentMusicData userPlayRecords =
     let
-        scoreRank =
+        maybeBestCombo =
             userPlayRecords
                 |> UserPlayRecords.findByCsvFileName currentMusicData.csvFileName
-                |> Maybe.andThen UserPlayRecord.toBestScore
-                |> Maybe.map (\score -> Rank.newScoreRank score currentMusicData.maxScore)
-                |> Maybe.withDefault Rank.invalid
-
-        scoreStr =
-            userPlayRecords
-                |> UserPlayRecords.findByCsvFileName currentMusicData.csvFileName
-                |> Maybe.andThen UserPlayRecord.toBestScore
-                |> Maybe.map String.fromInt
-                |> Maybe.withDefault "---"
+                |> Maybe.andThen UserPlayRecord.toBestCombo
     in
-    div [ class "home_bottomLeftArea2", id "home_bottomLeftArea2" ]
-        [ div [ class "homeBottomLeftArea2_label" ] [ text "SCORE" ]
-        , div [ class "homeBottomLeftArea2_rankText" ] [ text <| Rank.toString scoreRank ]
-        , div [ class "homeBottomLeftArea2_bestText" ] [ text scoreStr ]
-        , div [ class "homeBottomLeftArea2_maxText" ] [ text <| "/ " ++ String.fromInt currentMusicData.maxScore ]
-        ]
+    case maybeBestCombo of
+        Just bestCombo ->
+            let
+                rank =
+                    Rank.newComboRank bestCombo currentMusicData.maxCombo
+            in
+            div [ class "home_bottomLeftArea2", id "home_bottomLeftArea2" ]
+                [ div [ class "homeBottomLeftArea2_label" ] [ text "COMBO" ]
+                , div [ class "homeBottomLeftArea2_rankText" ] [ text <| Rank.toString rank ]
+                , div [ class "homeBottomLeftArea2_bestText" ] [ text <| String.fromInt bestCombo ]
+                , div [ class "homeBottomLeftArea2_maxText" ] [ text <| "/ " ++ String.fromInt currentMusicData.maxCombo ]
+                ]
+
+        Nothing ->
+            div [ class "home_bottomLeftArea2", id "home_bottomLeftArea2" ]
+                [ div [ class "homeBottomLeftArea2_label" ] [ text "COMBO" ]
+                , div [ class "homeBottomLeftArea2_noDataText" ] [ text "NO DATA" ]
+                ]
 
 
 viewBottomRightArea : MusicData -> Html Msg

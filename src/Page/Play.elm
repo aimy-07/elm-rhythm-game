@@ -96,7 +96,7 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , playingS = PlayingS.init
               , allNotes = AllNotes.empty
               , currentMusicTime = 0
-              , score = Score.init
+              , score = Score.init currentMusicData.maxCombo currentMusicData.maxComboBonus
               , combo = Combo.init
               , judgeCounter = JudgeCounter.init
               , lanes = List.map Lane.new allKeyList
@@ -128,7 +128,7 @@ init session allMusicData audioLoadingS maybeCsvFileName maybeUserSetting =
               , playingS = PlayingS.init
               , allNotes = AllNotes.empty
               , currentMusicTime = 0
-              , score = Score.init
+              , score = Score.init 0 0
               , combo = Combo.init
               , judgeCounter = JudgeCounter.init
               , lanes = List.map Lane.new allKeyList
@@ -212,7 +212,7 @@ update msg model =
                     AllNotes.headNotes updatedNotes
 
                 nextScore =
-                    Score.update headNotes model.score
+                    Score.update headNotes (Combo.unwrap nextCombo) model.score
 
                 nextCombo =
                     Combo.update headNotes model.combo
@@ -281,7 +281,7 @@ update msg model =
                                     |> AllNotes.removeDisabledNotes
 
                             nextScore =
-                                Score.updateKeyDown judge model.score
+                                Score.updateKeyDown judge (Combo.unwrap nextCombo) model.score
 
                             nextCombo =
                                 Combo.updateKeyDown judge model.combo
@@ -662,7 +662,7 @@ viewResult musicData resultSavingS judgeCounter =
                     Rank.newComboRank (Result.toCombo result) musicData.maxCombo
 
                 scoreRank =
-                    Rank.newScoreRank (Result.toScore result) musicData.maxScore
+                    Rank.newScoreRank (Result.toScore result) (MusicData.toMaxScore musicData)
 
                 tweetTextContent =
                     tweetText
@@ -676,34 +676,6 @@ viewResult musicData resultSavingS judgeCounter =
                         [ div [ class "playResultNotesDetail_box" ] []
                         , div [ class "playResultNotesDetail_labelText" ] [ text <| Judge.toString judge ]
                         , div [ class "playResultNotesDetail_numText" ] [ text <| String.fromInt count ]
-                        ]
-
-                viewComboEffectText =
-                    div [ class "playResultItem_effectText" ]
-                        [ text "自己ベスト更新！"
-                            |> viewIf (Result.isBestCombo result)
-                        , text "フルコンボ！"
-                            |> viewIf (Result.isFullCombo result)
-                        ]
-
-                viewScoreEffectText =
-                    div [ class "playResultItem_effectText" ]
-                        [ text "自己ベスト更新！"
-                            |> viewIf (Result.isBestScore result)
-                        ]
-
-                viewResultItem labelText rank viewEffectText result_ max =
-                    div [ class "playResultItem_container" ]
-                        [ div [ class "playResultItem_box" ] []
-                        , div [ class "playResultItem_labelText" ] [ text labelText ]
-                        , div [ class "playResultItem_rankText" ] [ text <| Rank.toString rank ]
-                        , viewEffectText
-                        , div
-                            [ class "playResultItem_textContainer" ]
-                            [ span [ class "playResultItem_resultText" ] [ text <| String.fromInt result_ ]
-                            , span [ class "playResultItem_maxText" ] [ text <| " / " ++ String.fromInt max ]
-                            ]
-                        , div [ class "playResultItem_line" ] []
                         ]
             in
             div [ class "play_overview" ]
@@ -739,8 +711,30 @@ viewResult musicData resultSavingS judgeCounter =
                             , viewNotesDetail Lost (JudgeCounter.toLost judgeCounter)
                             , viewNotesDetail Miss (JudgeCounter.toMiss judgeCounter)
                             ]
-                        , viewResultItem "COMBO" comboRank viewComboEffectText (Result.toCombo result) musicData.maxCombo
-                        , viewResultItem "SCORE" scoreRank viewScoreEffectText (Result.toScore result) musicData.maxScore
+                        , div [ class "playResultItem_container" ]
+                            [ div [ class "playResultItem_box" ] []
+                            , div [ class "playResultItem_labelText" ] [ text "COMBO" ]
+                            , div [ class "playResultItem_rankText" ] [ text <| Rank.toString comboRank ]
+                            , div [ class "playResultItem_effectText" ] [ text "★FULL COMBO★" ]
+                                |> viewIf (Result.isFullCombo result)
+                            , div
+                                [ class "playResultItem_textContainer" ]
+                                [ span [ class "playResultItem_resultText" ] [ text <| String.fromInt (Result.toCombo result) ]
+                                , span [ class "playResultItem_maxText" ] [ text <| " / " ++ String.fromInt musicData.maxCombo ]
+                                ]
+                            , div [ class "playResultItem_line" ] []
+                            ]
+                        , div [ class "playResultItem_container" ]
+                            [ div [ class "playResultItem_box" ] []
+                            , div [ class "playResultItem_labelText" ] [ text "SCORE" ]
+                            , div [ class "playResultItem_rankText" ] [ text <| Rank.toString scoreRank ]
+                            , div [ class "playResultItem_effectText" ] [ text "★HIGH SCORE★" ]
+                                |> viewIf (Result.isBestScore result)
+                            , div
+                                [ class "playResultItem_textContainer" ]
+                                [ span [ class "playResultItem_resultText" ] [ text <| String.fromInt (Result.toScore result) ] ]
+                            , div [ class "playResultItem_line" ] []
+                            ]
 
                         -- 戻るボタンでプレイ画面に戻ることを許容する
                         , a

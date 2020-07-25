@@ -58,7 +58,7 @@ isLoadedCsv allMusicData =
     toMusicDataDict allMusicData
         |> Dict.values
         |> List.sortBy .order
-        |> List.map (\{ maxCombo, maxScore } -> maxCombo == 0 || maxScore == 0)
+        |> List.map (\{ maxCombo } -> maxCombo == 0)
         |> List.member True
         |> not
 

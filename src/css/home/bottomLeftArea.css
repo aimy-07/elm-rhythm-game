@@ -16,7 +16,7 @@
 
 .homeBottomLeftArea1_label {
   position: absolute;
-  top: -55px;
+  top: -42px;
   left: -120px;
   color: white;
   font-size: 14px;
@@ -30,30 +30,31 @@
   left: -120px;
   width: 100px;
   color: white;
-  font-size: 40px;
+  font-size: 38px;
   text-align: center;
   font-family: "fortunaDot";
 }
 
 .homeBottomLeftArea1_bestText {
   position: absolute;
-  top: 30px;
+  top: 23px;
   left: -120px;
+  width: 75px;
   color: white;
   font-size: 16px;
-  text-align: start;
+  text-align: end;
   font-family: "droidSansMono";
 }
 
-.homeBottomLeftArea1_maxText {
+.homeBottomLeftArea1_noDataText {
   position: absolute;
-  top: 50px;
+  top: -6px;
   left: -120px;
+  width: 100px;
   color: white;
-  font-size: 12px;
-  width: 52px;
-  text-align: end;
-  font-family: "droidSansMono";
+  font-size: 20px;
+  text-align: start;
+  font-family: "fortunaDot";
 }
 
 /* -------------------------------
@@ -74,8 +75,8 @@
 
 .homeBottomLeftArea2_label {
   position: absolute;
-  top: 30px;
-  left: -24px;
+  top: 34px;
+  left: -26px;
   color: white;
   font-size: 14px;
   font-weight: 600;
@@ -112,6 +113,17 @@
   font-size: 12px;
   text-align: start;
   font-family: "droidSansMono";
+}
+
+.homeBottomLeftArea2_noDataText {
+  position: absolute;
+  top: 70px;
+  left: -49px;
+  width: 100px;
+  color: white;
+  font-size: 20px;
+  text-align: center;
+  font-family: "fortunaDot";
 }
 
 .home_bottomLeftArea1.playAnim {

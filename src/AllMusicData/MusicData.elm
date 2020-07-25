@@ -7,6 +7,7 @@ port module AllMusicData.MusicData exposing
     , loadedMusicDataByCsv
     , loadedMusicDataByJson
     , newFromJson
+    , toMaxScore
     , toStringTime
     , updateFromCsv
     )
@@ -30,7 +31,8 @@ type alias MusicData =
     , beatsCountPerMeasure : Int
     , offset : Float
     , maxCombo : Int
-    , maxScore : Int
+    , maxBasicScore : Int
+    , maxComboBonus : Int
     , order : Int
     }
 
@@ -77,7 +79,8 @@ newFromJson jsonDto mode =
     , beatsCountPerMeasure = jsonDto.beatsCountPerMeasure
     , offset = jsonDto.offset
     , maxCombo = 0
-    , maxScore = 0
+    , maxBasicScore = 0
+    , maxComboBonus = 0
     , order = jsonDto.order
     }
 
@@ -94,14 +97,13 @@ updateFromCsv csvData maybeMusicData =
                         , offset = musicData.offset
                         }
                         csvData
-
-                maxCombo =
-                    Csv.computeMaxCombo allNotes
-
-                maxScore =
-                    Csv.computeMaxScore allNotes
             in
-            Just { musicData | maxCombo = maxCombo, maxScore = maxScore }
+            Just
+                { musicData
+                    | maxCombo = Csv.computeMaxCombo allNotes
+                    , maxBasicScore = Csv.computeMaxBasicScore allNotes
+                    , maxComboBonus = Csv.computeMaxComboBonus allNotes
+                }
 
         Nothing ->
             maybeMusicData
@@ -120,9 +122,15 @@ empty =
     , beatsCountPerMeasure = 0
     , offset = 0
     , maxCombo = 0
-    , maxScore = 0
+    , maxBasicScore = 0
+    , maxComboBonus = 0
     , order = -1
     }
+
+
+toMaxScore : MusicData -> Int
+toMaxScore { maxBasicScore, maxComboBonus } =
+    maxBasicScore + maxComboBonus
 
 
 toStringTime : Float -> String
